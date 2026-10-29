@@ -79,40 +79,40 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     return (
       <div 
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 bg-zinc-900 border border-emerald-500/50 shadow-2xl shadow-emerald-950/50 text-white px-4 py-2.5 rounded-full cursor-pointer animate-pulse transition hover:scale-105"
+        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 bg-white dark:bg-zinc-900 border border-emerald-500 shadow-2xl text-slate-900 dark:text-white px-4 py-2.5 rounded-full cursor-pointer transition hover:scale-105"
       >
         <span className="relative flex h-3 w-3">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
         </span>
-        <span className="font-mono font-bold text-lg text-emerald-400">{formattedTime}</span>
-        <span className="text-xs text-zinc-400">Отдых</span>
+        <span className="font-mono font-bold text-lg text-emerald-600 dark:text-emerald-400">{formattedTime}</span>
+        <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Отдых</span>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 p-4 sm:p-6 bg-gradient-to-t from-black via-zinc-950/95 to-transparent backdrop-blur-md">
-      <div className="max-w-md mx-auto bg-zinc-900/95 border border-zinc-700/60 rounded-2xl p-4 shadow-2xl shadow-black/80">
+    <div className="fixed inset-x-0 bottom-0 z-50 p-4 sm:p-6 bg-gradient-to-t from-slate-900/60 via-slate-900/20 dark:from-black dark:via-zinc-950/95 to-transparent backdrop-blur-md">
+      <div className="max-w-md mx-auto bg-white dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-700/60 rounded-3xl p-4 shadow-2xl">
         
         {/* Header bar */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-emerald-400 animate-bounce" />
-            <span className="text-xs font-semibold tracking-wider uppercase text-zinc-400">
+            <Bell className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-bounce" />
+            <span className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-zinc-400">
               Таймер отдыха между подходами
             </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMinimized(true)}
-              className="text-xs px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition"
+              className="text-xs px-2.5 py-1 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-lg transition"
             >
               Свернуть
             </button>
             <button
               onClick={onClose}
-              className="p-1 text-zinc-400 hover:text-white rounded-lg transition"
+              className="p-1 text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-lg transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -120,20 +120,20 @@ export const RestTimer: React.FC<RestTimerProps> = ({
         </div>
 
         {/* Big Digital Countdown & Progress Bar */}
-        <div className="relative overflow-hidden bg-black/60 rounded-xl p-4 mb-3 border border-zinc-800/80 text-center">
+        <div className="relative overflow-hidden bg-slate-100 dark:bg-black/60 rounded-2xl p-4 mb-3 border border-slate-200 dark:border-zinc-800/80 text-center">
           {/* Progress bar background fill */}
           <div 
-            className="absolute left-0 top-0 bottom-0 bg-emerald-950/40 border-r border-emerald-500/30 transition-all duration-1000 ease-linear"
+            className="absolute left-0 top-0 bottom-0 bg-emerald-200/50 dark:bg-emerald-950/40 border-r border-emerald-500/30 transition-all duration-1000 ease-linear"
             style={{ width: `${progressPercent}%` }}
           />
           
           <div className="relative z-10 flex flex-col items-center justify-center">
             <div className={`font-mono font-black tracking-tight text-5xl transition ${
-              timeLeft <= 5 ? 'text-red-400 scale-105' : 'text-emerald-400'
+              timeLeft <= 5 ? 'text-red-500 scale-105' : 'text-emerald-600 dark:text-emerald-400'
             }`}>
               {formattedTime}
             </div>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
               {timeLeft <= 0 ? 'Время вышло! Начинайте подход 🔥' : 'Восстановление гликогена и ЦНС'}
             </p>
           </div>
@@ -144,7 +144,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           {/* Minus 15s */}
           <button
             onClick={() => addTime(-15)}
-            className="flex-1 py-2 px-1 text-xs font-semibold bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition"
+            className="flex-1 py-2 px-1 text-xs font-semibold bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition"
           >
             <Minus className="w-3.5 h-3.5" /> 15с
           </button>
@@ -152,10 +152,10 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           {/* Play/Pause */}
           <button
             onClick={() => setIsRunning(!isRunning)}
-            className={`flex-1 py-2.5 px-3 font-semibold text-sm rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition shadow-lg ${
+            className={`flex-1 py-2.5 px-3 font-semibold text-sm rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition shadow-sm ${
               isRunning 
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30' 
-                : 'bg-emerald-500 text-black font-bold hover:bg-emerald-400'
+                ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40' 
+                : 'bg-emerald-500 text-white dark:text-black font-bold hover:bg-emerald-400'
             }`}
           >
             {isRunning ? (
@@ -172,7 +172,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           {/* Plus 30s */}
           <button
             onClick={() => addTime(30)}
-            className="flex-1 py-2 px-1 text-xs font-semibold bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition"
+            className="flex-1 py-2 px-1 text-xs font-semibold bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition"
           >
             <Plus className="w-3.5 h-3.5" /> 30с
           </button>
@@ -181,7 +181,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           <button
             onClick={resetTimer}
             title="Сбросить таймер"
-            className="p-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl active:scale-95 transition"
+            className="p-2.5 bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-400 rounded-xl active:scale-95 transition"
           >
             <RotateCcw className="w-4 h-4" />
           </button>

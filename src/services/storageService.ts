@@ -13,7 +13,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   vibrationEnabled: true,
   defaultRestSeconds: 90,
   barbellWeightKg: 20,
-  unit: 'kg'
+  unit: 'kg',
+  theme: 'light',
+  currentWeek: 'A'
 };
 
 export const storageService = {
@@ -21,7 +23,11 @@ export const storageService = {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
       if (data) {
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        // If templates lack weekVariant (v1 old version), refresh to new v2 templates
+        if (Array.isArray(parsed) && parsed.some(t => t.weekVariant)) {
+          return parsed;
+        }
       }
     } catch {
       console.warn('Failed to parse templates from storage');

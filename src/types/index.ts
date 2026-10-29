@@ -1,5 +1,15 @@
 export type MuscleCategory = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';
 
+export type EquipmentType = 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'bodyweight';
+
+export interface ExerciseTechniqueGuide {
+  setup: string;        // Исходное положение
+  execution: string;    // Движение и сокращение
+  breathing: string;    // Вдох / выдох
+  mistakes: string[];   // Частые ошибки
+  primaryMuscles: string;
+}
+
 export interface WorkoutSet {
   id: string;
   setNumber: number;
@@ -35,6 +45,11 @@ export interface Exercise {
   id: string;
   name: string;
   category: MuscleCategory;
+  equipment?: EquipmentType;
+  animationType?: string; // key for animated biomechanics visual
+  technique?: ExerciseTechniqueGuide;
+  alternatives?: string[]; // IDs of swap exercises
+  weekVariant?: 'A' | 'B' | 'both';
   targetSets: number;    // e.g. 3
   minReps: number;       // e.g. 8
   maxReps: number;       // e.g. 12
@@ -50,6 +65,7 @@ export interface WorkoutTemplate {
   name: string;
   description: string;
   icon?: string;
+  weekVariant?: 'A' | 'B' | 'all';
   exercises: Exercise[];
 }
 
@@ -76,6 +92,10 @@ export interface ActiveExerciseSession {
   exerciseId: string;
   name: string;
   category: MuscleCategory;
+  equipment?: EquipmentType;
+  animationType?: string;
+  technique?: ExerciseTechniqueGuide;
+  alternatives?: string[];
   targetSets: number;
   minReps: number;
   maxReps: number;
@@ -119,4 +139,6 @@ export interface AppSettings {
   defaultRestSeconds: number;
   barbellWeightKg: number; // default 20 kg
   unit: 'kg' | 'lbs';
+  theme: 'light' | 'dark';
+  currentWeek: 'A' | 'B';
 }

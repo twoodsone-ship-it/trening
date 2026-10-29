@@ -10,7 +10,10 @@ import {
   ShieldAlert, 
   Check, 
   Dumbbell,
-  Settings
+  Settings,
+  Sun,
+  Moon,
+  Repeat
 } from 'lucide-react';
 import { AppSettings } from '../types';
 import { storageService } from '../services/storageService';
@@ -78,18 +81,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in text-zinc-100">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-2xl p-5 sm:p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-zinc-100">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl p-5 sm:p-6 shadow-2xl">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-zinc-800">
           <div className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-lg text-white">Настройки IronForge</h3>
+            <Settings className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Настройки IronForge</h3>
           </div>
           <button 
             onClick={onClose}
-            className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+            className="p-1 text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -98,23 +101,90 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Settings list */}
         <div className="my-5 space-y-4">
           
+          {/* Theme Selector (Light vs Dark) */}
+          <div className="bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200">Тема оформления</span>
+              <span className="text-xs text-slate-500 font-medium">
+                {settings.theme === 'light' ? 'Светлая' : 'Тёмная OLED'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onUpdateSettings({ ...settings, theme: 'light' })}
+                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                  settings.theme === 'light'
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800'
+                }`}
+              >
+                <Sun className="w-4 h-4" /> ☀️ Светлая
+              </button>
+              <button
+                onClick={() => onUpdateSettings({ ...settings, theme: 'dark' })}
+                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                  settings.theme === 'dark'
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800'
+                }`}
+              >
+                <Moon className="w-4 h-4" /> 🌙 Тёмная
+              </button>
+            </div>
+          </div>
+
+          {/* Weekly Rotation Option */}
+          <div className="bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200">Текущая неделя ротации</span>
+              </div>
+              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                Неделя {settings.currentWeek || 'A'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onUpdateSettings({ ...settings, currentWeek: 'A' })}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition ${
+                  settings.currentWeek === 'A'
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800'
+                }`}
+              >
+                Неделя 1 (Вариант А)
+              </button>
+              <button
+                onClick={() => onUpdateSettings({ ...settings, currentWeek: 'B' })}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition ${
+                  settings.currentWeek === 'B'
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800'
+                }`}
+              >
+                Неделя 2 (Вариант Б)
+              </button>
+            </div>
+          </div>
+
           {/* Sound Toggle */}
-          <div className="flex items-center justify-between bg-zinc-950 p-3.5 rounded-xl border border-zinc-800">
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
               {settings.soundEnabled ? (
-                <Volume2 className="w-5 h-5 text-emerald-400" />
+                <Volume2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <VolumeX className="w-5 h-5 text-zinc-500" />
+                <VolumeX className="w-5 h-5 text-slate-400" />
               )}
               <div>
-                <span className="font-semibold text-sm text-zinc-200 block">Звуки таймера</span>
-                <span className="text-xs text-zinc-500">Сигнал окончания отдыха и обратный отсчет</span>
+                <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200 block">Звуки таймера</span>
+                <span className="text-xs text-slate-500">Сигнал окончания отдыха (Web Audio)</span>
               </div>
             </div>
             <button
               onClick={() => onUpdateSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
               className={`w-12 h-6 rounded-full transition relative ${
-                settings.soundEnabled ? 'bg-emerald-500' : 'bg-zinc-800'
+                settings.soundEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-800'
               }`}
             >
               <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${
@@ -124,18 +194,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           {/* Vibration Toggle */}
-          <div className="flex items-center justify-between bg-zinc-950 p-3.5 rounded-xl border border-zinc-800">
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
-              <Smartphone className="w-5 h-5 text-emerald-400" />
+              <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               <div>
-                <span className="font-semibold text-sm text-zinc-200 block">Вибрация (Haptic)</span>
-                <span className="text-xs text-zinc-500">Вибро-оповещения в кармане во время отдыха</span>
+                <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200 block">Вибрация (Haptic)</span>
+                <span className="text-xs text-slate-500">Вибро-оповещения в кармане</span>
               </div>
             </div>
             <button
               onClick={() => onUpdateSettings({ ...settings, vibrationEnabled: !settings.vibrationEnabled })}
               className={`w-12 h-6 rounded-full transition relative ${
-                settings.vibrationEnabled ? 'bg-emerald-500' : 'bg-zinc-800'
+                settings.vibrationEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-800'
               }`}
             >
               <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${
@@ -145,20 +215,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           {/* Barbell Weight default */}
-          <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-2">
+          <div className="bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-sm text-zinc-200">Вес грифа по умолчанию</span>
-              <span className="font-mono text-xs text-emerald-400 font-bold">{settings.barbellWeightKg} кг</span>
+              <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200">Вес грифа по умолчанию</span>
+              <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">{settings.barbellWeightKg} кг</span>
             </div>
             <div className="flex gap-2">
               {[20, 15, 10].map(w => (
                 <button
                   key={w}
                   onClick={() => onUpdateSettings({ ...settings, barbellWeightKg: w })}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition ${
                     settings.barbellWeightKg === w
-                      ? 'bg-emerald-500 text-black font-bold'
-                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      ? 'bg-emerald-500 text-white font-bold'
+                      : 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700'
                   }`}
                 >
                   {w} кг
@@ -168,22 +238,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           {/* Backup / Restore section */}
-          <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 block">
+          <div className="bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 block">
               Резервное копирование (Offline JSON)
             </span>
             <div className="flex gap-2">
               <button
                 onClick={handleExport}
-                className="flex-1 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition"
+                className="flex-1 py-2 px-3 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 dark:border-zinc-700 transition"
               >
-                <Download className="w-4 h-4 text-emerald-400" /> Экспорт
+                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Экспорт
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition"
+                className="flex-1 py-2 px-3 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 dark:border-zinc-700 transition"
               >
-                <Upload className="w-4 h-4 text-blue-400" /> Импорт
+                <Upload className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Импорт
               </button>
               <input
                 ref={fileInputRef}
@@ -194,7 +264,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </div>
             {importStatus && (
-              <p className="text-xs text-emerald-400 text-center font-medium">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
                 {importStatus}
               </p>
             )}
@@ -203,7 +273,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Factory Reset */}
           <button
             onClick={handleReset}
-            className="w-full py-2.5 text-xs font-semibold text-red-400 hover:text-red-300 bg-red-950/20 hover:bg-red-950/40 border border-red-900/40 rounded-xl flex items-center justify-center gap-2 transition"
+            className="w-full py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-xl flex items-center justify-center gap-2 transition"
           >
             <RotateCcw className="w-4 h-4" /> Сбросить данные к заводским
           </button>

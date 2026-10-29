@@ -38,11 +38,21 @@ export const App: React.FC = () => {
   // Settings Modal State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // Sync theme class to document element
+  useEffect(() => {
+    if (settings.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [settings.theme]);
+
   // Load initial data
   const loadData = () => {
     setTemplates(storageService.getTemplates());
     setHistory(storageService.getHistory());
-    setSettings(storageService.getSettings());
+    const currentSettings = storageService.getSettings();
+    setSettings(currentSettings);
 
     const savedActive = storageService.getActiveWorkout();
     if (savedActive) {
@@ -90,6 +100,10 @@ export const App: React.FC = () => {
         exerciseId: ex.id,
         name: ex.name,
         category: ex.category,
+        equipment: ex.equipment,
+        animationType: ex.animationType,
+        technique: ex.technique,
+        alternatives: ex.alternatives,
         targetSets: ex.targetSets,
         minReps: ex.minReps,
         maxReps: ex.maxReps,
@@ -151,8 +165,14 @@ export const App: React.FC = () => {
     storageService.saveTemplates(newTemplates);
   };
 
+  const handleChangeWeek = (week: 'A' | 'B') => {
+    const updated = { ...settings, currentWeek: week };
+    setSettings(updated);
+    storageService.saveSettings(updated);
+  };
+
   return (
-    <div className="min-h-screen bg-gym-dark text-zinc-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-slate-50 dark:bg-gym-dark text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
       
       {/* PWA installation prompt */}
       <PWAInstallBanner />
@@ -177,6 +197,8 @@ export const App: React.FC = () => {
             {activeTab === 'templates' && (
               <WorkoutTemplateList
                 templates={templates}
+                currentWeek={settings.currentWeek || 'A'}
+                onChangeWeek={handleChangeWeek}
                 onStartWorkout={handleStartWorkout}
                 onUpdateTemplate={handleUpdateTemplate}
                 onCreateTemplate={handleCreateTemplate}

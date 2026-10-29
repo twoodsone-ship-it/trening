@@ -1,23 +1,59 @@
-import { WorkoutTemplate } from '../types';
+import { WorkoutTemplate, Exercise } from '../types';
+import { EXERCISE_CATALOG } from './exerciseCatalog';
+
+function createExerciseFromCatalog(
+  id: string,
+  overrides?: Partial<Exercise>
+): Exercise {
+  const item = EXERCISE_CATALOG[id];
+  if (!item) {
+    return {
+      id,
+      name: overrides?.name || 'Упражнение',
+      category: overrides?.category || 'Chest',
+      equipment: overrides?.equipment || 'barbell',
+      animationType: overrides?.animationType || 'bench-press',
+      targetSets: overrides?.targetSets || 3,
+      minReps: overrides?.minReps || 8,
+      maxReps: overrides?.maxReps || 12,
+      weightStep: overrides?.weightStep || 2.5,
+      currentWeight: overrides?.currentWeight || 50,
+      restSeconds: overrides?.restSeconds || 90,
+      history: [],
+      ...overrides
+    };
+  }
+
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    equipment: item.equipment,
+    animationType: item.animationType,
+    technique: item.technique,
+    alternatives: item.alternatives,
+    targetSets: overrides?.targetSets || item.defaultSets,
+    minReps: overrides?.minReps || item.minReps,
+    maxReps: overrides?.maxReps || item.maxReps,
+    weightStep: overrides?.weightStep || item.weightStep,
+    currentWeight: overrides?.currentWeight !== undefined ? overrides.currentWeight : item.defaultWeight,
+    restSeconds: overrides?.restSeconds || item.restSeconds,
+    notes: overrides?.notes,
+    history: overrides?.history || []
+  };
+}
 
 export const DEFAULT_TEMPLATES: WorkoutTemplate[] = [
+  // --- НЕДЕЛЯ 1 (ВАРИАНТ A) ---
   {
-    id: 'push-workout',
-    name: 'Push (Жим: Грудь, Плечи, Трицепс)',
-    description: 'Фокус на жимовых движениях с акцентом на грудные и плечевой пояс.',
+    id: 'push-workout-a',
+    name: 'Push A: Жим (Неделя 1: Базовая штанга)',
+    description: 'Фокус на базовом жиме штанги, армейском жиме и жиме гантелей под углом.',
     icon: 'Flame',
+    weekVariant: 'A',
     exercises: [
-      {
-        id: 'bench-press',
-        name: 'Жим штанги лёжа',
-        category: 'Chest',
-        targetSets: 3,
-        minReps: 8,
-        maxReps: 12,
-        weightStep: 2.5,
+      createExerciseFromCatalog('bench-press', {
         currentWeight: 75,
-        restSeconds: 120,
-        notes: 'Лопатки сведены, ноги упираются в пол, пауза в нижней точке.',
         history: [
           {
             id: 'demo-h1',
@@ -36,205 +72,80 @@ export const DEFAULT_TEMPLATES: WorkoutTemplate[] = [
             estimated1RM: 101.5
           }
         ]
-      },
-      {
-        id: 'overhead-press',
-        name: 'Армейский жим стоя (OHP)',
-        category: 'Shoulders',
-        targetSets: 3,
-        minReps: 8,
-        maxReps: 12,
-        weightStep: 2.5,
-        currentWeight: 42.5,
-        restSeconds: 90,
-        notes: 'Пресс и ягодицы напряжены, траектория ровная вверх.',
-        history: []
-      },
-      {
-        id: 'incline-db-press',
-        name: 'Жим гантелей на наклонной скамье',
-        category: 'Chest',
-        targetSets: 3,
-        minReps: 10,
-        maxReps: 14,
-        weightStep: 2,
-        currentWeight: 24,
-        restSeconds: 90,
-        notes: 'Угол скамьи 30 градусов.',
-        history: []
-      },
-      {
-        id: 'lateral-raises',
-        name: 'Махи гантелями в стороны',
-        category: 'Shoulders',
-        targetSets: 3,
-        minReps: 12,
-        maxReps: 16,
-        weightStep: 1,
-        currentWeight: 10,
-        restSeconds: 60,
-        notes: 'Контролируйте движение без читинга.',
-        history: []
-      },
-      {
-        id: 'tricep-pushdown',
-        name: 'Разгибания на трицепс на блоке',
-        category: 'Arms',
-        targetSets: 3,
-        minReps: 10,
-        maxReps: 15,
-        weightStep: 2.5,
-        currentWeight: 30,
-        restSeconds: 60,
-        notes: 'Локти зафиксированы по бокам.',
-        history: []
-      }
+      }),
+      createExerciseFromCatalog('overhead-press', { currentWeight: 42.5 }),
+      createExerciseFromCatalog('incline-db-press', { currentWeight: 24 }),
+      createExerciseFromCatalog('lateral-raises', { currentWeight: 10 }),
+      createExerciseFromCatalog('tricep-pushdown', { currentWeight: 30 })
     ]
   },
   {
-    id: 'pull-workout',
-    name: 'Pull (Тяга: Спина, Задняя дельта, Бицепс)',
-    description: 'Развитие ширины и толщины спины, силы хвата и бицепсов.',
+    id: 'push-workout-b',
+    name: 'Push B: Жим (Неделя 2: Гантели & Хаммер)',
+    description: 'Ротация: акцент на жим гантелей, тренажер Хаммер и отжимания на брусьях.',
+    icon: 'Flame',
+    weekVariant: 'B',
+    exercises: [
+      createExerciseFromCatalog('db-bench-press', { currentWeight: 28 }),
+      createExerciseFromCatalog('hammer-chest-press', { currentWeight: 65 }),
+      createExerciseFromCatalog('seated-db-press', { currentWeight: 20 }),
+      createExerciseFromCatalog('dips-chest', { currentWeight: 0, minReps: 8, maxReps: 12 }),
+      createExerciseFromCatalog('tricep-pushdown', { currentWeight: 32.5 })
+    ]
+  },
+
+  // --- СПИНА И БИЦЕПС ---
+  {
+    id: 'pull-workout-a',
+    name: 'Pull A: Тяга (Неделя 1: Блоки & Штанга)',
+    description: 'Тяга верхнего блока широким хватом, тяга штанги в наклоне и бицепс.',
     icon: 'TrendingUp',
+    weekVariant: 'A',
     exercises: [
-      {
-        id: 'lat-pulldown',
-        name: 'Тяга верхнего блока к груди',
-        category: 'Back',
-        targetSets: 3,
-        minReps: 8,
-        maxReps: 12,
-        weightStep: 2.5,
-        currentWeight: 65,
-        restSeconds: 90,
-        notes: 'Тяните локтями вниз, прожимайте широчайшие.',
-        history: []
-      },
-      {
-        id: 'barbell-row',
-        name: 'Тяга штанги в наклоне',
-        category: 'Back',
-        targetSets: 3,
-        minReps: 8,
-        maxReps: 12,
-        weightStep: 2.5,
-        currentWeight: 60,
-        restSeconds: 120,
-        notes: 'Спина нейтральная, наклон 45-60 градусов.',
-        history: []
-      },
-      {
-        id: 'seated-cable-row',
-        name: 'Горизонтальная тяга к поясу',
-        category: 'Back',
-        targetSets: 3,
-        minReps: 10,
-        maxReps: 14,
-        weightStep: 2.5,
-        currentWeight: 50,
-        restSeconds: 75,
-        notes: 'Полное сведение лопаток.',
-        history: []
-      },
-      {
-        id: 'face-pulls',
-        name: 'Face Pulls (Тяга канатов к лицу)',
-        category: 'Shoulders',
-        targetSets: 3,
-        minReps: 12,
-        maxReps: 16,
-        weightStep: 2.5,
-        currentWeight: 22.5,
-        restSeconds: 60,
-        notes: 'Внешняя ротация плеч в конце движения.',
-        history: []
-      },
-      {
-        id: 'bicep-curls',
-        name: 'Сгибания со штангой на бицепс',
-        category: 'Arms',
-        targetSets: 3,
-        minReps: 8,
-        maxReps: 12,
-        weightStep: 2.5,
-        currentWeight: 27.5,
-        restSeconds: 60,
-        notes: 'Без раскачки корпусом.',
-        history: []
-      }
+      createExerciseFromCatalog('lat-pulldown', { currentWeight: 65 }),
+      createExerciseFromCatalog('barbell-row', { currentWeight: 60 }),
+      createExerciseFromCatalog('seated-cable-row', { currentWeight: 50 }),
+      createExerciseFromCatalog('lateral-raises', { currentWeight: 10 }),
+      createExerciseFromCatalog('bicep-curls', { currentWeight: 27.5 })
     ]
   },
   {
-    id: 'legs-workout',
-    name: 'Legs & Core (Ноги и Кор)',
-    description: 'Базовый тренинг квадрицепсов, задней поверхности бедра, икр и пресса.',
-    icon: 'Dumbbell',
+    id: 'pull-workout-b',
+    name: 'Pull B: Тяга (Неделя 2: Турник & Гантели)',
+    description: 'Ротация: подтягивания на турнике, тяга гантели к поясу и узкий блок.',
+    icon: 'TrendingUp',
+    weekVariant: 'B',
     exercises: [
-      {
-        id: 'barbell-squat',
-        name: 'Приседания со штангой',
-        category: 'Legs',
-        targetSets: 3,
-        minReps: 6,
-        maxReps: 10,
-        weightStep: 5,
-        currentWeight: 90,
-        restSeconds: 150,
-        notes: 'Глубина до параллели, колени сонаправлены со стопами.',
-        history: []
-      },
-      {
-        id: 'romanian-deadlift',
-        name: 'Румынская тяга со штангой',
-        category: 'Legs',
-        targetSets: 3,
-        minReps: 8,
-        maxReps: 12,
-        weightStep: 5,
-        currentWeight: 80,
-        restSeconds: 120,
-        notes: 'Отводите таз назад, растягивая бицепс бедра.',
-        history: []
-      },
-      {
-        id: 'leg-press',
-        name: 'Жим ногами в тренажере',
-        category: 'Legs',
-        targetSets: 3,
-        minReps: 10,
-        maxReps: 15,
-        weightStep: 10,
-        currentWeight: 150,
-        restSeconds: 90,
-        notes: 'Не отрывайте поясницу от спинки.',
-        history: []
-      },
-      {
-        id: 'standing-calf-raises',
-        name: 'Подъемы на носки стоя',
-        category: 'Legs',
-        targetSets: 4,
-        minReps: 12,
-        maxReps: 16,
-        weightStep: 5,
-        currentWeight: 55,
-        restSeconds: 60,
-        notes: 'Пауза в растянутом и пиковом положениях.',
-        history: []
-      },
-      {
-        id: 'hanging-leg-raises',
-        name: 'Подъемы ног в висе на турнике',
-        category: 'Core',
-        targetSets: 3,
-        minReps: 10,
-        maxReps: 15,
-        weightStep: 0,
-        currentWeight: 0,
-        restSeconds: 60,
-        notes: 'Подкручивайте таз к груди.',
-        history: []
-      }
+      createExerciseFromCatalog('pull-ups', { currentWeight: 0, minReps: 6, maxReps: 10 }),
+      createExerciseFromCatalog('db-row', { currentWeight: 28 }),
+      createExerciseFromCatalog('lat-pulldown', { currentWeight: 67.5 }),
+      createExerciseFromCatalog('bicep-curls', { currentWeight: 30 })
+    ]
+  },
+
+  // --- НОГИ ---
+  {
+    id: 'legs-workout-a',
+    name: 'Legs A: Ноги (Неделя 1: Базовый присед)',
+    description: 'Тяжелые приседания со штангой, румынская тяга на бицепс бедра.',
+    icon: 'Dumbbell',
+    weekVariant: 'A',
+    exercises: [
+      createExerciseFromCatalog('barbell-squat', { currentWeight: 90 }),
+      createExerciseFromCatalog('romanian-deadlift', { currentWeight: 80 }),
+      createExerciseFromCatalog('leg-press', { currentWeight: 150 })
+    ]
+  },
+  {
+    id: 'legs-workout-b',
+    name: 'Legs B: Ноги (Неделя 2: Жим платформы & RDL)',
+    description: 'Ротация: тяжелый жим ногами в тренажере, румынская тяга и присед.',
+    icon: 'Dumbbell',
+    weekVariant: 'B',
+    exercises: [
+      createExerciseFromCatalog('leg-press', { currentWeight: 170 }),
+      createExerciseFromCatalog('romanian-deadlift', { currentWeight: 85 }),
+      createExerciseFromCatalog('barbell-squat', { currentWeight: 85 })
     ]
   }
 ];

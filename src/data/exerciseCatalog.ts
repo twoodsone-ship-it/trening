@@ -887,5 +887,114 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
       breathing: 'Выдох на разгибании, вдох на опускании за голову.',
       mistakes: ['Движение локтями вверх-вниз']
     }
+  },
+
+  // ==========================================
+  // КОР И ПРЕСС (CORE)
+  // ==========================================
+  'plank': {
+    id: 'plank',
+    name: 'Планка на предплечьях',
+    category: 'Core',
+    equipment: 'bodyweight',
+    animationType: 'squat',
+    defaultSets: 3,
+    minReps: 30,
+    maxReps: 60,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 60,
+    alternatives: ['hanging-leg-raise', 'cable-crunch', 'ab-wheel-rollout'],
+    technique: {
+      primaryMuscles: 'Прямая и поперечная мышцы живота, глубокие стабилизаторы позвоночника',
+      setup: 'Упор на предплечья и носки стоп. Локти строго под плечевыми суставами. Тело вытянуто в единую прямую линию.',
+      execution: 'Напрягите пресс и ягодицы, удерживайте таз в нейтральном положении без провисания в пояснице.',
+      breathing: 'Ровное глубокое дыхание без задержки воздуха.',
+      mistakes: ['Провисание таза вниз', 'Чрезмерный подъем ягодиц вверх', 'Задержка дыхания']
+    }
+  },
+  'hanging-leg-raise': {
+    id: 'hanging-leg-raise',
+    name: 'Подъем ног в висе на турнике',
+    category: 'Core',
+    equipment: 'bodyweight',
+    animationType: 'lat-pulldown',
+    defaultSets: 3,
+    minReps: 10,
+    maxReps: 15,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 60,
+    alternatives: ['plank', 'cable-crunch', 'ab-wheel-rollout'],
+    technique: {
+      primaryMuscles: 'Нижняя порция прямой мышцы живота, подвздошно-поясничная мышца',
+      setup: 'Вис на перекладине хватом на ширине плеч. Плечи опущены, лопатки стабилизированы.',
+      execution: 'Мощным усилием пресса поднимите прямые или согнутые ноги выше уровня таза, подкручивая таз вперед.',
+      breathing: 'Выдох при подъеме ног, плавный вдох при опускании.',
+      mistakes: ['Раскачка телом по инерции', 'Подъем ног только за счет мышц бедра без подкручивания таза']
+    }
+  },
+  'cable-crunch': {
+    id: 'cable-crunch',
+    name: 'Скручивания на блоке стоя на коленях (Молитва)',
+    category: 'Core',
+    equipment: 'cable',
+    animationType: 'row',
+    defaultSets: 3,
+    minReps: 12,
+    maxReps: 16,
+    weightStep: 2.5,
+    defaultWeight: 35,
+    restSeconds: 60,
+    alternatives: ['hanging-leg-raise', 'cable-woodchopper', 'ab-wheel-rollout'],
+    technique: {
+      primaryMuscles: 'Прямая мышца живота с акцентом на верхнюю и среднюю часть',
+      setup: 'Встаньте на колени перед верхним блоком с канатной рукоятью. Руки зафиксированы у лба или висков.',
+      execution: 'Скручивайте грудную клетку по направлению к тазу исключительно силой пресса. Бедра неподвижны.',
+      breathing: 'Мощный выдох при скручивании вниз, вдох при подконтрольном разгибании.',
+      mistakes: ['Движение за счет сгибания в тазобедренных суставах', 'Тяга руками вместо сокращения пресса']
+    }
+  },
+  'cable-woodchopper': {
+    id: 'cable-woodchopper',
+    name: 'Дровосек на блоке по диагонали',
+    category: 'Core',
+    equipment: 'cable',
+    animationType: 'lateral-raise',
+    defaultSets: 3,
+    minReps: 10,
+    maxReps: 15,
+    weightStep: 2.5,
+    defaultWeight: 20,
+    restSeconds: 60,
+    alternatives: ['cable-crunch', 'hanging-leg-raise', 'plank'],
+    technique: {
+      primaryMuscles: 'Косые мышцы живота, поперечная мышца, кор',
+      setup: 'Боком к блоку на ширине плеч. Рукоять удерживается двумя руками на уровне груди.',
+      execution: 'По диагонали поверните корпус с контролем бедер, прожимая косые мышцы.',
+      breathing: 'Выдох на вращении, вдох при возврате в исходную точку.',
+      mistakes: ['Вращение только в коленях', 'Резкий неконтролируемый возврат веса']
+    }
+  },
+  'ab-wheel-rollout': {
+    id: 'ab-wheel-rollout',
+    name: 'Прокатка с гимнастическим роликом',
+    category: 'Core',
+    equipment: 'bodyweight',
+    animationType: 'squat',
+    defaultSets: 3,
+    minReps: 8,
+    maxReps: 12,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 75,
+    alternatives: ['plank', 'hanging-leg-raise', 'cable-crunch'],
+    technique: {
+      primaryMuscles: 'Прямая мышца живота, глубокие стабилизаторы позвоночника',
+      setup: 'Стоя на коленях, ролик перед собой. Руки прямые, таз подкручен вперед.',
+      execution: 'Катите ролик вперед, растягивая тело до параллели с полом. Прессом вернитесь назад.',
+      breathing: 'Вдох при движении вперед, мощный выдох при возврате в исходную позицию.',
+      mistakes: ['Прогиб в пояснице в нижней точке', 'Сгибание в локтях']
+    }
   }
 };

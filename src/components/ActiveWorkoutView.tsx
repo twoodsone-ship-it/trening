@@ -53,6 +53,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
 
   // Exercise Swap Modal (Machine Busy / Missing)
   const [swappingExIndex, setSwappingExIndex] = useState<number | null>(null);
+  const [isAddingExercise, setIsAddingExercise] = useState(false);
 
   // Time elapsed ticker
   const [elapsedMinutes, setElapsedMinutes] = useState(
@@ -138,14 +139,30 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     );
 
     // Keep completed sets or seed new sets with matching target
-    const newSets: WorkoutSet[] = oldEx.sets.map((s, i) => ({
-      id: 'swap-' + Date.now() + '-' + i,
-      setNumber: i + 1,
-      weight: s.completed ? s.weight : newCatalogEx.defaultWeight,
-      reps: s.completed ? s.reps : newCatalogEx.minReps,
-      rpe: s.rpe || 8,
-      completed: s.completed
-    }));
+    const targetSetCount = Math.max(newCatalogEx.defaultSets, oldEx.sets.length);
+    const newSets: WorkoutSet[] = [];
+    for (let i = 0; i < targetSetCount; i++) {
+      const existing = oldEx.sets[i];
+      if (existing) {
+        newSets.push({
+          id: existing.id || ('swap-' + Date.now() + '-' + i),
+          setNumber: i + 1,
+          weight: existing.completed ? existing.weight : newCatalogEx.defaultWeight,
+          reps: existing.completed ? existing.reps : newCatalogEx.minReps,
+          rpe: existing.rpe || 8,
+          completed: existing.completed
+        });
+      } else {
+        newSets.push({
+          id: 'swap-' + Date.now() + '-' + i,
+          setNumber: i + 1,
+          weight: newCatalogEx.defaultWeight,
+          reps: newCatalogEx.minReps,
+          rpe: 8,
+          completed: false
+        });
+      }
+    }
 
     updated[swappingExIndex] = {
       exerciseId: newCatalogEx.id,
@@ -167,6 +184,48 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
 
     onUpdateExercises(updated);
     setSwappingExIndex(null);
+  };
+
+  // Handle adding an extra exercise to the workout on the fly
+  const handleAddNewExercise = (newCatalogEx: CatalogExerciseItem) => {
+    const recommendation = evaluateDoubleProgression(
+      newCatalogEx.defaultSets,
+      newCatalogEx.minReps,
+      newCatalogEx.maxReps,
+      newCatalogEx.weightStep,
+      newCatalogEx.defaultWeight,
+      []
+    );
+
+    const initialSets: WorkoutSet[] = Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
+      id: 's-' + Date.now() + '-' + i,
+      setNumber: i + 1,
+      weight: newCatalogEx.defaultWeight,
+      reps: newCatalogEx.minReps,
+      rpe: 8,
+      completed: false
+    }));
+
+    const newSessionEx: ActiveExerciseSession = {
+      exerciseId: newCatalogEx.id,
+      name: newCatalogEx.name,
+      category: newCatalogEx.category,
+      equipment: newCatalogEx.equipment,
+      animationType: newCatalogEx.animationType,
+      technique: newCatalogEx.technique,
+      alternatives: newCatalogEx.alternatives,
+      targetSets: newCatalogEx.defaultSets,
+      minReps: newCatalogEx.minReps,
+      maxReps: newCatalogEx.maxReps,
+      weightStep: newCatalogEx.weightStep,
+      targetWeight: newCatalogEx.defaultWeight,
+      restSeconds: newCatalogEx.restSeconds,
+      sets: initialSets,
+      recommendation
+    };
+
+    onUpdateExercises([...exercises, newSessionEx]);
+    setIsAddingExercise(false);
   };
 
   const handleFinish = () => {
@@ -468,6 +527,15 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             </div>
           );
         })}
+
+        {/* Add Exercise to Workout Button */}
+        <button
+          onClick={() => setIsAddingExercise(true)}
+          className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-zinc-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-3xl text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 bg-white/60 dark:bg-zinc-900/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Добавить упражнение в эту тренировку</span>
+        </button>
       </div>
 
       {/* Technique & Animation Modal */}
@@ -502,6 +570,21 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           isOpen={true}
           onClose={() => setSwappingExIndex(null)}
           onSelectAlternative={handleSwapExercise}
+        />
+      )}
+
+      {/* Add New Exercise Modal */}
+      {isAddingExercise && (
+        <ExerciseSwapModal
+          currentExercise={{
+            id: '',
+            name: 'Новое упражнение',
+            category: 'Chest',
+            alternatives: []
+          }}
+          isOpen={true}
+          onClose={() => setIsAddingExercise(false)}
+          onSelectAlternative={handleAddNewExercise}
         />
       )}
 

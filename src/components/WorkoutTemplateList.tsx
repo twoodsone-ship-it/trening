@@ -78,6 +78,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
       animationType: newCatalogEx.animationType,
       technique: newCatalogEx.technique,
       alternatives: newCatalogEx.alternatives,
+      weekVariant: swappingEx.exercise.weekVariant,
       targetSets: newCatalogEx.defaultSets,
       minReps: newCatalogEx.minReps,
       maxReps: newCatalogEx.maxReps,

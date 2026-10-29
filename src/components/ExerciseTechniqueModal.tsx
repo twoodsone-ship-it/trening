@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, RefreshCw, AlertTriangle, Wind, Target, Dumbbell } from 'lucide-react';
-import { ExerciseTechniqueGuide, EquipmentType } from '../types';
+import type { ExerciseTechniqueGuide, EquipmentType } from '../types/index.ts';
 import { ExerciseAnimation } from './ExerciseAnimation';
 
 interface ExerciseTechniqueModalProps {
@@ -19,6 +19,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   dumbbell: 'Гантели',
   cable: 'Блочный тренажер',
   machine: 'Тренажер / Хаммер',
+  smith: 'Тренажер Смита',
   bodyweight: 'Собственный вес'
 };
 

@@ -1,4 +1,4 @@
-import { WorkoutTemplate, Exercise } from '../types';
+import type { WorkoutTemplate, Exercise } from '../types/index.ts';
 import { EXERCISE_CATALOG } from './exerciseCatalog';
 
 function createExerciseFromCatalog(

@@ -40,7 +40,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
   onCreateTemplate
 }) => {
   const [selectedExercise, setSelectedExercise] = useState<{ exercise: Exercise; templateId: string } | null>(null);
-  const [viewingTechniqueEx, setViewingTechniqueEx] = useState<Exercise | null>(null);
+  const [viewingTechniqueEx, setViewingTechniqueEx] = useState<{ exercise: Exercise; templateId: string } | null>(null);
   const [swappingEx, setSwappingEx] = useState<{ exercise: Exercise; templateId: string } | null>(null);
 
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -262,7 +262,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                     <div className="flex items-center gap-1.5">
                       {/* Technique Animation Trigger */}
                       <button
-                        onClick={() => setViewingTechniqueEx(exercise)}
+                        onClick={() => setViewingTechniqueEx({ exercise, templateId: template.id })}
                         title="Посмотреть анимацию техники"
                         className="p-1.5 text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 bg-white dark:bg-zinc-800 rounded-lg border border-slate-200 dark:border-zinc-700 shadow-2xs hover:scale-105 transition"
                       >
@@ -310,13 +310,19 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
       {/* Modal: Exercise Technique Animation Guide */}
       {viewingTechniqueEx && (
         <ExerciseTechniqueModal
-          exerciseName={viewingTechniqueEx.name}
-          category={viewingTechniqueEx.category}
-          equipment={viewingTechniqueEx.equipment}
-          animationType={viewingTechniqueEx.animationType || 'bench-press'}
-          technique={viewingTechniqueEx.technique}
+          exerciseName={viewingTechniqueEx.exercise.name}
+          category={viewingTechniqueEx.exercise.category}
+          equipment={viewingTechniqueEx.exercise.equipment}
+          animationType={viewingTechniqueEx.exercise.animationType || 'bench-press'}
+          technique={viewingTechniqueEx.exercise.technique}
           isOpen={true}
           onClose={() => setViewingTechniqueEx(null)}
+          onOpenSwapModal={() => {
+            setSwappingEx({
+              exercise: viewingTechniqueEx.exercise,
+              templateId: viewingTechniqueEx.templateId
+            });
+          }}
         />
       )}
 

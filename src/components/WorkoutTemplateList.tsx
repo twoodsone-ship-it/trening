@@ -76,6 +76,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
       category: newCatalogEx.category,
       equipment: newCatalogEx.equipment,
       animationType: newCatalogEx.animationType,
+      gifUrl: newCatalogEx.gifUrl,
       technique: newCatalogEx.technique,
       alternatives: newCatalogEx.alternatives,
       weekVariant: swappingEx.exercise.weekVariant,
@@ -311,10 +312,12 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
       {/* Modal: Exercise Technique Animation Guide */}
       {viewingTechniqueEx && (
         <ExerciseTechniqueModal
+          exerciseId={viewingTechniqueEx.exercise.id}
           exerciseName={viewingTechniqueEx.exercise.name}
           category={viewingTechniqueEx.exercise.category}
           equipment={viewingTechniqueEx.exercise.equipment}
           animationType={viewingTechniqueEx.exercise.animationType || 'bench-press'}
+          gifUrl={viewingTechniqueEx.exercise.gifUrl}
           technique={viewingTechniqueEx.exercise.technique}
           isOpen={true}
           onClose={() => setViewingTechniqueEx(null)}

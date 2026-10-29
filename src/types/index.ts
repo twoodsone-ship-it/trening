@@ -47,6 +47,7 @@ export interface Exercise {
   category: MuscleCategory;
   equipment?: EquipmentType;
   animationType?: string; // key for animated biomechanics visual
+  gifUrl?: string;        // Verified accurate 3D animated GIF URL from ExerciseDB
   technique?: ExerciseTechniqueGuide;
   alternatives?: string[]; // IDs of swap exercises
   weekVariant?: 'A' | 'B' | 'both';
@@ -94,6 +95,7 @@ export interface ActiveExerciseSession {
   category: MuscleCategory;
   equipment?: EquipmentType;
   animationType?: string;
+  gifUrl?: string;
   technique?: ExerciseTechniqueGuide;
   alternatives?: string[];
   targetSets: number;

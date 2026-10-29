@@ -105,6 +105,7 @@ export function migrateExercise(rawEx: any): Exercise {
     category,
     equipment,
     animationType: defaultAnimation,
+    gifUrl: catalogItem?.gifUrl || rawEx.gifUrl,
     technique: defaultTechnique,
     alternatives: (Array.isArray(rawEx.alternatives) && rawEx.alternatives.length > 0)
       ? rawEx.alternatives
@@ -173,6 +174,7 @@ export function migrateActiveSession(workout: any): {
       category,
       equipment,
       animationType: defaultAnimation,
+      gifUrl: catalogItem?.gifUrl || rawEx.gifUrl,
       technique: defaultTechnique,
       alternatives: defaultAlternatives,
       targetSets: Number(rawEx.targetSets) || catalogItem?.defaultSets || 3,

@@ -170,6 +170,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       category: newCatalogEx.category,
       equipment: newCatalogEx.equipment,
       animationType: newCatalogEx.animationType,
+      gifUrl: newCatalogEx.gifUrl,
       technique: newCatalogEx.technique,
       alternatives: newCatalogEx.alternatives,
       targetSets: newCatalogEx.defaultSets,
@@ -212,6 +213,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       category: newCatalogEx.category,
       equipment: newCatalogEx.equipment,
       animationType: newCatalogEx.animationType,
+      gifUrl: newCatalogEx.gifUrl,
       technique: newCatalogEx.technique,
       alternatives: newCatalogEx.alternatives,
       targetSets: newCatalogEx.defaultSets,
@@ -541,10 +543,12 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       {/* Technique & Animation Modal */}
       {viewingTechniqueEx && (
         <ExerciseTechniqueModal
+          exerciseId={viewingTechniqueEx.exerciseId}
           exerciseName={viewingTechniqueEx.name}
           category={viewingTechniqueEx.category}
           equipment={viewingTechniqueEx.equipment}
           animationType={viewingTechniqueEx.animationType || 'bench-press'}
+          gifUrl={viewingTechniqueEx.gifUrl}
           technique={viewingTechniqueEx.technique}
           isOpen={true}
           onClose={() => setViewingTechniqueEx(null)}

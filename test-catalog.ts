@@ -19,6 +19,7 @@ for (const [id, exercise] of catalogEntries) {
   assert(exercise.technique.execution.trim().length > 0, `Exercise ${id} must have execution guide`);
   assert(exercise.technique.breathing.trim().length > 0, `Exercise ${id} must have breathing guide`);
   assert(exercise.technique.mistakes.length > 0, `Exercise ${id} must have mistakes listed`);
+  assert(exercise.gifUrl && exercise.gifUrl.startsWith('https://'), `Exercise ${id} must have a valid 3D animated gifUrl`);
 
   // Check that every alternative ID exists!
   assert(exercise.alternatives && exercise.alternatives.length > 0, `Exercise ${id} must have at least 1 alternative`);

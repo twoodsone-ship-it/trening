@@ -4,10 +4,12 @@ import type { ExerciseTechniqueGuide, EquipmentType } from '../types/index.ts';
 import { ExerciseAnimation } from './ExerciseAnimation';
 
 interface ExerciseTechniqueModalProps {
+  exerciseId?: string;
   exerciseName: string;
   category: string;
   equipment?: EquipmentType;
   animationType: string;
+  gifUrl?: string;
   technique?: ExerciseTechniqueGuide;
   isOpen: boolean;
   onClose: () => void;
@@ -24,10 +26,12 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 };
 
 export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
+  exerciseId,
   exerciseName,
   category,
   equipment = 'barbell',
   animationType,
+  gifUrl,
   technique,
   isOpen,
   onClose,
@@ -66,6 +70,8 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
           
           {/* Animated Visual Canvas */}
           <ExerciseAnimation
+            exerciseId={exerciseId}
+            gifUrl={gifUrl}
             animationType={animationType}
             category={category}
             exerciseName={exerciseName}

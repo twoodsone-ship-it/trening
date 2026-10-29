@@ -102,6 +102,7 @@ export const App: React.FC = () => {
         category: ex.category,
         equipment: ex.equipment,
         animationType: ex.animationType,
+        gifUrl: ex.gifUrl,
         technique: ex.technique,
         alternatives: ex.alternatives,
         targetSets: ex.targetSets,

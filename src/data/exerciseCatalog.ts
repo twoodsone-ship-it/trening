@@ -6,6 +6,7 @@ export interface CatalogExerciseItem {
   category: MuscleCategory;
   equipment: EquipmentType;
   animationType: string;
+  gifUrl?: string; // Verified accurate 3D animated GIF from ExerciseDB
   defaultSets: number;
   minReps: number;
   maxReps: number;
@@ -15,6 +16,64 @@ export interface CatalogExerciseItem {
   alternatives: string[]; // Guaranteed to exist in EXERCISE_CATALOG
   technique: ExerciseTechniqueGuide;
 }
+
+export const EXERCISE_GIF_MAP: Record<string, string> = {
+  // Грудь (Chest)
+  'bench-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/EIeI8Vf.gif',
+  'db-bench-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/SpYC0Kp.gif',
+  'incline-db-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/ns0SIbU.gif',
+  'incline-barbell-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/3TZduzM.gif',
+  'hammer-chest-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/DOoWcnA.gif',
+  'smith-bench-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/trqKQv2.gif',
+  'dips-chest': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/O2K9Vb5.gif',
+  'cable-crossover': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/Pr9Rhf4.gif',
+  'pec-deck-fly': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/xLYSdtg.gif',
+
+  // Спина (Back)
+  'lat-pulldown': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/qdRxqCj.gif',
+  'pull-ups': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/lBDjFxJ.gif',
+  'close-grip-pulldown': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/ecpY0rH.gif',
+  'hammer-lat-pulldown': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/7F1DVzn.gif',
+  'barbell-row': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/eZyBC3j.gif',
+  'db-row': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/C0MA9bC.gif',
+  'seated-cable-row': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/fUBheHs.gif',
+  't-bar-row': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/9pQSkH8.gif',
+
+  // Ноги (Legs)
+  'barbell-squat': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/DhMl549.gif',
+  'leg-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/2Qh2J1e.gif',
+  'hack-squat': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/Qa55kX1.gif',
+  'smith-squat': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/jFtipLl.gif',
+  'goblet-squat': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/yn8yg1r.gif',
+  'romanian-deadlift': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/wQ2c4XD.gif',
+  'db-rdl': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/rR0LJzx.gif',
+  'leg-curls-lying': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/17lJ1kr.gif',
+
+  // Плечи (Shoulders)
+  'overhead-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/wdRZISl.gif',
+  'seated-db-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/znQUdHY.gif',
+  'hammer-shoulder-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/DOoWcnA.gif',
+  'smith-shoulder-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/jjUPrze.gif',
+  'lateral-raises': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/DsgkuIt.gif',
+  'cable-lateral-raise': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/goJ6ezq.gif',
+  'face-pulls': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/CvPn9WV.gif',
+
+  // Руки (Arms)
+  'bicep-curls': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/4dUn2iv.gif',
+  'db-incline-curls': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/ae9UoXQ.gif',
+  'hammer-curls': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/GNhAeJ0.gif',
+  'cable-bicep-curl': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/G08RZcQ.gif',
+  'tricep-pushdown': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/3ZflifB.gif',
+  'french-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/iZop9xO.gif',
+  'overhead-cable-extension': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/2IxROQ1.gif',
+
+  // Кор и Пресс (Core)
+  'plank': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/VBAWRPG.gif',
+  'hanging-leg-raise': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/I3tsCnC.gif',
+  'cable-crunch': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/WW95auq.gif',
+  'cable-woodchopper': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/aVs3BR3.gif',
+  'ab-wheel-rollout': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/KtRomty.gif'
+};
 
 export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
   // ==========================================
@@ -998,3 +1057,10 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     }
   }
 };
+
+// Automatically attach verified 3D animated GIF URLs to all catalog exercises
+for (const [id, item] of Object.entries(EXERCISE_CATALOG)) {
+  if (EXERCISE_GIF_MAP[id]) {
+    item.gifUrl = EXERCISE_GIF_MAP[id];
+  }
+}

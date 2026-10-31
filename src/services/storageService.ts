@@ -1,6 +1,6 @@
-import { AppSettings, CompletedWorkout, WorkoutTemplate, ActiveExerciseSession, Exercise, MuscleCategory, EquipmentType, ExerciseTechniqueGuide } from '../types';
+import type { AppSettings, CompletedWorkout, WorkoutTemplate, ActiveExerciseSession, Exercise, MuscleCategory, EquipmentType, ExerciseTechniqueGuide } from '../types/index.ts';
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
-import { EXERCISE_CATALOG, CatalogExerciseItem } from '../data/exerciseCatalog';
+import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
 
 const STORAGE_KEYS = {
   TEMPLATES: 'ironforge_templates_v1',
@@ -123,7 +123,9 @@ export function migrateExercise(rawEx: any): Exercise {
 }
 
 export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
-  if (!Array.isArray(templates)) return DEFAULT_TEMPLATES;
+  if (!Array.isArray(templates) || templates.length === 0) {
+    return JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+  }
   return templates.map(t => ({
     id: t.id || ('template-' + Date.now()),
     name: t.name || 'Программа тренировок',
@@ -209,20 +211,29 @@ export function migrateActiveSession(workout: any): {
 export const storageService = {
   getTemplates(): WorkoutTemplate[] {
     try {
+      const version = localStorage.getItem('ironforge_templates_version');
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-      if (data) {
+      if (data && version === 'v2.2') {
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= 8) {
           const migrated = migrateTemplatesList(parsed);
-          return migrated;
+          if (migrated && migrated.length > 0) {
+            return migrated;
+          }
         }
       }
     } catch {
       console.warn('Failed to parse templates from storage');
     }
-    // Initial seed
-    localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(DEFAULT_TEMPLATES));
-    return DEFAULT_TEMPLATES;
+    // Initial seed or auto-upgrade to tailored 8-program system
+    const freshTemplates: WorkoutTemplate[] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    try {
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
+      localStorage.setItem('ironforge_templates_version', 'v2.2');
+    } catch (e) {
+      console.error('Failed to persist fresh templates', e);
+    }
+    return freshTemplates;
   },
 
   saveTemplates(templates: WorkoutTemplate[]) {
@@ -404,5 +415,15 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKOUT);
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
     localStorage.removeItem(STORAGE_KEYS.CUSTOM_EXERCISES);
+    localStorage.setItem('ironforge_templates_version', 'v2.2');
+    // Restore fresh clone of DEFAULT_TEMPLATES so user immediately has clean initial state
+    const freshTemplates: WorkoutTemplate[] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
+  },
+
+  resetTemplates(): WorkoutTemplate[] {
+    const freshTemplates: WorkoutTemplate[] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
+    return freshTemplates;
   }
 };

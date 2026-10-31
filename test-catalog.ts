@@ -7,7 +7,7 @@ const catalogEntries = Object.entries(EXERCISE_CATALOG);
 const catalogKeys = new Set(Object.keys(EXERCISE_CATALOG));
 
 console.log(`Total exercises in catalog: ${catalogEntries.length}`);
-assert(catalogEntries.length >= 25, 'Catalog must contain at least 25 exercises');
+assert(catalogEntries.length >= 70, 'Catalog must contain at least 70 exercises');
 
 let missingReferences = 0;
 

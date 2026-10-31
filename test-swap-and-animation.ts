@@ -29,7 +29,7 @@ for (const ex of catalogItems) {
 
   assert(allCandidates.length >= 40, `Full catalog fallback must provide ample choices`);
 }
-console.log('✔ All 44 exercises guaranteed to have valid swap alternatives & fallbacks!');
+console.log(`✔ All ${catalogItems.length} exercises guaranteed to have valid swap alternatives & fallbacks!`);
 
 // 2. Test equipment filtering with zero dead-end guarantee
 const equipmentTypes = ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight'];

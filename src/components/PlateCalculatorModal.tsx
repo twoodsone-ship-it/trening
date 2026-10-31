@@ -48,18 +48,19 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   const remainderNotice = remaining > 0 ? remaining * 2 : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-zinc-100">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-zinc-100">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl p-4 sm:p-6 shadow-2xl max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-zinc-800">
+        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-200 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             <Calculator className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Калькулятор блинов</h3>
+            <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">Калькулятор блинов</h3>
           </div>
           <button 
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
+            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 active:scale-95 transition"
+            aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>

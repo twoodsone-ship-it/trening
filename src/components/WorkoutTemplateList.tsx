@@ -132,47 +132,47 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-3 sm:p-4 pb-28 space-y-6 text-slate-900 dark:text-zinc-100 transition-colors duration-200">
+    <div className="max-w-2xl mx-auto p-3 sm:p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] space-y-4 sm:space-y-6 text-slate-900 dark:text-zinc-100 transition-colors duration-200">
       
       {/* Hero Welcome Card */}
-      <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-emerald-950/40 border border-emerald-500/30 dark:border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-xl text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-emerald-950/40 border border-emerald-500/30 dark:border-zinc-800 rounded-3xl p-4 sm:p-6 shadow-xl text-white relative overflow-hidden">
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 dark:bg-emerald-500/10 backdrop-blur border border-white/30 dark:border-emerald-500/30 rounded-full text-xs font-semibold text-white dark:text-emerald-400 mb-3">
-            <Zap className="w-3.5 h-3.5" /> Умная Двойная Прогрессия + Ротация
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 dark:bg-emerald-500/10 backdrop-blur border border-white/30 dark:border-emerald-500/30 rounded-full text-xs font-semibold text-white dark:text-emerald-400 mb-2.5">
+            <Zap className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Умная Прогрессия + Ротация</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-black tracking-tight">
             IronForge PWA
           </h1>
-          <p className="text-emerald-100 dark:text-zinc-400 text-xs sm:text-sm mt-1.5 max-w-md leading-relaxed">
-            Анимированная техника упражнений, еженедельная ротация программ и мгновенная замена занятых тренажеров.
+          <p className="text-emerald-100 dark:text-zinc-400 text-xs sm:text-sm mt-1 max-w-md leading-relaxed">
+            Анимированная 3D-техника, ротация программ и мгновенная замена занятых тренажеров.
           </p>
         </div>
       </div>
 
       {/* Weekly Rotation Switcher Tabs */}
-      <div className="bg-white dark:bg-zinc-900 p-2 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm flex items-center gap-2">
+      <div className="bg-white dark:bg-zinc-900 p-1.5 sm:p-2 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm flex items-center gap-1.5 sm:gap-2">
         <button
           onClick={() => onChangeWeek('A')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+          className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition active:scale-98 ${
             currentWeek === 'A'
               ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
               : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
           }`}
         >
-          <Repeat className="w-4 h-4" />
-          <span>Неделя 1 (Вариант А)</span>
+          <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Неделя 1 (А)</span>
         </button>
 
         <button
           onClick={() => onChangeWeek('B')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+          className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition active:scale-98 ${
             currentWeek === 'B'
               ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
               : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
           }`}
         >
-          <Repeat className="w-4 h-4" />
-          <span>Неделя 2 (Вариант Б)</span>
+          <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Неделя 2 (Б)</span>
         </button>
       </div>
 
@@ -244,29 +244,29 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                 return (
                   <div
                     key={exercise.id}
-                    className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-zinc-950/60 hover:bg-slate-100 dark:hover:bg-zinc-950 border border-slate-200 dark:border-zinc-800/60 rounded-2xl transition"
+                    className="flex items-center justify-between gap-2 p-2.5 bg-slate-50 dark:bg-zinc-950/60 hover:bg-slate-100 dark:hover:bg-zinc-950 border border-slate-200 dark:border-zinc-800/60 rounded-2xl transition"
                   >
                     <div 
                       onClick={() => setSelectedExercise({ exercise, templateId: template.id })}
-                      className="flex items-center gap-3 cursor-pointer flex-1"
+                      className="flex items-center gap-2.5 cursor-pointer min-w-0 flex-1"
                     >
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 transition" />
-                      <div>
-                        <div className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-zinc-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-zinc-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition truncate">
                           {exercise.name}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-zinc-500 font-mono">
+                        <div className="text-[11px] text-slate-500 dark:text-zinc-500 font-mono truncate">
                           {exercise.targetSets}×{exercise.minReps}-{exercise.maxReps} повт. • {exercise.currentWeight} кг
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {/* Technique Animation Trigger */}
                       <button
                         onClick={() => setViewingTechniqueEx({ exercise, templateId: template.id })}
                         title="Посмотреть анимацию техники"
-                        className="p-1.5 text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 bg-white dark:bg-zinc-800 rounded-lg border border-slate-200 dark:border-zinc-700 shadow-2xs hover:scale-105 transition"
+                        className="p-1.5 text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 bg-white dark:bg-zinc-800 rounded-lg border border-slate-200 dark:border-zinc-700 shadow-2xs hover:scale-105 active:scale-95 transition"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                       </button>
@@ -275,12 +275,12 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                       <button
                         onClick={() => setSwappingEx({ exercise, templateId: template.id })}
                         title="Заменить (тренажер занят)"
-                        className="p-1.5 text-slate-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-zinc-800 rounded-lg border border-slate-200 dark:border-zinc-700 shadow-2xs hover:scale-105 transition"
+                        className="p-1.5 text-slate-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-zinc-800 rounded-lg border border-slate-200 dark:border-zinc-700 shadow-2xs hover:scale-105 active:scale-95 transition"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
                       </button>
 
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
                         recommendation.badgeColor === 'emerald'
                           ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'
                           : recommendation.badgeColor === 'amber'

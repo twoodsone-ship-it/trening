@@ -73,7 +73,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
   const prList = Array.from(prMap.values()).sort((a, b) => b.max1RM - a.max1RM);
 
   return (
-    <div className="max-w-2xl mx-auto p-3 sm:p-4 pb-28 space-y-6 text-slate-900 dark:text-zinc-100 transition-colors duration-200">
+    <div className="max-w-2xl mx-auto p-3 sm:p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] space-y-4 sm:space-y-6 text-slate-900 dark:text-zinc-100 transition-colors duration-200">
       
       {/* Top Title */}
       <div>
@@ -84,40 +84,40 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-3.5 sm:p-4 rounded-3xl shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-sm flex flex-col justify-between min-w-0">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 truncate">
             Тренировки
           </span>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-mono font-black text-emerald-600 dark:text-emerald-400">
+          <div className="mt-1.5 flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-mono font-black text-emerald-600 dark:text-emerald-400">
               {totalWorkouts}
             </span>
-            <span className="text-xs text-slate-400 dark:text-zinc-500">сессий</span>
+            <span className="text-[10px] sm:text-xs text-slate-400 dark:text-zinc-500 truncate">сессий</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-3.5 sm:p-4 rounded-3xl shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-            Общий тоннаж
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-sm flex flex-col justify-between min-w-0">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 truncate">
+            Тоннаж
           </span>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-mono font-black text-blue-600 dark:text-blue-400">
+          <div className="mt-1.5 flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-mono font-black text-blue-600 dark:text-blue-400">
               {totalVolumeTons}
             </span>
-            <span className="text-xs text-slate-400 dark:text-zinc-500">тонн</span>
+            <span className="text-[10px] sm:text-xs text-slate-400 dark:text-zinc-500 truncate">тонн</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-3.5 sm:p-4 rounded-3xl shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-sm flex flex-col justify-between min-w-0">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 truncate">
             Подходы
           </span>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-mono font-black text-purple-600 dark:text-purple-400">
+          <div className="mt-1.5 flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-mono font-black text-purple-600 dark:text-purple-400">
               {totalSets}
             </span>
-            <span className="text-xs text-slate-400 dark:text-zinc-500">сетов</span>
+            <span className="text-[10px] sm:text-xs text-slate-400 dark:text-zinc-500 truncate">сетов</span>
           </div>
         </div>
       </div>

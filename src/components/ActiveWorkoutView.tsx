@@ -295,20 +295,20 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const totalPlannedSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gym-dark pb-32 text-slate-900 dark:text-zinc-100 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-gym-dark pb-[calc(7rem+env(safe-area-inset-bottom))] text-slate-900 dark:text-zinc-100 transition-colors duration-200">
       
       {/* Sticky Workout Top Bar */}
-      <div className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-4 py-3 shadow-sm">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div>
+      <div className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-sm">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600 dark:bg-emerald-500"></span>
               </span>
-              <h1 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate">{workoutName}</h1>
+              <h1 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate" title={workoutName}>{workoutName}</h1>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+            <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
               <span className="flex items-center gap-1 font-mono">
                 <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {elapsedMinutes} мин
               </span>
@@ -319,36 +319,36 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={onCancelWorkout}
-              className="px-3 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-zinc-900 rounded-lg transition"
+              className="px-2.5 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-zinc-900 rounded-lg transition"
             >
-              Отменить
+              Отмена
             </button>
             <button
               onClick={handleFinish}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition"
+              className="px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition"
             >
-              <CheckCircle2 className="w-4 h-4" /> Завершить
+              <CheckCircle2 className="w-4 h-4" /> <span>Завершить</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Exercise Cards List */}
-      <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-5">
+      <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-4 sm:space-y-5">
         {exercises.map((ex, exIdx) => {
           const completedCount = ex.sets.filter(s => s.completed).length;
 
           return (
             <div 
               key={ex.exerciseId + '-' + exIdx}
-              className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-4 sm:p-5 shadow-sm dark:shadow-xl transition"
+              className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-3.5 sm:p-5 shadow-sm dark:shadow-xl transition"
             >
               {/* Exercise Header */}
               <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
                       {ex.category}
@@ -357,7 +357,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                       {completedCount}/{ex.sets.length}
                     </span>
                   </div>
-                  <h2 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white mt-1">{ex.name}</h2>
+                  <h2 className="font-bold text-sm sm:text-lg text-slate-900 dark:text-white mt-1 leading-snug">{ex.name}</h2>
                 </div>
 
                 {/* Action Buttons: Animation/Technique, Swap, Plate Calculator */}
@@ -394,38 +394,38 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               </div>
 
               {/* Smart Progression Recommendation Alert Box */}
-              <div className={`mt-3 p-3 rounded-2xl border text-xs flex items-center justify-between ${
+              <div className={`mt-3 p-2.5 sm:p-3 rounded-2xl border text-xs flex items-center justify-between gap-2 ${
                 ex.recommendation.badgeColor === 'emerald'
                   ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/40 text-emerald-900 dark:text-emerald-200'
                   : ex.recommendation.badgeColor === 'amber'
                   ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-500/40 text-amber-900 dark:text-amber-200'
                   : 'bg-slate-50 dark:bg-zinc-950/80 border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300'
               }`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-base">⚡</span>
-                  <div>
-                    <span className="font-bold text-slate-900 dark:text-white block">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base shrink-0">⚡</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-slate-900 dark:text-white block truncate">
                       {ex.recommendation.badgeText}
                     </span>
-                    <span className="text-[11px] opacity-80">
+                    <span className="text-[11px] opacity-80 block truncate">
                       Цель: {ex.targetWeight} кг × {ex.minReps}-{ex.maxReps} повт.
                     </span>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-1 bg-white/80 dark:bg-black/40 rounded-lg font-mono font-bold shadow-xs">
-                  Шаг: +{ex.weightStep}кг
+                <span className="text-[10px] px-2 py-1 bg-white/80 dark:bg-black/40 rounded-lg font-mono font-bold shadow-xs shrink-0 whitespace-nowrap">
+                  +{ex.weightStep}кг
                 </span>
               </div>
 
               {/* Sets Table */}
-              <div className="mt-4 space-y-2.5">
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 px-1">
-                  <span className="col-span-1 text-center">Сет</span>
-                  <span className="col-span-3 text-center">Пред.</span>
-                  <span className="col-span-3 text-center">Вес (кг)</span>
-                  <span className="col-span-3 text-center">Повторы</span>
-                  <span className="col-span-2 text-center">Готово</span>
+              <div className="mt-3.5 space-y-2">
+                {/* Table Header: Perfectly locked columns */}
+                <div className="grid grid-cols-[28px_56px_1fr_1fr_44px] gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 px-1 text-center items-center">
+                  <span>Сет</span>
+                  <span>Пред.</span>
+                  <span>Вес, кг</span>
+                  <span>Повторы</span>
+                  <span>Готово</span>
                 </div>
 
                 {/* Set Rows */}
@@ -435,71 +435,76 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                   return (
                     <div 
                       key={set.id}
-                      className={`grid grid-cols-12 gap-1 items-center p-2 rounded-2xl border transition ${
+                      className={`grid grid-cols-[28px_56px_1fr_1fr_44px] gap-1.5 items-center p-1 sm:p-1.5 rounded-2xl border transition ${
                         set.completed 
                           ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-500/40' 
                           : 'bg-slate-50/80 dark:bg-zinc-950/60 border-slate-200 dark:border-zinc-800/80'
                       }`}
                     >
                       {/* Set Number */}
-                      <div className="col-span-1 text-center font-mono font-bold text-sm text-slate-500 dark:text-zinc-400">
+                      <div className="text-center font-mono font-bold text-xs sm:text-sm text-slate-500 dark:text-zinc-400">
                         {set.setNumber}
                       </div>
 
                       {/* Ghost Data from Previous Session */}
-                      <div className="col-span-3 text-center text-[11px] font-mono text-slate-400 dark:text-zinc-500">
-                        {prevSet ? `${prevSet.weight}кг × ${prevSet.reps}` : '—'}
+                      <div className="text-center text-[11px] font-mono text-slate-400 dark:text-zinc-500 truncate" title={prevSet ? `${prevSet.weight}кг × ${prevSet.reps}` : '—'}>
+                        {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
                       </div>
 
                       {/* Weight Stepper */}
-                      <div className="col-span-3 flex items-center justify-center gap-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-1 shadow-xs">
+                      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-0.5 shadow-2xs">
                         <button
                           onClick={() => updateSetWeight(exIdx, setIdx, -ex.weightStep)}
-                          className="w-6 h-6 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded text-xs active:scale-95 transition"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
+                          aria-label="Уменьшить вес"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white w-10 text-center">
+                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white px-0.5 text-center min-w-0 truncate">
                           {set.weight}
                         </span>
                         <button
                           onClick={() => updateSetWeight(exIdx, setIdx, +ex.weightStep)}
-                          className="w-6 h-6 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded text-xs active:scale-95 transition"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
+                          aria-label="Увеличить вес"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
 
                       {/* Reps Stepper */}
-                      <div className="col-span-3 flex items-center justify-center gap-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-1 shadow-xs">
+                      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-0.5 shadow-2xs">
                         <button
                           onClick={() => updateSetReps(exIdx, setIdx, -1)}
-                          className="w-6 h-6 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded text-xs active:scale-95 transition"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
+                          aria-label="Уменьшить повторения"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white w-7 text-center">
+                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white px-0.5 text-center min-w-0 truncate">
                           {set.reps}
                         </span>
                         <button
                           onClick={() => updateSetReps(exIdx, setIdx, +1)}
-                          className="w-6 h-6 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded text-xs active:scale-95 transition"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
+                          aria-label="Увеличить повторения"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
 
                       {/* Complete Checkbox */}
-                      <div className="col-span-2 flex justify-center">
+                      <div className="flex justify-center">
                         <button
                           onClick={() => toggleSetComplete(exIdx, setIdx)}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition active:scale-90 shadow-sm ${
+                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition active:scale-90 shadow-sm ${
                             set.completed
                               ? 'bg-emerald-500 text-white shadow-emerald-500/30'
                               : 'bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-400 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700'
                           }`}
+                          aria-label="Отметить подход выполненным"
                         >
-                          <Check className={`w-5 h-5 ${set.completed ? 'stroke-[3]' : ''}`} />
+                          <Check className={`w-4 h-4 sm:w-5 sm:h-5 ${set.completed ? 'stroke-[3]' : ''}`} />
                         </button>
                       </div>
                     </div>

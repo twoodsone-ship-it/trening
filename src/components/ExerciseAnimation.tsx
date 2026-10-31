@@ -161,54 +161,57 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
       
       {/* View Mode Switcher Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-xs">
+        <div className="flex bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-xs max-w-full overflow-x-auto scrollbar-none">
           <button
             onClick={() => setViewMode('gif')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
               viewMode === 'gif'
                 ? 'bg-emerald-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900'
             }`}
           >
-            <Activity className="w-3.5 h-3.5" />
-            <span>🎬 3D GIF Анимация</span>
+            <Activity className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">3D GIF</span>
+            <span className="hidden sm:inline">🎬 3D GIF Анимация</span>
           </button>
 
           <button
             onClick={() => setViewMode('compare')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
               viewMode === 'compare'
                 ? 'bg-emerald-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900'
             }`}
           >
-            <Eye className="w-3.5 h-3.5" />
-            <span>2 Фазы (Старт/Финиш)</span>
+            <Eye className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">2 Фазы</span>
+            <span className="hidden sm:inline">2 Фазы (Старт/Пик)</span>
           </button>
 
           <button
             onClick={() => setViewMode('scrub')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
               viewMode === 'scrub'
                 ? 'bg-emerald-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900'
             }`}
           >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Слайдер углов</span>
+            <Sliders className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">Слайдер</span>
+            <span className="hidden sm:inline">Слайдер углов</span>
           </button>
         </div>
 
         {/* Speed / Zoom controls */}
         {viewMode === 'gif' && resolvedGifUrl && !gifLoadError && (
-          <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-slate-200 dark:border-zinc-800 text-[11px] font-bold">
-            <span className="text-slate-400 px-1.5 flex items-center gap-1">
+          <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 p-1 rounded-2xl border border-slate-200 dark:border-zinc-800 text-[11px] font-bold shrink-0">
+            <span className="text-slate-400 px-1 flex items-center gap-1">
               <Gauge className="w-3 h-3" />
             </span>
             <button
               onClick={() => setPlaybackSpeed(0.5)}
-              className={`px-2 py-1 rounded-xl transition ${
-                playbackSpeed === 0.5 ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-slate-800'
+              className={`px-2 py-1 rounded-xl transition active:scale-95 ${
+                playbackSpeed === 0.5 ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'
               }`}
               title="Замедленный режим для разбора техники"
             >
@@ -216,15 +219,15 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
             </button>
             <button
               onClick={() => setPlaybackSpeed(1)}
-              className={`px-2 py-1 rounded-xl transition ${
-                playbackSpeed === 1 ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-slate-800'
+              className={`px-2 py-1 rounded-xl transition active:scale-95 ${
+                playbackSpeed === 1 ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'
               }`}
             >
               1.0x
             </button>
             <button
               onClick={() => setIsZoomed(!isZoomed)}
-              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg transition ml-1"
+              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg transition ml-0.5 active:scale-95"
               title="Увеличить"
             >
               {isZoomed ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -238,18 +241,20 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
         /* Real High-Resolution 3D Anatomical GIF */
         <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-3 sm:p-4 flex flex-col items-center justify-center overflow-hidden shadow-xs min-h-[260px]">
           
-          {/* Breathing & Phase Guidance Floating Pill */}
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-3 py-1 bg-white/90 dark:bg-zinc-950/90 backdrop-blur rounded-full text-xs font-bold border border-slate-200 dark:border-zinc-800 shadow-xs">
-            <span className={`w-2.5 h-2.5 rounded-full ${activeFrame === 'finish' ? 'bg-emerald-500 animate-ping' : 'bg-blue-500'}`} />
-            <span className={activeFrame === 'finish' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}>
-              {activeFrame === 'finish' ? '↑ Подъем / Сокращение (Выдох)' : '↓ Опускание / Растяжение (Вдох)'}
-            </span>
-          </div>
+          {/* Header Row: Breathing & Phase Guidance + Verified Badge (NEVER overlaps) */}
+          <div className="w-full flex items-center justify-between gap-1.5 mb-2 z-10">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/90 dark:bg-zinc-950/90 backdrop-blur rounded-full text-[11px] font-bold border border-slate-200 dark:border-zinc-800 shadow-2xs min-w-0">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${activeFrame === 'finish' ? 'bg-emerald-500 animate-ping' : 'bg-blue-500'}`} />
+              <span className={`truncate ${activeFrame === 'finish' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                <span className="sm:hidden">{activeFrame === 'finish' ? '↑ Выдох (Пик)' : '↓ Вдох (Опускание)'}</span>
+                <span className="hidden sm:inline">{activeFrame === 'finish' ? '↑ Подъем / Сокращение (Выдох)' : '↓ Опускание / Растяжение (Вдох)'}</span>
+              </span>
+            </div>
 
-          {/* Biomechanical Verified Badge */}
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/60 rounded-full text-[10px] font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs">
-            <Sparkles className="w-3 h-3 text-emerald-500" />
-            <span>Анатомическая 3D-модель</span>
+            <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/60 rounded-full text-[10px] font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs shrink-0 whitespace-nowrap">
+              <Sparkles className="w-3 h-3 text-emerald-500" />
+              <span>3D Модель</span>
+            </div>
           </div>
 
           {/* Loading Skeleton */}
@@ -343,24 +348,24 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
       )}
 
       {/* Anatomy Muscle Target Legend */}
-      <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 flex items-center justify-between text-xs gap-3 shadow-2xs">
+      <div className="bg-white dark:bg-zinc-900 p-3 sm:p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs shadow-2xs">
         <div>
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
             Основная работающая мышца:
           </span>
-          <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm flex items-center gap-1.5 mt-0.5">
-            <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50 inline-block shrink-0" />
-            {cuesData.primary}
+          <span className="font-bold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm flex items-center gap-1.5 mt-0.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50 inline-block shrink-0" />
+            <span>{cuesData.primary}</span>
           </span>
         </div>
 
-        <div className="text-right">
+        <div className="sm:text-right">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
             Мышцы-синергисты и стабилизаторы:
           </span>
-          <span className="font-semibold text-amber-600 dark:text-amber-400 text-xs flex items-center gap-1.5 justify-end mt-0.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shrink-0" />
-            {cuesData.secondary}
+          <span className="font-semibold text-amber-600 dark:text-amber-400 text-xs flex items-center gap-1.5 sm:justify-end mt-0.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shrink-0" />
+            <span>{cuesData.secondary}</span>
           </span>
         </div>
       </div>

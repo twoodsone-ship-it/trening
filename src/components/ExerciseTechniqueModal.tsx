@@ -40,13 +40,13 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-zinc-100">
-      <div className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-zinc-100">
+      <div className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-900/90">
-          <div>
-            <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-200 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-900/90 gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
                 {category}
               </span>
@@ -54,12 +54,13 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
                 {EQUIPMENT_LABELS[equipment] || equipment}
               </span>
             </div>
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white mt-1">{exerciseName}</h3>
+            <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white mt-1 truncate">{exerciseName}</h3>
           </div>
           
           <button 
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
+            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 active:scale-95 transition shrink-0"
+            aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>

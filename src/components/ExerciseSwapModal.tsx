@@ -163,35 +163,36 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-zinc-100">
-      <div className="w-full max-w-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-zinc-100">
+      <div className="w-full max-w-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[min(92dvh,calc(100dvh-1.5rem))]">
         
         {/* Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 space-y-3 shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <RefreshCw className="w-5 h-5 animate-spin-slow" />
+        <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 space-y-2.5 sm:space-y-3 shrink-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin-slow" />
               </div>
-              <div>
-                <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">Замена упражнения</h3>
-                <span className="text-xs text-slate-500 dark:text-zinc-400 block">
-                  Тренажер занят или отсутствует в зале? Выберите замену:
+              <div className="min-w-0 flex-1">
+                <h3 className="font-bold text-sm sm:text-lg text-slate-900 dark:text-white truncate">Замена упражнения</h3>
+                <span className="text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 block truncate">
+                  Тренажер занят или отсутствует? Выберите замену:
                 </span>
               </div>
             </div>
             <button 
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-800 transition"
+              className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-800 active:scale-95 transition shrink-0"
+              aria-label="Закрыть"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Current Exercise Banner */}
-          <div className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl flex items-center justify-between text-xs">
+          <div className="px-3 py-1.5 sm:py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl flex items-center justify-between text-xs gap-2">
             <span className="text-emerald-800 dark:text-emerald-300 font-medium shrink-0">Заменяем:</span>
-            <span className="font-bold text-slate-900 dark:text-white truncate ml-2 text-right">
+            <span className="font-bold text-slate-900 dark:text-white truncate text-right">
               {currentExercise.name}
             </span>
           </div>

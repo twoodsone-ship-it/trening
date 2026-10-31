@@ -64,20 +64,21 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
     : calculate1RM(exercise.currentWeight, exercise.maxReps);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl text-white max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-lg bg-zinc-900 border border-zinc-700 rounded-3xl shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden">
         
         {/* Top Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/90">
-          <div>
+        <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-zinc-800 bg-zinc-900/90 gap-2">
+          <div className="min-w-0 flex-1">
             <span className="text-[10px] font-bold tracking-wider uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full">
               {exercise.category}
             </span>
-            <h3 className="font-bold text-lg text-zinc-100 mt-1">{exercise.name}</h3>
+            <h3 className="font-bold text-base sm:text-lg text-zinc-100 mt-1 truncate">{exercise.name}</h3>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+            className="w-9 h-9 flex items-center justify-center text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 active:scale-95 transition shrink-0"
+            aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>

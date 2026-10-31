@@ -173,7 +173,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gym-dark text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen min-h-[100dvh] bg-slate-50 dark:bg-gym-dark text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
       
       {/* PWA installation prompt */}
       <PWAInstallBanner />

@@ -15,18 +15,19 @@ import {
   RefreshCw,
   Repeat
 } from 'lucide-react';
-import { Exercise, WorkoutTemplate } from '../types';
+import { Exercise, WorkoutTemplate, ReadinessLevel } from '../types';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
 import { ExerciseProgressionModal } from './ExerciseProgressionModal';
 import { ExerciseTechniqueModal } from './ExerciseTechniqueModal';
 import { ExerciseSwapModal } from './ExerciseSwapModal';
+import { ReadinessCheckinModal } from './ReadinessCheckinModal';
 import { CatalogExerciseItem } from '../data/exerciseCatalog';
 
 interface WorkoutTemplateListProps {
   templates: WorkoutTemplate[];
   currentWeek: 'A' | 'B';
   onChangeWeek: (week: 'A' | 'B') => void;
-  onStartWorkout: (template: WorkoutTemplate) => void;
+  onStartWorkout: (template: WorkoutTemplate, readiness: ReadinessLevel) => void;
   onUpdateTemplate: (template: WorkoutTemplate) => void;
   onCreateTemplate: (template: WorkoutTemplate) => void;
 }
@@ -42,6 +43,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
   const [selectedExercise, setSelectedExercise] = useState<{ exercise: Exercise; templateId: string } | null>(null);
   const [viewingTechniqueEx, setViewingTechniqueEx] = useState<{ exercise: Exercise; templateId: string } | null>(null);
   const [swappingEx, setSwappingEx] = useState<{ exercise: Exercise; templateId: string } | null>(null);
+  const [checkinTemplate, setCheckinTemplate] = useState<WorkoutTemplate | null>(null);
 
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newProgramName, setNewProgramName] = useState('');
@@ -222,7 +224,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
               </div>
 
               <button
-                onClick={() => onStartWorkout(template)}
+                onClick={() => setCheckinTemplate(template)}
                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white dark:text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition shrink-0"
               >
                 <Play className="w-4 h-4 fill-current" /> Начать
@@ -398,6 +400,19 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
           </div>
         </div>
       )}
+
+      {/* Readiness Check-in Modal (Auto-Regulation) */}
+      <ReadinessCheckinModal
+        template={checkinTemplate}
+        isOpen={!!checkinTemplate}
+        onClose={() => setCheckinTemplate(null)}
+        onConfirm={(readiness) => {
+          if (checkinTemplate) {
+            onStartWorkout(checkinTemplate, readiness);
+            setCheckinTemplate(null);
+          }
+        }}
+      />
 
     </div>
   );

@@ -3,7 +3,8 @@ import {
   ActiveExerciseSession, 
   AppSettings, 
   CompletedWorkout, 
-  WorkoutTemplate 
+  WorkoutTemplate,
+  ReadinessLevel 
 } from './types';
 import { storageService } from './services/storageService';
 import { evaluateDoubleProgression } from './services/progressionEngine';
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
   const [activeWorkout, setActiveWorkout] = useState<{
     templateId: string;
     templateName: string;
+    readiness?: ReadinessLevel;
     startTime: number;
     exercises: ActiveExerciseSession[];
   } | null>(null);
@@ -70,17 +72,18 @@ export const App: React.FC = () => {
     storageService.saveActiveWorkout(activeWorkout);
   }, [activeWorkout]);
 
-  // Start new workout from template
-  const handleStartWorkout = (template: WorkoutTemplate) => {
+  // Start new workout from template with Auto-Regulation readiness
+  const handleStartWorkout = (template: WorkoutTemplate, readiness: ReadinessLevel = 'optimal') => {
     const activeExercises: ActiveExerciseSession[] = template.exercises.map(ex => {
-      // Evaluate progression recommendation
+      // Evaluate progression recommendation with CNS readiness
       const recommendation = evaluateDoubleProgression(
         ex.targetSets,
         ex.minReps,
         ex.maxReps,
         ex.weightStep,
         ex.currentWeight,
-        ex.history
+        ex.history,
+        readiness
       );
 
       // Previous session data for ghost display
@@ -93,7 +96,8 @@ export const App: React.FC = () => {
         weight: recommendation.nextWeight,
         reps: ex.minReps,
         rpe: 8,
-        completed: false
+        completed: false,
+        type: 'working' as const
       }));
 
       return {
@@ -124,6 +128,7 @@ export const App: React.FC = () => {
     const newSession = {
       templateId: template.id,
       templateName: template.name,
+      readiness,
       startTime: Date.now(),
       exercises: activeExercises
     };
@@ -184,6 +189,7 @@ export const App: React.FC = () => {
           <ActiveWorkoutView
             workoutName={activeWorkout.templateName}
             templateId={activeWorkout.templateId}
+            readiness={activeWorkout.readiness}
             startTime={activeWorkout.startTime}
             exercises={activeWorkout.exercises}
             onUpdateExercises={(updated) => {

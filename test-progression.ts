@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { calculate1RM, calculateVolume, evaluateDoubleProgression } from './src/services/progressionEngine.ts';
+import type { ExerciseSession } from './src/types/index.ts';
 
 console.log('--- Running Smart Double Progression Unit Tests ---');
 
@@ -135,4 +136,122 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
   console.log('✔ Test 6: 3-session plateau detection verified');
 }
 
-console.log('ALL 6 ALGORITHMIC TESTS PASSED PERFECTLY!');
+// 7. Test 1RM Edge-Case Fix: High Reps & Division-by-Zero Guard (r >= 37)
+{
+  const oneRM20 = calculate1RM(60, 20); // 60 * (1 + 20/30) = 100
+  assert.strictEqual(oneRM20, 100, '1 rep max for 60x20 should use Epley: 100');
+
+  const oneRM37 = calculate1RM(60, 37); // Brzycki would divide by 0! Epley: 60 * (1 + 37/30) = 134
+  assert.strictEqual(Number.isFinite(oneRM37), true, '37 reps must be finite');
+  assert.strictEqual(oneRM37, 134, '1 rep max for 60x37 should be exactly 134 without division-by-zero');
+
+  const oneRM50 = calculate1RM(50, 50);
+  assert.strictEqual(Number.isFinite(oneRM50), true, '50 reps must be finite');
+  assert.strictEqual(Number.isNaN(oneRM50), false, '50 reps must not be NaN');
+  console.log('✔ Test 7: 1RM high-reps & Brzycki division-by-zero guard verified');
+}
+
+// 8. Test Warmup Isolation (Ignored in Double Progression and Volume)
+{
+  const setsWithWarmup = [
+    { weight: 40, reps: 15, isWarmup: true, type: 'warmup' as const },
+    { weight: 60, reps: 10, type: 'warmup' as const },
+    { weight: 80, reps: 10, type: 'working' as const },
+    { weight: 80, reps: 10, type: 'working' as const }
+  ];
+
+  const vol = calculateVolume(setsWithWarmup);
+  assert.strictEqual(vol, 1600, 'Volume must only count working sets (80*10 + 80*10 = 1600)');
+
+  // History with 1 warmup set and 3 max working sets
+  const history: ExerciseSession[] = [
+    {
+      id: 'hw1',
+      workoutId: 'w1',
+      date: '2026-10-25T10:00:00.000Z',
+      targetSets: 3,
+      minReps: 8,
+      maxReps: 12,
+      weight: 80,
+      sets: [
+        { setNumber: 0, weight: 40, reps: 15, isWarmup: true, type: 'warmup' }, // Warmup with 15 reps
+        { setNumber: 1, weight: 80, reps: 12, rpe: 8, type: 'working' },
+        { setNumber: 2, weight: 80, reps: 12, rpe: 8, type: 'working' },
+        { setNumber: 3, weight: 80, reps: 12, rpe: 8, type: 'working' }
+      ],
+      totalVolume: 3480,
+      estimated1RM: 112
+    }
+  ];
+
+  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history);
+  assert.strictEqual(rec.decision, 'INCREASE_WEIGHT', 'Should trigger weight increase based on working sets only');
+  assert.strictEqual(rec.nextWeight, 82.5);
+  console.log('✔ Test 8: Warmup set isolation from progression verified');
+}
+
+// 9. Test Auto-Regulation (Fatigue / Sleep Deprivation)
+{
+  const makeSession = (date: string, reps: number[]): ExerciseSession => ({
+    id: 's-' + date,
+    workoutId: 'w-' + date,
+    date,
+    targetSets: 3,
+    minReps: 8,
+    maxReps: 12,
+    weight: 80,
+    sets: [
+      { setNumber: 1, weight: 80, reps: reps[0], rpe: 9 },
+      { setNumber: 2, weight: 80, reps: reps[1], rpe: 9 },
+      { setNumber: 3, weight: 80, reps: reps[2], rpe: 9.5 }
+    ],
+    totalVolume: 80 * (reps[0] + reps[1] + reps[2]),
+    estimated1RM: 105
+  });
+
+  const history: ExerciseSession[] = [
+    makeSession('2026-10-01', [10, 9, 8]),
+    makeSession('2026-10-08', [10, 9, 8]),
+    makeSession('2026-10-15', [10, 9, 8])
+  ];
+
+  // In optimal state, this triggers plateau warning
+  const recOptimal = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal');
+  assert.strictEqual(recOptimal.decision, 'PLATEAU_WARNING');
+
+  // In tired/sleep_deprived state, plateau warning MUST BE FROZEN
+  const recTired = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'tired');
+  assert.notStrictEqual(recTired.decision, 'PLATEAU_WARNING', 'Plateau warning must be frozen when tired');
+  assert.strictEqual(recTired.decision, 'INCREASE_REPS');
+
+  // Auto-regulation RPE threshold: max reps with RPE 9.0 triggers consolidation when fatigued
+  const maxRepHistory: ExerciseSession[] = [
+    {
+      id: 'hm1',
+      workoutId: 'w1',
+      date: '2026-10-25T10:00:00.000Z',
+      targetSets: 3,
+      minReps: 8,
+      maxReps: 12,
+      weight: 80,
+      sets: [
+        { setNumber: 1, weight: 80, reps: 12, rpe: 9, type: 'working' },
+        { setNumber: 2, weight: 80, reps: 12, rpe: 9, type: 'working' },
+        { setNumber: 3, weight: 80, reps: 12, rpe: 9, type: 'working' }
+      ],
+      totalVolume: 2880,
+      estimated1RM: 112
+    }
+  ];
+
+  // In optimal state, RPE 9 allows INCREASE_WEIGHT (threshold is 9.5)
+  const recOptMax = evaluateDoubleProgression(3, 8, 12, 2.5, 80, maxRepHistory, 'optimal');
+  assert.strictEqual(recOptMax.decision, 'INCREASE_WEIGHT');
+
+  // In tired state, threshold is reduced by 0.5 (to 9.0), so RPE 9 triggers CONSOLIDATE_WEIGHT
+  const recTiredMax = evaluateDoubleProgression(3, 8, 12, 2.5, 80, maxRepHistory, 'tired');
+  assert.strictEqual(recTiredMax.decision, 'CONSOLIDATE_WEIGHT', 'RPE 9 on tired state must trigger weight consolidation');
+  console.log('✔ Test 9: Auto-regulation readiness fatigue & RPE threshold lowering verified');
+}
+
+console.log('ALL 9 ALGORITHMIC TESTS PASSED PERFECTLY!');

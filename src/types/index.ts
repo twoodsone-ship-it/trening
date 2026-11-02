@@ -10,6 +10,10 @@ export interface ExerciseTechniqueGuide {
   primaryMuscles: string;
 }
 
+export type WorkoutSetType = 'warmup' | 'working' | 'failure' | 'dropset';
+
+export type ReadinessLevel = 'optimal' | 'tired' | 'sleep_deprived';
+
 export interface WorkoutSet {
   id: string;
   setNumber: number;
@@ -18,6 +22,7 @@ export interface WorkoutSet {
   rpe?: number; // 6 to 10
   completed: boolean;
   isWarmup?: boolean;
+  type?: WorkoutSetType;
 }
 
 export interface SetHistoryEntry {
@@ -25,6 +30,8 @@ export interface SetHistoryEntry {
   weight: number;
   reps: number;
   rpe?: number;
+  type?: WorkoutSetType;
+  isWarmup?: boolean;
 }
 
 export interface ExerciseSession {
@@ -117,6 +124,7 @@ export interface CompletedWorkout {
   id: string;
   templateId: string;
   templateName: string;
+  readiness?: ReadinessLevel;
   startTime: number;
   endTime: number;
   durationMinutes: number;

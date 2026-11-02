@@ -1,4 +1,4 @@
-import type { AppSettings, CompletedWorkout, WorkoutTemplate, ActiveExerciseSession, Exercise, MuscleCategory, EquipmentType, ExerciseTechniqueGuide } from '../types/index.ts';
+import type { AppSettings, CompletedWorkout, WorkoutTemplate, ActiveExerciseSession, Exercise, MuscleCategory, EquipmentType, ExerciseTechniqueGuide, ReadinessLevel } from '../types/index.ts';
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
 
@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
   HISTORY: 'ironforge_history_v1',
   SETTINGS: 'ironforge_settings_v1',
   ACTIVE_WORKOUT: 'ironforge_active_session_v1',
-  CUSTOM_EXERCISES: 'ironforge_custom_exercises_v1'
+  CUSTOM_EXERCISES: 'ironforge_custom_exercises_v1',
+  EMERGENCY_SNAPSHOT: 'ironforge_emergency_snapshot_v1'
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -139,6 +140,7 @@ export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
 export function migrateActiveSession(workout: any): {
   templateId: string;
   templateName: string;
+  readiness?: ReadinessLevel;
   startTime: number;
   exercises: ActiveExerciseSession[];
 } | null {
@@ -203,6 +205,7 @@ export function migrateActiveSession(workout: any): {
   return {
     templateId: workout.templateId || 'custom',
     templateName: workout.templateName || 'Тренировка',
+    readiness: workout.readiness || 'optimal',
     startTime: Number(workout.startTime) || Date.now(),
     exercises: migratedExercises
   };
@@ -318,6 +321,7 @@ export const storageService = {
   getActiveWorkout(): {
     templateId: string;
     templateName: string;
+    readiness?: ReadinessLevel;
     startTime: number;
     exercises: ActiveExerciseSession[];
   } | null {
@@ -336,6 +340,7 @@ export const storageService = {
   saveActiveWorkout(workout: {
     templateId: string;
     templateName: string;
+    readiness?: ReadinessLevel;
     startTime: number;
     exercises: ActiveExerciseSession[];
   } | null) {
@@ -386,9 +391,72 @@ export const storageService = {
     return JSON.stringify(backup, null, 2);
   },
 
+  createEmergencySnapshot(): void {
+    try {
+      const snapshot = {
+        timestamp: Date.now(),
+        date: new Date().toISOString(),
+        templates: localStorage.getItem(STORAGE_KEYS.TEMPLATES),
+        history: localStorage.getItem(STORAGE_KEYS.HISTORY),
+        settings: localStorage.getItem(STORAGE_KEYS.SETTINGS),
+        activeWorkout: localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT),
+        customExercises: localStorage.getItem(STORAGE_KEYS.CUSTOM_EXERCISES),
+        templatesVersion: localStorage.getItem('ironforge_templates_version')
+      };
+      localStorage.setItem(STORAGE_KEYS.EMERGENCY_SNAPSHOT, JSON.stringify(snapshot));
+    } catch (e) {
+      console.warn('Failed to create emergency snapshot', e);
+    }
+  },
+
+  hasEmergencySnapshot(): boolean {
+    try {
+      return !!localStorage.getItem(STORAGE_KEYS.EMERGENCY_SNAPSHOT);
+    } catch {
+      return false;
+    }
+  },
+
+  restoreEmergencySnapshot(): boolean {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.EMERGENCY_SNAPSHOT);
+      if (!raw) return false;
+      const snap = JSON.parse(raw);
+      if (snap.templates !== undefined && snap.templates !== null) {
+        localStorage.setItem(STORAGE_KEYS.TEMPLATES, snap.templates);
+      }
+      if (snap.history !== undefined && snap.history !== null) {
+        localStorage.setItem(STORAGE_KEYS.HISTORY, snap.history);
+      }
+      if (snap.settings !== undefined && snap.settings !== null) {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, snap.settings);
+      }
+      if (snap.activeWorkout !== undefined && snap.activeWorkout !== null) {
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT, snap.activeWorkout);
+      }
+      if (snap.customExercises !== undefined && snap.customExercises !== null) {
+        localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, snap.customExercises);
+      }
+      if (snap.templatesVersion !== undefined && snap.templatesVersion !== null) {
+        localStorage.setItem('ironforge_templates_version', snap.templatesVersion);
+      }
+      return true;
+    } catch (e) {
+      console.error('Failed to restore emergency snapshot', e);
+      return false;
+    }
+  },
+
+  clearEmergencySnapshot(): void {
+    localStorage.removeItem(STORAGE_KEYS.EMERGENCY_SNAPSHOT);
+  },
+
   importBackupJson(jsonString: string): boolean {
     try {
       const data = JSON.parse(jsonString);
+      // Pre-import safety snapshot
+      this.createEmergencySnapshot();
+
       if (data.templates && Array.isArray(data.templates)) {
         const migrated = migrateTemplatesList(data.templates);
         localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(migrated));

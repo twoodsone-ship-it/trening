@@ -22,40 +22,63 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   const [isRunning, setIsRunning] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
 
-  // Sync when initialSeconds changes
+  // Exact target timestamp (Date.now() + remaining ms) for drift-free background timing
+  const targetEndTimeRef = React.useRef<number>(Date.now() + initialSeconds * 1000);
+  const lastBeepSecondsRef = React.useRef<number>(-1);
+
+  // Sync when initialSeconds changes or modal opens
   useEffect(() => {
     setTotalSeconds(initialSeconds);
     setTimeLeft(initialSeconds);
     setIsRunning(true);
-  }, [initialSeconds]);
+    targetEndTimeRef.current = Date.now() + initialSeconds * 1000;
+    lastBeepSecondsRef.current = -1;
+  }, [initialSeconds, isOpen]);
 
-  // Main countdown tick
+  // Re-calculate remaining seconds on visibility change (recovering from screen lock or background)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRunning && isOpen) {
+        const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          if (soundEnabled) soundService.playRestFinishedChime();
+          if (vibrationEnabled) soundService.vibrate([200, 100, 200, 100, 400]);
+          setIsRunning(false);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRunning, isOpen, soundEnabled, vibrationEnabled]);
+
+  // Main countdown tick based on exact timestamp diff
   useEffect(() => {
     if (!isRunning || !isOpen) return;
 
-    if (timeLeft <= 0) {
-      if (soundEnabled) soundService.playRestFinishedChime();
-      if (vibrationEnabled) soundService.vibrate([200, 100, 200, 100, 400]);
-      setIsRunning(false);
-      return;
-    }
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+      setTimeLeft(remaining);
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        const next = prev - 1;
-        // Sound warning on 3, 2, 1
-        if (soundEnabled && next <= 3 && next > 0) {
-          soundService.playCountdownBeep();
-        }
-        if (vibrationEnabled && next <= 3 && next > 0) {
-          soundService.vibrate(60);
-        }
-        return next;
-      });
-    }, 1000);
+      // Warning alert on 3, 2, 1
+      if (remaining > 0 && remaining <= 3 && remaining !== lastBeepSecondsRef.current) {
+        lastBeepSecondsRef.current = remaining;
+        if (soundEnabled) soundService.playCountdownBeep();
+        if (vibrationEnabled) soundService.vibrate(60);
+      }
 
+      if (remaining <= 0) {
+        if (soundEnabled) soundService.playRestFinishedChime();
+        if (vibrationEnabled) soundService.vibrate([200, 100, 200, 100, 400]);
+        setIsRunning(false);
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 250);
     return () => clearInterval(timer);
-  }, [isRunning, isOpen, timeLeft, soundEnabled, vibrationEnabled]);
+  }, [isRunning, isOpen, soundEnabled, vibrationEnabled]);
 
   if (!isOpen) return null;
 
@@ -65,13 +88,26 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   const progressPercent = totalSeconds > 0 ? ((totalSeconds - timeLeft) / totalSeconds) * 100 : 0;
 
   const addTime = (secs: number) => {
-    setTimeLeft(prev => Math.max(0, prev + secs));
-    setTotalSeconds(prev => Math.max(prev, timeLeft + secs));
+    targetEndTimeRef.current += secs * 1000;
+    const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+    setTimeLeft(remaining);
+    setTotalSeconds(prev => Math.max(prev, remaining));
   };
 
   const resetTimer = () => {
+    targetEndTimeRef.current = Date.now() + totalSeconds * 1000;
     setTimeLeft(totalSeconds);
     setIsRunning(true);
+    lastBeepSecondsRef.current = -1;
+  };
+
+  const togglePause = () => {
+    if (isRunning) {
+      setIsRunning(false);
+    } else {
+      targetEndTimeRef.current = Date.now() + timeLeft * 1000;
+      setIsRunning(true);
+    }
   };
 
   // Minimized floating pill (convenient for gym scrolling)
@@ -151,7 +187,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
 
           {/* Play/Pause */}
           <button
-            onClick={() => setIsRunning(!isRunning)}
+            onClick={togglePause}
             className={`flex-1 min-h-[44px] py-2.5 px-3 font-semibold text-sm rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition shadow-sm ${
               isRunning 
                 ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40' 

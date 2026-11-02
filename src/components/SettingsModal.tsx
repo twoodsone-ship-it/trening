@@ -13,7 +13,8 @@ import {
   Settings,
   Sun,
   Moon,
-  Repeat
+  Repeat,
+  Undo2
 } from 'lucide-react';
 import { AppSettings } from '../types';
 import { storageService } from '../services/storageService';
@@ -70,6 +71,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleUndoImport = () => {
+    if (storageService.restoreEmergencySnapshot()) {
+      setImportStatus('Предыдущее состояние успешно возвращено (Undo)!');
+      onDataReload();
+      setTimeout(() => setImportStatus(null), 4000);
+    }
   };
 
   const handleReset = () => {
@@ -264,8 +273,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={handleFileChange}
               />
             </div>
+
+            {storageService.hasEmergencySnapshot() && (
+              <button
+                onClick={handleUndoImport}
+                className="w-full py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition active:scale-98"
+              >
+                <Undo2 className="w-4 h-4" /> Откатить последний импорт (Undo)
+              </button>
+            )}
+
             {importStatus && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
                 {importStatus}
               </p>
             )}

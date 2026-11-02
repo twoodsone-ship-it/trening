@@ -124,3 +124,46 @@ export const soundService = {
     }
   }
 };
+
+let wakeLockSentinel: any = null;
+
+export const wakeLockService = {
+  /**
+   * Request screen wake lock to keep display on during gym workout
+   */
+  async requestWakeLock(): Promise<boolean> {
+    if (typeof window === 'undefined' || !('wakeLock' in navigator)) {
+      return false;
+    }
+    try {
+      if (wakeLockSentinel && !wakeLockSentinel.released) {
+        return true;
+      }
+      wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+      wakeLockSentinel.addEventListener('release', () => {
+        wakeLockSentinel = null;
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Release screen wake lock when workout finishes or is cancelled
+   */
+  async releaseWakeLock(): Promise<void> {
+    try {
+      if (wakeLockSentinel && !wakeLockSentinel.released) {
+        await wakeLockSentinel.release();
+        wakeLockSentinel = null;
+      }
+    } catch {
+      // Ignore
+    }
+  },
+
+  isActive(): boolean {
+    return Boolean(wakeLockSentinel && !wakeLockSentinel.released);
+  }
+};

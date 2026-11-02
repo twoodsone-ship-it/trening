@@ -17,8 +17,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { ActiveExerciseSession, CompletedWorkout, WorkoutSet } from '../types';
-import { soundService } from '../services/audioService';
+import { ActiveExerciseSession, CompletedWorkout, WorkoutSet, WorkoutSetType, ReadinessLevel } from '../types';
+import { soundService, wakeLockService } from '../services/audioService';
 import { calculate1RM, calculateVolume, evaluateDoubleProgression } from '../services/progressionEngine';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { ExerciseTechniqueModal } from './ExerciseTechniqueModal';
@@ -28,6 +28,7 @@ import { CatalogExerciseItem } from '../data/exerciseCatalog';
 interface ActiveWorkoutViewProps {
   workoutName: string;
   templateId: string;
+  readiness?: ReadinessLevel;
   startTime: number;
   exercises: ActiveExerciseSession[];
   onUpdateExercises: (exercises: ActiveExerciseSession[]) => void;
@@ -39,6 +40,7 @@ interface ActiveWorkoutViewProps {
 export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   workoutName,
   templateId,
+  readiness = 'optimal',
   startTime,
   exercises,
   onUpdateExercises,
@@ -66,6 +68,23 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     }, 30000);
     return () => clearInterval(timer);
   }, [startTime]);
+
+  // Screen Wake Lock to prevent phone screen from locking during workout
+  React.useEffect(() => {
+    wakeLockService.requestWakeLock();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        wakeLockService.requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      wakeLockService.releaseWakeLock();
+    };
+  }, []);
 
   const toggleSetComplete = (exIdx: number, setIdx: number) => {
     const updated = [...exercises];
@@ -99,18 +118,88 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     onUpdateExercises(updated);
   };
 
+  const cycleSetType = (exIdx: number, setIdx: number) => {
+    const updated = [...exercises];
+    const targetSet = updated[exIdx].sets[setIdx];
+    const order: WorkoutSetType[] = ['working', 'warmup', 'failure', 'dropset'];
+    const current = targetSet.type || (targetSet.isWarmup ? 'warmup' : 'working');
+    const nextIdx = (order.indexOf(current) + 1) % order.length;
+    const nextType = order[nextIdx];
+
+    targetSet.type = nextType;
+    targetSet.isWarmup = nextType === 'warmup';
+    
+    let workingNum = 1;
+    updated[exIdx].sets.forEach(s => {
+      if (s.type === 'warmup' || s.isWarmup) {
+        s.setNumber = 0;
+      } else {
+        s.setNumber = workingNum++;
+      }
+    });
+
+    onUpdateExercises(updated);
+  };
+
+  const addWarmupSet = (exIdx: number) => {
+    const updated = [...exercises];
+    const ex = updated[exIdx];
+    const warmupWeight = Math.max(0, Math.round((ex.targetWeight * 0.5) / 2.5) * 2.5);
+    const warmupSet: WorkoutSet = {
+      id: 'warmup-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
+      setNumber: 0,
+      weight: warmupWeight,
+      reps: Math.min(ex.maxReps, 12),
+      rpe: 6,
+      completed: false,
+      type: 'warmup',
+      isWarmup: true
+    };
+    
+    const firstWorkingIdx = ex.sets.findIndex(s => s.type !== 'warmup' && !s.isWarmup);
+    if (firstWorkingIdx !== -1) {
+      ex.sets.splice(firstWorkingIdx, 0, warmupSet);
+    } else {
+      ex.sets.unshift(warmupSet);
+    }
+
+    let workingNum = 1;
+    ex.sets.forEach(s => {
+      if (s.type === 'warmup' || s.isWarmup) {
+        s.setNumber = 0;
+      } else {
+        s.setNumber = workingNum++;
+      }
+    });
+
+    onUpdateExercises(updated);
+  };
+
   const addSet = (exIdx: number) => {
     const updated = [...exercises];
     const ex = updated[exIdx];
-    const lastSet = ex.sets[ex.sets.length - 1];
+    const workingSets = ex.sets.filter(s => s.type !== 'warmup' && !s.isWarmup);
+    const lastWorking = workingSets[workingSets.length - 1] || ex.sets[ex.sets.length - 1];
     ex.sets.push({
       id: 'set-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
-      setNumber: ex.sets.length + 1,
-      weight: lastSet ? lastSet.weight : ex.targetWeight,
-      reps: lastSet ? lastSet.reps : ex.minReps,
+      setNumber: workingSets.length + 1,
+      weight: lastWorking ? lastWorking.weight : ex.targetWeight,
+      reps: lastWorking ? lastWorking.reps : ex.minReps,
       rpe: 8,
-      completed: false
+      completed: false,
+      type: 'working',
+      isWarmup: false
     });
+    
+    let workingNum = 1;
+    ex.sets.forEach(s => {
+      if (s.type === 'warmup' || s.isWarmup) {
+        s.setNumber = 0;
+      } else {
+        s.setNumber = workingNum++;
+      }
+    });
+
     onUpdateExercises(updated);
   };
 
@@ -118,8 +207,16 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     const updated = [...exercises];
     if (updated[exIdx].sets.length <= 1) return;
     updated[exIdx].sets.splice(setIdx, 1);
-    // Renumber
-    updated[exIdx].sets.forEach((s, i) => s.setNumber = i + 1);
+    
+    let workingNum = 1;
+    updated[exIdx].sets.forEach(s => {
+      if (s.type === 'warmup' || s.isWarmup) {
+        s.setNumber = 0;
+      } else {
+        s.setNumber = workingNum++;
+      }
+    });
+
     onUpdateExercises(updated);
   };
 
@@ -255,7 +352,9 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           setNumber: s.setNumber,
           weight: s.weight,
           reps: s.reps,
-          rpe: s.rpe
+          rpe: s.rpe,
+          type: s.type || (s.isWarmup ? 'warmup' : 'working'),
+          isWarmup: s.type === 'warmup' || s.isWarmup
         })),
         progression: ex.recommendation
       };
@@ -278,6 +377,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       id: 'w-' + Date.now(),
       templateId,
       templateName: workoutName,
+      readiness,
       startTime,
       endTime,
       durationMinutes: duration,
@@ -308,7 +408,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               </span>
               <h1 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate" title={workoutName}>{workoutName}</h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+            <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 mt-0.5 flex-wrap">
               <span className="flex items-center gap-1 font-mono">
                 <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {elapsedMinutes} мин
               </span>
@@ -316,6 +416,22 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                 {totalCompletedSets}/{totalPlannedSets} сетов
               </span>
+              <span>•</span>
+              {readiness === 'optimal' && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  🟢 В ресурсе
+                </span>
+              )}
+              {readiness === 'tired' && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  🟡 Устал
+                </span>
+              )}
+              {readiness === 'sleep_deprived' && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                  🔴 Недосып
+                </span>
+              )}
             </div>
           </div>
 
@@ -441,9 +557,24 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                           : 'bg-slate-50/80 dark:bg-zinc-950/60 border-slate-200 dark:border-zinc-800/80'
                       }`}
                     >
-                      {/* Set Number */}
-                      <div className="text-center font-mono font-bold text-xs sm:text-sm text-slate-500 dark:text-zinc-400">
-                        {set.setNumber}
+                      {/* Set Number / Type Switcher Badge */}
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => cycleSetType(exIdx, setIdx)}
+                          title="Нажмите для смены типа: Рабочий / Разминка (Р) / Отказ (О) / Дропсет (Д)"
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-mono font-bold text-xs transition active:scale-95 shadow-2xs border ${
+                            (set.type === 'warmup' || set.isWarmup)
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                              : set.type === 'failure'
+                              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                              : set.type === 'dropset'
+                              ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30'
+                              : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700'
+                          }`}
+                        >
+                          {(set.type === 'warmup' || set.isWarmup) ? 'Р' : set.type === 'failure' ? 'О' : set.type === 'dropset' ? 'Д' : set.setNumber}
+                        </button>
                       </div>
 
                       {/* Ghost Data from Previous Session */}
@@ -514,12 +645,20 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
 
               {/* Add / Remove Set Row */}
               <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-100 dark:border-zinc-800/60">
-                <button
-                  onClick={() => addSet(exIdx)}
-                  className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Добавить подход
-                </button>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => addSet(exIdx)}
+                    className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Сет
+                  </button>
+                  <button
+                    onClick={() => addWarmupSet(exIdx)}
+                    className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Разминка
+                  </button>
+                </div>
 
                 {ex.sets.length > 1 && (
                   <button

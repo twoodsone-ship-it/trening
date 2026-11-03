@@ -1,4 +1,4 @@
-export type MuscleCategory = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';
+export type MuscleCategory = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core' | 'Cardio';
 
 export type EquipmentType = 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'smith' | 'bodyweight';
 

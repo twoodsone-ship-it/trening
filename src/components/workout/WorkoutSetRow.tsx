@@ -13,6 +13,8 @@ interface WorkoutSetRowProps {
   onWeightDelta: (delta: number) => void;
   onRepsDelta: (delta: number) => void;
   onToggleComplete: () => void;
+  onStartFocus?: () => void;
+  isFocusTarget?: boolean;
 }
 
 export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
@@ -23,16 +25,20 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
   onCopyPrevious,
   onWeightDelta,
   onRepsDelta,
-  onToggleComplete
+  onToggleComplete,
+  onStartFocus,
+  isFocusTarget
 }) => {
   const isWarmup = set.type === 'warmup' || set.isWarmup;
 
   return (
     <div
       className={cn(
-        'grid grid-cols-[28px_56px_1fr_1fr_44px] gap-1.5 items-center p-1.5 rounded-2xl border transition',
+        'grid grid-cols-[36px_64px_1fr_1fr_48px] gap-1.5 items-center p-1.5 rounded-2xl border transition',
         set.completed
           ? 'bg-lime/10 border-lime/40'
+          : isFocusTarget
+          ? 'bg-lime/5 border-lime/50 ring-1 ring-lime/30'
           : 'bg-white/[0.03] border-white/10'
       )}
     >
@@ -41,7 +47,7 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
           type="button"
           onClick={onCycleType}
           className={cn(
-            'w-8 h-8 rounded-xl flex items-center justify-center font-mono font-bold text-xs border',
+            'w-9 h-9 min-h-[36px] rounded-xl flex items-center justify-center font-mono font-bold text-xs border',
             isWarmup
               ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
               : set.type === 'failure'
@@ -60,41 +66,69 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
         onClick={previousSet ? onCopyPrevious : undefined}
         disabled={!previousSet}
         className={cn(
-          'text-center text-[11px] font-mono truncate rounded-lg py-1',
-          previousSet ? 'text-muted hover:text-lime' : 'text-white/25'
+          'text-center text-[11px] font-mono truncate rounded-xl py-2 min-h-[40px]',
+          previousSet ? 'text-muted hover:text-lime hover:bg-lime/5' : 'text-white/25'
         )}
+        title={previousSet ? 'Скопировать прошлый сет' : undefined}
       >
         {previousSet ? `${previousSet.weight}×${previousSet.reps}` : '—'}
       </button>
 
       <div className="flex items-center justify-between bg-ink border border-white/10 rounded-xl p-0.5">
-        <button onClick={() => onWeightDelta(-weightStep)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg" aria-label="− вес">
-          <Minus className="w-3 h-3" />
+        <button
+          type="button"
+          onClick={() => onWeightDelta(-weightStep)}
+          className="w-10 h-10 min-h-[40px] flex items-center justify-center bg-white/5 rounded-lg"
+          aria-label="− вес"
+        >
+          <Minus className="w-4 h-4" />
         </button>
         <span className="font-mono font-bold text-sm text-white px-0.5">{set.weight}</span>
-        <button onClick={() => onWeightDelta(+weightStep)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg" aria-label="+ вес">
-          <Plus className="w-3 h-3" />
+        <button
+          type="button"
+          onClick={() => onWeightDelta(+weightStep)}
+          className="w-10 h-10 min-h-[40px] flex items-center justify-center bg-white/5 rounded-lg"
+          aria-label="+ вес"
+        >
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex items-center justify-between bg-ink border border-white/10 rounded-xl p-0.5">
-        <button onClick={() => onRepsDelta(-1)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg" aria-label="− повт">
-          <Minus className="w-3 h-3" />
+        <button
+          type="button"
+          onClick={() => onRepsDelta(-1)}
+          className="w-10 h-10 min-h-[40px] flex items-center justify-center bg-white/5 rounded-lg"
+          aria-label="− повт"
+        >
+          <Minus className="w-4 h-4" />
         </button>
         <span className="font-mono font-bold text-sm text-white px-0.5">{set.reps}</span>
-        <button onClick={() => onRepsDelta(+1)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg" aria-label="+ повт">
-          <Plus className="w-3 h-3" />
+        <button
+          type="button"
+          onClick={() => onRepsDelta(+1)}
+          className="w-10 h-10 min-h-[40px] flex items-center justify-center bg-white/5 rounded-lg"
+          aria-label="+ повт"
+        >
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex justify-center">
         <button
-          onClick={onToggleComplete}
+          type="button"
+          onClick={() => {
+            if (!set.completed && onStartFocus) {
+              onStartFocus();
+              return;
+            }
+            onToggleComplete();
+          }}
           className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center transition active:scale-90',
+            'w-12 h-12 min-h-[48px] min-w-[48px] rounded-xl flex items-center justify-center transition active:scale-90',
             set.completed ? 'bg-lime text-ink' : 'bg-white/5 text-muted border border-white/10'
           )}
-          aria-label="Готово"
+          aria-label={set.completed ? 'Снять отметку' : 'Начать / готово'}
         >
           <Check className={cn('w-5 h-5', set.completed && 'stroke-[3]')} />
         </button>

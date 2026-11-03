@@ -105,7 +105,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     : null;
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[calc(7rem+env(safe-area-inset-bottom))] text-white animate-fade-in">
+    <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[calc(9.5rem+env(safe-area-inset-bottom))] text-white animate-fade-in">
       <header className="pt-4 pb-8">
         <p className="text-lime text-[11px] font-bold tracking-[0.28em] uppercase">IronForge</p>
         <h1 className="text-[2.6rem] leading-[0.95] font-extrabold tracking-tight mt-3">
@@ -206,14 +206,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </span>
           </div>
         )}
-        <button
-          type="button"
-          disabled={!todayTemplate}
-          onClick={() => todayTemplate && beginFlow(todayTemplate)}
-          className="mt-5 w-full btn-lime py-4 rounded-2xl text-base flex items-center justify-center gap-2 min-h-[56px] disabled:opacity-40"
-        >
-          <Play className="w-5 h-5 fill-current" /> Начать тренировку
-        </button>
       </section>
 
       <section className="mb-2">
@@ -291,6 +283,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
           }
         }}
       />
+
+      {/* Sticky start CTA above bottom nav — never covered */}
+      <div className="fixed inset-x-0 bottom-[calc(4.35rem+env(safe-area-inset-bottom))] z-30 px-5 pointer-events-none">
+        <div className="max-w-lg mx-auto pointer-events-auto">
+          <button
+            type="button"
+            disabled={!todayTemplate}
+            onClick={() => todayTemplate && beginFlow(todayTemplate)}
+            className="w-full btn-lime py-4 rounded-2xl text-base flex items-center justify-center gap-2 min-h-[56px] disabled:opacity-40 shadow-xl shadow-black/40"
+          >
+            <Play className="w-5 h-5 fill-current" /> Начать тренировку
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

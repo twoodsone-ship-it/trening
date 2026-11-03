@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, X, Smartphone, Share2, PlusSquare } from 'lucide-react';
+import { X, Smartphone, Share2, PlusSquare } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -14,12 +14,10 @@ export const PWAInstallBanner: React.FC = () => {
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
   useEffect(() => {
-    // Check if already in standalone mode
     const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     setIsStandalone(isStandaloneMode);
 
-    // Check if iOS device
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isAppleDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isAppleDevice);
@@ -49,22 +47,27 @@ export const PWAInstallBanner: React.FC = () => {
 
   return (
     <>
-      <div className="bg-gradient-to-r from-emerald-950/80 via-zinc-900 to-zinc-900 border-b border-emerald-500/30 px-4 py-2.5 text-xs text-zinc-200">
+      <div className="bg-ink-2/95 border-b border-lime/25 px-4 py-2.5 text-xs text-white backdrop-blur">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Установите IronForge как приложение для тренировок офлайн в зале</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <Smartphone className="w-4 h-4 text-lime shrink-0" />
+            <span className="text-muted truncate sm:whitespace-normal">
+              Установите IronForge как приложение для тренировок офлайн в зале
+            </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={handleInstallClick}
-              className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition"
+              className="px-3 py-1.5 btn-lime rounded-xl text-xs min-h-[36px] transition"
             >
               Установить
             </button>
             <button
+              type="button"
               onClick={() => setDismissed(true)}
-              className="p-1 text-zinc-400 hover:text-white"
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-muted hover:text-white"
+              aria-label="Закрыть"
             >
               <X className="w-4 h-4" />
             </button>
@@ -72,30 +75,30 @@ export const PWAInstallBanner: React.FC = () => {
         </div>
       </div>
 
-      {/* iOS Instructions Modal */}
       {showIOSInstructions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-700 rounded-2xl p-5 shadow-2xl text-white">
-            <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-emerald-400" /> Установка на iOS Safari
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm surface-panel p-5 border-lime/20 text-white animate-slide-up">
+            <h3 className="font-extrabold text-base mb-3 flex items-center gap-2">
+              <Smartphone className="w-5 h-5 text-lime" /> Установка на iOS Safari
             </h3>
-            <ol className="space-y-3 text-xs text-zinc-300">
+            <ol className="space-y-3 text-sm text-muted">
               <li className="flex items-start gap-2">
-                <span className="font-bold text-emerald-400 font-mono">1.</span>
-                <span>Нажмите кнопку «Поделиться» <Share2 className="w-3.5 h-3.5 inline mx-1 text-blue-400" /> в нижней панели Safari.</span>
+                <span className="font-bold text-lime font-mono">1.</span>
+                <span>Нажмите кнопку «Поделиться» <Share2 className="w-3.5 h-3.5 inline mx-1 text-sky-400" /> в нижней панели Safari.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="font-bold text-emerald-400 font-mono">2.</span>
-                <span>Прокрутите вниз и выберите «На экран «Домой»» <PlusSquare className="w-3.5 h-3.5 inline mx-1 text-zinc-300" />.</span>
+                <span className="font-bold text-lime font-mono">2.</span>
+                <span>Прокрутите вниз и выберите «На экран «Домой»» <PlusSquare className="w-3.5 h-3.5 inline mx-1" />.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="font-bold text-emerald-400 font-mono">3.</span>
+                <span className="font-bold text-lime font-mono">3.</span>
                 <span>Нажмите «Добавить» в правом верхнем углу.</span>
               </li>
             </ol>
             <button
+              type="button"
               onClick={() => setShowIOSInstructions(false)}
-              className="w-full mt-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl transition"
+              className="w-full mt-4 py-3 btn-lime text-sm rounded-2xl min-h-[48px] transition"
             >
               Понятно
             </button>

@@ -35,14 +35,14 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md surface-card p-5 animate-slide-up">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-md surface-card bg-ink-2 border border-white/10 rounded-[1.75rem] p-5 animate-slide-up text-white pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{setLabel}</p>
-        <h3 className="font-bold text-lg text-slate-900 dark:text-white mt-0.5 truncate">{exerciseName}</h3>
+        <h3 className="font-bold text-lg text-white mt-0.5 truncate">{exerciseName}</h3>
         <p className="text-sm text-muted mt-1">Оцените усилие (RPE) — влияет на Smart Progression</p>
 
         <div className="mt-5 text-center">
-          <div className="font-mono text-5xl font-black text-emerald-600 dark:text-emerald-400">{rpe}</div>
+          <div className="font-mono text-5xl font-black text-lime">{rpe}</div>
           <p className="text-xs text-muted mt-1 min-h-[1.25rem]">{RPE_HINTS[rpe]}</p>
         </div>
 
@@ -53,7 +53,7 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
           step={0.5}
           value={rpe}
           onChange={e => setRpe(Number(e.target.value))}
-          className="w-full mt-4 accent-emerald-500 h-2"
+          className="w-full mt-4 accent-[#c8f542] h-2"
           aria-label="RPE"
         />
 
@@ -68,10 +68,10 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
               type="button"
               onClick={() => setRpe(v)}
               className={cn(
-                'py-2.5 rounded-xl text-sm font-bold font-mono transition active:scale-95 min-h-[44px]',
+                'py-2.5 rounded-xl text-sm font-bold font-mono transition active:scale-95 min-h-[48px]',
                 Math.round(rpe) === v
-                  ? 'bg-emerald-500 text-black'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                  ? 'btn-lime'
+                  : 'bg-white/5 text-muted border border-white/10'
               )}
             >
               {v}
@@ -83,7 +83,7 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
           <button
             type="button"
             onClick={onSkip}
-            className="flex-1 py-3 rounded-xl text-sm font-semibold text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition min-h-[48px]"
+            className="flex-1 py-3 rounded-xl text-sm font-semibold text-muted hover:bg-white/5 border border-white/10 transition min-h-[52px]"
           >
             Пропустить
           </button>
@@ -93,7 +93,7 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
               soundService.haptic('rpeConfirm', vibrationEnabled);
               onConfirm(rpe);
             }}
-            className="flex-[1.4] py-3 rounded-xl text-sm font-bold bg-emerald-500 text-black flex items-center justify-center gap-2 active:scale-95 transition min-h-[48px]"
+            className="flex-[1.4] py-3 rounded-xl text-sm font-bold btn-lime flex items-center justify-center gap-2 active:scale-95 transition min-h-[52px]"
           >
             <Check className="w-4 h-4" /> Сохранить RPE
           </button>

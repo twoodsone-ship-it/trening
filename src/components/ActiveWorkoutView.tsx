@@ -555,7 +555,10 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           onClose={() => setFocusMode(false)}
           onWeightDelta={(delta) => updateSetWeight(focusTarget.exIdx, focusTarget.setIdx, delta)}
           onRepsDelta={(delta) => updateSetReps(focusTarget.exIdx, focusTarget.setIdx, delta)}
-          onComplete={() => toggleSetComplete(focusTarget.exIdx, focusTarget.setIdx)}
+          onComplete={() => {
+            toggleSetComplete(focusTarget.exIdx, focusTarget.setIdx);
+            setFocusMode(false);
+          }}
         />
       )}
 

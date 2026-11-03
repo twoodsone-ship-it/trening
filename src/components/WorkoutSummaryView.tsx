@@ -44,13 +44,14 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-app-atmosphere pb-[calc(2rem+env(safe-area-inset-bottom))] animate-fade-in">
-      <div className="max-w-2xl mx-auto p-4 pt-[max(1.5rem,env(safe-area-inset-top))] space-y-5">
+    <div className="min-h-screen bg-app-atmosphere text-white pb-[calc(2rem+env(safe-area-inset-bottom))] animate-fade-in">
+      <div className="max-w-lg mx-auto px-5 pt-[max(1.5rem,env(safe-area-inset-top))] space-y-5">
         <div className="text-center space-y-2 pt-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/40 animate-pulse-ring">
-            <Award className="w-8 h-8 text-emerald-500" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-lime/15 border border-lime/40 animate-pulse-ring">
+            <Award className="w-8 h-8 text-lime" />
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Тренировка завершена</h1>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Готово</p>
+          <h1 className="text-2xl font-extrabold text-white">Тренировка завершена</h1>
           <p className="text-sm text-muted">{workout.templateName}</p>
         </div>
 
@@ -62,12 +63,12 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
 
         {volumeDelta != null && (
           <div className={cn(
-            'surface-card p-3.5 flex items-center gap-3',
-            volumeDelta >= 0 ? 'border-emerald-500/40' : 'border-amber-500/40'
+            'surface-panel p-3.5 flex items-center gap-3',
+            volumeDelta >= 0 ? 'border-lime/40' : 'border-amber-500/40'
           )}>
-            <TrendingUp className={cn('w-5 h-5', volumeDelta >= 0 ? 'text-emerald-500' : 'text-amber-500')} />
+            <TrendingUp className={cn('w-5 h-5', volumeDelta >= 0 ? 'text-lime' : 'text-amber-400')} />
             <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-white">
+              <p className="text-sm font-bold text-white">
                 Объём {volumeDelta >= 0 ? '+' : ''}{volumeDelta}% к прошлой
               </p>
               <p className="text-xs text-muted">Сравнение с предыдущей сессией этой программы</p>
@@ -78,12 +79,12 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
         <div className="space-y-2">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted px-1">Прогрессия</h2>
           {workout.exercises.map(ex => (
-            <div key={ex.exerciseId} className="surface-card p-3.5 flex items-center justify-between gap-2">
+            <div key={ex.exerciseId} className="surface-panel p-3.5 flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{ex.name}</p>
+                <p className="font-semibold text-sm text-white truncate">{ex.name}</p>
                 <p className="text-[11px] text-muted truncate">{ex.progression.suggestedAction}</p>
               </div>
-              <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+              <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg bg-lime/10 text-lime border border-lime/30">
                 {ex.progression.badgeText}
               </span>
             </div>
@@ -95,9 +96,9 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted px-1">Лучшие подходы (e1RM)</h2>
             <div className="grid grid-cols-2 gap-2">
               {prs.map(pr => (
-                <div key={pr.name} className="surface-card p-3">
+                <div key={pr.name} className="surface-panel p-3">
                   <p className="text-[11px] text-muted truncate">{pr.name}</p>
-                  <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  <p className="font-mono font-bold text-lime">
                     {pr.weight}×{pr.reps}
                   </p>
                   <p className="text-[10px] text-muted">≈ {pr.est1RM} кг 1RM</p>
@@ -111,14 +112,14 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
           <button
             type="button"
             onClick={handleShare}
-            className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-zinc-700 font-bold text-sm flex items-center justify-center gap-2 min-h-[52px] active:scale-95 transition"
+            className="flex-1 py-3.5 rounded-2xl border border-white/15 font-bold text-sm flex items-center justify-center gap-2 min-h-[52px] active:scale-95 transition text-white"
           >
             <Share2 className="w-4 h-4" /> Поделиться
           </button>
           <button
             type="button"
             onClick={onDone}
-            className="flex-[1.4] py-3.5 rounded-2xl bg-emerald-500 text-black font-bold text-sm min-h-[52px] active:scale-95 transition"
+            className="flex-[1.4] py-3.5 rounded-2xl btn-lime font-bold text-sm min-h-[52px] active:scale-95 transition"
           >
             К аналитике
           </button>
@@ -140,10 +141,10 @@ function Stat({
   unit: string;
 }) {
   return (
-    <div className="surface-card p-3 flex flex-col gap-1">
-      <span className="text-emerald-600 dark:text-emerald-400">{icon}</span>
+    <div className="surface-panel p-3 flex flex-col gap-1">
+      <span className="text-lime">{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{label}</span>
-      <span className="font-mono font-black text-xl text-slate-900 dark:text-white">
+      <span className="font-mono font-black text-xl text-white">
         {value}
         {unit && <span className="text-xs font-semibold text-muted ml-0.5">{unit}</span>}
       </span>

@@ -2132,6 +2132,112 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
         "Резкие рывки поясницей"
       ]
     }
+  },
+
+  'jump-rope': {
+    id: 'jump-rope',
+    name: 'Скакалка',
+    category: 'Cardio',
+    equipment: 'bodyweight',
+    animationType: 'cardio',
+    defaultSets: 3,
+    minReps: 40,
+    maxReps: 90,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 45,
+    alternatives: ['burpees', 'mountain-climbers', 'stationary-bike'],
+    technique: {
+      primaryMuscles: 'Икры, сердечно-сосудистая система',
+      setup: 'Лёгкая стойка, локти у корпуса, вращение запястьями.',
+      execution: 'Мягкие прыжки на носках, ритм ровный. Интервалы 40–90 сек.',
+      breathing: 'Ритмичное дыхание через нос/рот, без задержек.',
+      mistakes: ['Жёсткие приземления на пятки', 'Прыжки слишком высоко']
+    }
+  },
+  'burpees': {
+    id: 'burpees',
+    name: 'Бёрпи',
+    category: 'Cardio',
+    equipment: 'bodyweight',
+    animationType: 'cardio',
+    defaultSets: 3,
+    minReps: 8,
+    maxReps: 15,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 60,
+    alternatives: ['mountain-climbers', 'jump-rope', 'push-ups'],
+    technique: {
+      primaryMuscles: 'Всё тело, кардио',
+      setup: 'Стоя, стопы на ширине плеч.',
+      execution: 'Упор лёжа → отжимание (опционально) → прыжок вверх. Темп контролируемый.',
+      breathing: 'Выдох на усилие (отжимание/прыжок).',
+      mistakes: ['Провисание поясницы в упоре', 'Ударные приземления']
+    }
+  },
+  'mountain-climbers': {
+    id: 'mountain-climbers',
+    name: 'Альпинист',
+    category: 'Cardio',
+    equipment: 'bodyweight',
+    animationType: 'cardio',
+    defaultSets: 3,
+    minReps: 20,
+    maxReps: 40,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 45,
+    alternatives: ['burpees', 'jump-rope', 'plank'],
+    technique: {
+      primaryMuscles: 'Кор, сгибатели бедра, кардио',
+      setup: 'Планка на прямых руках, корпус в линию.',
+      execution: 'Поочерёдно подтягивайте колени к груди в быстром ритме.',
+      breathing: 'Короткий ритмичный выдох.',
+      mistakes: ['Таз слишком высоко', 'Раскачка плеч']
+    }
+  },
+  'stationary-bike': {
+    id: 'stationary-bike',
+    name: 'Велотренажёр',
+    category: 'Cardio',
+    equipment: 'machine',
+    animationType: 'cardio',
+    defaultSets: 1,
+    minReps: 8,
+    maxReps: 15,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 30,
+    alternatives: ['rowing-machine', 'jump-rope', 'burpees'],
+    technique: {
+      primaryMuscles: 'Квадрицепсы, ягодицы, кардио',
+      setup: 'Седло так, чтобы колено чуть согнуто в нижней точке.',
+      execution: 'Интервал 8–15 мин в зоне комфортного разговора или HIIT 30/30.',
+      breathing: 'Ровное дыхание, не задерживать.',
+      mistakes: ['Слишком высокое сопротивление сразу', 'Сутулые плечи']
+    }
+  },
+  'rowing-machine': {
+    id: 'rowing-machine',
+    name: 'Гребной тренажёр',
+    category: 'Cardio',
+    equipment: 'machine',
+    animationType: 'cardio',
+    defaultSets: 1,
+    minReps: 6,
+    maxReps: 12,
+    weightStep: 0,
+    defaultWeight: 0,
+    restSeconds: 45,
+    alternatives: ['stationary-bike', 'burpees', 'jump-rope'],
+    technique: {
+      primaryMuscles: 'Спина, ноги, кардио',
+      setup: 'Ремень на стопах, корпус нейтрален.',
+      execution: 'Ноги → корпус → руки; возврат наоборот. 6–12 мин.',
+      breathing: 'Выдох на протяжке.',
+      mistakes: ['Тяга руками раньше ног', 'Округление поясницы']
+    }
   }
 };
 

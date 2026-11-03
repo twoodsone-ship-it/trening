@@ -109,8 +109,21 @@ function createExercise(
   };
 }
 
+const CUT_CARDIO = ['jump-rope', 'burpees', 'mountain-climbers', 'stationary-bike', 'rowing-machine'] as const;
+
+function withCutCardio(slot: SlotDef, dayIndex: number, goal: ProgramGoal): SlotDef {
+  if (goal !== 'cut') return slot;
+  const cardioId = CUT_CARDIO[dayIndex % CUT_CARDIO.length];
+  if (slot.exerciseIds.includes(cardioId)) return slot;
+  return {
+    ...slot,
+    focus: `${slot.focus} · Кардио`,
+    exerciseIds: [...slot.exerciseIds, cardioId]
+  };
+}
+
 /** Day blueprints keyed by frequency */
-function slotsForDays(days: DaysPerWeek): SlotDef[] {
+function slotsForDays(days: DaysPerWeek, goal: ProgramGoal = 'recomp'): SlotDef[] {
   const fullA: SlotDef = {
     id: 'fb-a',
     dayLabel: 'Full Body A',
@@ -172,20 +185,24 @@ function slotsForDays(days: DaysPerWeek): SlotDef[] {
     exerciseIds: ['leg-press', 'bulgarian-split-squat', 'db-rdl', 'leg-extension', 'walking-lunges', 'seated-calf-raise']
   };
 
-  switch (days) {
-    case 2:
-      return [fullA, fullB];
-    case 3:
-      return [push, pull, legs];
-    case 4:
-      return [upper, lower, upper2, lower2];
-    case 5:
-      return [push, pull, legs, upper, lower];
-    case 6:
-      return [push, pull, legs, { ...push, id: 'push-2', dayLabel: 'Push 2' }, { ...pull, id: 'pull-2', dayLabel: 'Pull 2' }, { ...legs, id: 'legs-2', dayLabel: 'Legs 2' }];
-    default:
-      return [fullA, fullB, fullC];
-  }
+  const raw: SlotDef[] = (() => {
+    switch (days) {
+      case 2:
+        return [fullA, fullB];
+      case 3:
+        return [push, pull, legs];
+      case 4:
+        return [upper, lower, upper2, lower2];
+      case 5:
+        return [push, pull, legs, upper, lower];
+      case 6:
+        return [push, pull, legs, { ...push, id: 'push-2', dayLabel: 'Push 2' }, { ...pull, id: 'pull-2', dayLabel: 'Pull 2' }, { ...legs, id: 'legs-2', dayLabel: 'Legs 2' }];
+      default:
+        return [fullA, fullB, fullC];
+    }
+  })();
+
+  return raw.map((slot, i) => withCutCardio(slot, i, goal));
 }
 
 function goalTitle(goal: ProgramGoal): string {
@@ -225,7 +242,7 @@ export function buildProgramTemplates(
     });
   });
 
-  const slots = slotsForDays(daysPerWeek);
+  const slots = slotsForDays(daysPerWeek, goal);
   const weekdays = preferredWeekdays(daysPerWeek);
   const gymLabel = gymProfile === 'full' ? 'зал' : gymProfile === 'dumbbells' ? 'гантели' : 'дом';
   const title = `${goalTitle(goal)} · ${daysPerWeek}×/нед · ${gymLabel}`;

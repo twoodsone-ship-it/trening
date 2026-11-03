@@ -40,7 +40,9 @@ const FALLBACKS: Record<string, string[]> = {
   'overhead-rope-extension': ['skull-crushers', 'bench-dips'],
   'hack-squat': ['goblet-squat', 'bulgarian-split-squat'],
   't-bar-row': ['db-row', 'chest-supported-db-row'],
-  'close-grip-bench-press': ['bench-dips', 'push-ups']
+  'close-grip-bench-press': ['bench-dips', 'push-ups'],
+  'stationary-bike': ['jump-rope', 'burpees', 'mountain-climbers'],
+  'rowing-machine': ['jump-rope', 'burpees', 'mountain-climbers']
 };
 
 export function isEquipmentAllowed(equipment: EquipmentType | undefined, profile: GymProfile): boolean {

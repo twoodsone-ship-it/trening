@@ -10,6 +10,7 @@ export function normalizeMuscleCategory(raw: unknown): MuscleCategory {
   if (lower === 'shoulders' || lower.includes('плеч') || lower.includes('дельт')) return 'Shoulders';
   if (lower === 'arms' || lower.includes('рук') || lower.includes('бицеп') || lower.includes('трицеп')) return 'Arms';
   if (lower === 'core' || lower.includes('кор') || lower.includes('пресс') || lower.includes('живот')) return 'Core';
+  if (lower === 'cardio' || lower.includes('кардио') || lower.includes('аэро')) return 'Cardio';
   return 'Chest';
 }
 
@@ -42,7 +43,8 @@ const ANIMATION_BY_CATEGORY: Record<MuscleCategory, string> = {
   Legs: 'squat',
   Shoulders: 'overhead-press',
   Arms: 'bicep-curl',
-  Core: 'squat'
+  Core: 'core',
+  Cardio: 'cardio'
 };
 
 export function resolveAnimationType(

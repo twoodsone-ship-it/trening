@@ -21,14 +21,14 @@ export const PROGRAM_GOALS: Array<{
     id: 'recomp',
     title: 'Рекомпозиция',
     subtitle: 'Похудение + мышцы',
-    detail: 'Жиросжигание при сохранении и наборе мышц. Умеренный объём, 8–12 повт.',
+    detail: 'Умеренный объём 8–12, кор каждый день, лёгкое кардио в конце сессии.',
     accent: 'lime'
   },
   {
     id: 'cut',
     title: 'Похудение',
     subtitle: 'Дефицит калорий',
-    detail: 'Больше повторений и плотности. Короче отдых, акцент на технику.',
+    detail: 'Плотность, кор каждый день, кардио-финишер. Короче отдых, техника важнее веса.',
     accent: 'amber'
   },
   {
@@ -109,11 +109,33 @@ function createExercise(
   };
 }
 
-const CUT_CARDIO = ['jump-rope', 'burpees', 'mountain-climbers', 'stationary-bike', 'rowing-machine'] as const;
+const FINISHER_CARDIO = ['jump-rope', 'burpees', 'mountain-climbers', 'stationary-bike', 'rowing-machine'] as const;
+const CORE_ROTATION = [
+  'plank',
+  'cable-crunch',
+  'hanging-knee-raise',
+  'hanging-leg-raise',
+  'russian-twist',
+  'ab-wheel-rollout'
+] as const;
 
-function withCutCardio(slot: SlotDef, dayIndex: number, goal: ProgramGoal): SlotDef {
-  if (goal !== 'cut') return slot;
-  const cardioId = CUT_CARDIO[dayIndex % CUT_CARDIO.length];
+const CORE_IDS = new Set<string>(CORE_ROTATION);
+
+/** Short direct core — fine every session as a finisher (1 movement). */
+function withDailyCore(slot: SlotDef, dayIndex: number): SlotDef {
+  if (slot.exerciseIds.some(id => CORE_IDS.has(id))) return slot;
+  const coreId = CORE_ROTATION[dayIndex % CORE_ROTATION.length];
+  return {
+    ...slot,
+    focus: slot.focus.includes('Кор') ? slot.focus : `${slot.focus} · Кор`,
+    exerciseIds: [...slot.exerciseIds, coreId]
+  };
+}
+
+/** Cardio finisher for cut + recomp (density / calorie burn without killing strength days). */
+function withGoalCardio(slot: SlotDef, dayIndex: number, goal: ProgramGoal): SlotDef {
+  if (goal !== 'cut' && goal !== 'recomp') return slot;
+  const cardioId = FINISHER_CARDIO[dayIndex % FINISHER_CARDIO.length];
   if (slot.exerciseIds.includes(cardioId)) return slot;
   return {
     ...slot,
@@ -202,7 +224,7 @@ function slotsForDays(days: DaysPerWeek, goal: ProgramGoal = 'recomp'): SlotDef[
     }
   })();
 
-  return raw.map((slot, i) => withCutCardio(slot, i, goal));
+  return raw.map((slot, i) => withGoalCardio(withDailyCore(slot, i), i, goal));
 }
 
 function goalTitle(goal: ProgramGoal): string {
@@ -286,10 +308,10 @@ export function buildWorkoutBriefing(template: WorkoutTemplate, goal?: ProgramGo
 } {
   const top = template.exercises.slice(0, 3);
   const cues: Record<ProgramGoal, string> = {
-    cut: 'Контроль темпа, короче отдых, техника важнее веса.',
-    bulk: 'Добавляй вес, когда закрыл верх диапазона повторений.',
-    recomp: 'Базы тяжело, изоляция чисто. Не гони RPE выше 9 без нужды.',
-    strength: 'Длинный отдых между тяжёлыми сетами. Оставь 1–2 повтора в запасе.'
+    cut: 'Кор и кардио в конце — не пропускай. Короче отдых, техника важнее веса.',
+    bulk: 'Добавляй вес, когда закрыл верх диапазона повторений. Кор — коротко в конце.',
+    recomp: 'Базы тяжело, в конце кор + лёгкое кардио. Не гони RPE выше 9 без нужды.',
+    strength: 'Длинный отдых между тяжёлыми сетами. Кор в конце — 2–3 коротких подхода.'
   };
   return {
     headline: template.name,

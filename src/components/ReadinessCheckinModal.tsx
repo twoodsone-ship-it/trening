@@ -57,7 +57,7 @@ export const ReadinessCheckinModal: React.FC<ReadinessCheckinModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/75 backdrop-blur-sm animate-fade-in">
       <div className="w-full max-w-md surface-panel p-5 animate-slide-up border-lime/20 max-h-[min(94dvh,calc(100dvh-1.5rem))] overflow-y-auto">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">

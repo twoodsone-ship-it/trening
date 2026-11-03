@@ -20,6 +20,7 @@ const WorkoutSummaryView = lazy(() =>
 
 export const App: React.FC = () => {
   const [programSetupOpen, setProgramSetupOpen] = React.useState(false);
+  const [restResumeNonce, setRestResumeNonce] = React.useState(0);
   const {
     activeTab,
     setActiveTab,
@@ -73,6 +74,7 @@ export const App: React.FC = () => {
             startTime={activeWorkout.startTime}
             exercises={activeWorkout.exercises}
             settings={settings}
+            restResumeNonce={restResumeNonce}
             onUpdateExercises={updateActiveExercises}
             onFinishWorkout={finishWorkout}
             onCancelWorkout={cancelWorkout}
@@ -85,6 +87,7 @@ export const App: React.FC = () => {
                 templates={templates}
                 history={history}
                 activeProgram={activeProgram}
+                hasActiveWorkout={!!activeWorkout}
                 onApplyProgram={applyProgram}
                 onStartWorkout={startWorkout}
                 onSetupVisibilityChange={setProgramSetupOpen}
@@ -115,6 +118,10 @@ export const App: React.FC = () => {
           initialSeconds={restTimerSeconds}
           isOpen={isRestTimerOpen}
           onClose={() => setIsRestTimerOpen(false)}
+          onFinished={() => {
+            setIsRestTimerOpen(false);
+            setRestResumeNonce(n => n + 1);
+          }}
           soundEnabled={settings.soundEnabled}
           vibrationEnabled={settings.vibrationEnabled}
           voiceEnabled={settings.voiceEnabled}

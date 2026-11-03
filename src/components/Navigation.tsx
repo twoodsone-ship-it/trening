@@ -18,9 +18,24 @@ export const Navigation: React.FC<NavigationProps> = ({
   onReturnToActiveWorkout
 }) => {
   return (
-    /* ~4.75rem + safe-area; screens with sticky CTAs should use pb-[calc(7rem+env(safe-area-inset-bottom))] */
-    <div className="fixed bottom-0 inset-x-0 z-40 bg-ink/90 backdrop-blur-xl border-t border-white/10 px-4 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
-      <div className="max-w-md mx-auto flex items-center justify-around relative">
+    <div className="fixed bottom-0 inset-x-0 z-40 bg-ink/95 backdrop-blur-xl border-t border-white/10 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+      {hasActiveWorkout && (
+        <div className="max-w-md mx-auto mb-2 px-1">
+          <button
+            type="button"
+            onClick={onReturnToActiveWorkout}
+            className="w-full flex items-center justify-center gap-2 bg-lime text-ink px-4 py-2.5 rounded-2xl font-bold text-xs shadow-lg shadow-lime/15 active:scale-95 transition min-h-[44px]"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ink opacity-40" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-ink" />
+            </span>
+            <span>Вернуться к тренировке</span>
+          </button>
+        </div>
+      )}
+
+      <div className="max-w-md mx-auto flex items-center justify-around">
         <button
           type="button"
           onClick={() => onSelectTab('home')}
@@ -32,19 +47,6 @@ export const Navigation: React.FC<NavigationProps> = ({
           <Home className="w-5 h-5" />
           <span className="text-[10px] tracking-wide font-medium">Главная</span>
         </button>
-
-        {hasActiveWorkout && (
-          <button
-            onClick={onReturnToActiveWorkout}
-            className="flex items-center gap-2 -top-5 relative bg-lime text-ink px-4 py-2.5 rounded-full font-bold text-xs shadow-xl shadow-lime/20 active:scale-95 transition min-h-[44px]"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ink opacity-40" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-ink" />
-            </span>
-            <span className="whitespace-nowrap">Идёт тренировка</span>
-          </button>
-        )}
 
         <button
           type="button"

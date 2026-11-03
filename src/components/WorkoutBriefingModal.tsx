@@ -22,8 +22,8 @@ export const WorkoutBriefingModal: React.FC<WorkoutBriefingModalProps> = ({
   const b = buildWorkoutBriefing(template, goal);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md surface-panel p-5 animate-slide-up border-lime/20">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/75 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-md surface-panel p-5 animate-slide-up border-lime/20 mb-0">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Брифинг</p>

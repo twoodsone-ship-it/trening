@@ -40,6 +40,8 @@ interface ActiveWorkoutViewProps {
   onFinishWorkout: (completed: CompletedWorkout) => void;
   onCancelWorkout: () => void;
   onTriggerRestTimer: (seconds: number) => void;
+  /** Bumps when rest timer hits 0 — reopen focus for next set */
+  restResumeNonce?: number;
 }
 
 function patchExercise(
@@ -72,7 +74,8 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   onUpdateExercises,
   onFinishWorkout,
   onCancelWorkout,
-  onTriggerRestTimer
+  onTriggerRestTimer,
+  restResumeNonce = 0
 }) => {
   const [selectedPlateCalcWeight, setSelectedPlateCalcWeight] = useState<number | null>(null);
   const [viewingTechniqueEx, setViewingTechniqueEx] = useState<ActiveExerciseSession | null>(null);
@@ -421,6 +424,14 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     setExpandedExIdx(exIdx);
     setFocusMode(true);
   };
+
+  useEffect(() => {
+    if (!restResumeNonce) return;
+    const next = findFocusTarget(exercises);
+    if (!next) return;
+    setRpeTarget(null);
+    openFocusForSet(next.exIdx, next.setIdx);
+  }, [restResumeNonce]);
 
   const blocks = groupBySuperset(
     exercises.map((ex) => ({ ...ex, id: ex.exerciseId }))

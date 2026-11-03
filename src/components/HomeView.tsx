@@ -25,9 +25,10 @@ interface HomeViewProps {
   templates: WorkoutTemplate[];
   history: CompletedWorkout[];
   activeProgram: ActiveProgram | null;
+  hasActiveWorkout?: boolean;
   onApplyProgram: (goal: ProgramGoal, days: DaysPerWeek, gym: GymProfile) => void;
   onStartWorkout: (template: WorkoutTemplate, readiness: ReadinessLevel) => void;
-  /** Hide bottom nav while program wizard is open */
+  /** Hide bottom nav while program wizard / start modals are open */
   onSetupVisibilityChange?: (open: boolean) => void;
 }
 
@@ -35,6 +36,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   templates,
   history,
   activeProgram,
+  hasActiveWorkout = false,
   onApplyProgram,
   onStartWorkout,
   onSetupVisibilityChange
@@ -45,10 +47,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [briefingTemplate, setBriefingTemplate] = useState<WorkoutTemplate | null>(null);
   const [checkinTemplate, setCheckinTemplate] = useState<WorkoutTemplate | null>(null);
   const [dismissedAdviceId, setDismissedAdviceId] = useState<string | null>(null);
+  const overlayOpen = setupOpen || !!briefingTemplate || !!checkinTemplate;
 
   React.useEffect(() => {
-    onSetupVisibilityChange?.(setupOpen);
-  }, [setupOpen, onSetupVisibilityChange]);
+    onSetupVisibilityChange?.(overlayOpen);
+  }, [overlayOpen, onSetupVisibilityChange]);
 
   const todayTemplate = useMemo(
     () => pickTodaysTemplate(templates, activeProgram, history),
@@ -105,7 +108,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     : null;
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[calc(9.5rem+env(safe-area-inset-bottom))] text-white animate-fade-in">
+    <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[calc(11rem+env(safe-area-inset-bottom))] text-white animate-fade-in">
       <header className="pt-4 pb-8">
         <p className="text-lime text-[11px] font-bold tracking-[0.28em] uppercase">IronForge</p>
         <h1 className="text-[2.6rem] leading-[0.95] font-extrabold tracking-tight mt-3">
@@ -284,19 +287,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
         }}
       />
 
-      {/* Sticky start CTA above bottom nav — never covered */}
-      <div className="fixed inset-x-0 bottom-[calc(4.35rem+env(safe-area-inset-bottom))] z-30 px-5 pointer-events-none">
-        <div className="max-w-lg mx-auto pointer-events-auto">
-          <button
-            type="button"
-            disabled={!todayTemplate}
-            onClick={() => todayTemplate && beginFlow(todayTemplate)}
-            className="w-full btn-lime py-4 rounded-2xl text-base flex items-center justify-center gap-2 min-h-[56px] disabled:opacity-40 shadow-xl shadow-black/40"
-          >
-            <Play className="w-5 h-5 fill-current" /> Начать тренировку
-          </button>
+      {/* Dock: CTA sits in a column above reserved nav height so nothing is clipped */}
+      {!overlayOpen && (
+        <div className="fixed inset-x-0 bottom-0 z-[35] flex flex-col justify-end pointer-events-none">
+          <div className="px-5 pb-2 pointer-events-auto">
+            <div className="max-w-lg mx-auto">
+              <button
+                type="button"
+                disabled={!todayTemplate}
+                onClick={() => todayTemplate && beginFlow(todayTemplate)}
+                className="w-full btn-lime py-4 rounded-2xl text-base flex items-center justify-center gap-2 min-h-[56px] disabled:opacity-40 shadow-xl shadow-black/50"
+              >
+                <Play className="w-5 h-5 fill-current" /> Начать тренировку
+              </button>
+            </div>
+          </div>
+          <div
+            className={cn(
+              'shrink-0 w-full',
+              hasActiveWorkout
+                ? 'h-[calc(5.75rem+env(safe-area-inset-bottom))]'
+                : 'h-[calc(4.85rem+env(safe-area-inset-bottom))]'
+            )}
+            aria-hidden
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 };

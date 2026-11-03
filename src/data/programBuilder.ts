@@ -3,10 +3,12 @@ import type {
   DaysPerWeek,
   Exercise,
   ExerciseSession,
+  GymProfile,
   ProgramGoal,
   WorkoutTemplate
 } from '../types';
 import { EXERCISE_CATALOG } from './exerciseCatalog';
+import { adaptExerciseIds } from '../utils/equipmentMap';
 
 export const PROGRAM_GOALS: Array<{
   id: ProgramGoal;
@@ -211,7 +213,8 @@ function preferredWeekdays(days: DaysPerWeek): number[] {
 export function buildProgramTemplates(
   goal: ProgramGoal,
   daysPerWeek: DaysPerWeek,
-  previousTemplates: WorkoutTemplate[] = []
+  previousTemplates: WorkoutTemplate[] = [],
+  gymProfile: GymProfile = 'full'
 ): { program: ActiveProgram; templates: WorkoutTemplate[] } {
   const historyMap = new Map<string, ExerciseSession[]>();
   const weightMap = new Map<string, number>();
@@ -224,17 +227,19 @@ export function buildProgramTemplates(
 
   const slots = slotsForDays(daysPerWeek);
   const weekdays = preferredWeekdays(daysPerWeek);
-  const title = `${goalTitle(goal)} · ${daysPerWeek}×/нед`;
+  const gymLabel = gymProfile === 'full' ? 'зал' : gymProfile === 'dumbbells' ? 'гантели' : 'дом';
+  const title = `${goalTitle(goal)} · ${daysPerWeek}×/нед · ${gymLabel}`;
 
   const templates: WorkoutTemplate[] = slots.map((slot, i) => {
-    const exercises = slot.exerciseIds.map(id => {
+    const adaptedIds = adaptExerciseIds(slot.exerciseIds, gymProfile);
+    const exercises = adaptedIds.map(id => {
       const ex = createExercise(id, goal, historyMap);
       if (weightMap.has(id)) ex.currentWeight = weightMap.get(id)!;
       return ex;
     });
 
     return {
-      id: `prog-${goal}-${daysPerWeek}-${slot.id}`,
+      id: `prog-${goal}-${daysPerWeek}-${gymProfile}-${slot.id}`,
       name: slot.dayLabel,
       description: slot.focus,
       icon: 'Dumbbell',
@@ -247,12 +252,34 @@ export function buildProgramTemplates(
   const program: ActiveProgram = {
     goal,
     daysPerWeek,
+    gymProfile,
     title,
     startedAt: new Date().toISOString(),
     templateIds: templates.map(t => t.id)
   };
 
   return { program, templates };
+}
+
+export function buildWorkoutBriefing(template: WorkoutTemplate, goal?: ProgramGoal): {
+  headline: string;
+  focus: string;
+  targets: string[];
+  cue: string;
+} {
+  const top = template.exercises.slice(0, 3);
+  const cues: Record<ProgramGoal, string> = {
+    cut: 'Контроль темпа, короче отдых, техника важнее веса.',
+    bulk: 'Добавляй вес, когда закрыл верх диапазона повторений.',
+    recomp: 'Базы тяжело, изоляция чисто. Не гони RPE выше 9 без нужды.',
+    strength: 'Длинный отдых между тяжёлыми сетами. Оставь 1–2 повтора в запасе.'
+  };
+  return {
+    headline: template.name,
+    focus: template.description,
+    targets: top.map(e => `${e.name}: ${e.currentWeight} кг × ${e.minReps}–${e.maxReps}`),
+    cue: cues[goal || 'recomp']
+  };
 }
 
 export function pickTodaysTemplate(

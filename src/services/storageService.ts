@@ -35,7 +35,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
   voiceEnabled: true,
-  focusModeDefault: false,
+  focusModeDefault: true,
   defaultRestSeconds: 90,
   barbellWeightKg: 20,
   unit: 'kg',
@@ -405,10 +405,14 @@ export const storageService = {
 
   getActiveProgram(): ActiveProgram | null {
     try {
+      const normalize = (p: ActiveProgram): ActiveProgram => ({
+        ...p,
+        gymProfile: p.gymProfile || this.getSettings().gymProfile || 'full'
+      });
       const fromSettings = this.getSettings().activeProgram;
-      if (fromSettings) return fromSettings;
+      if (fromSettings) return normalize(fromSettings);
       const raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROGRAM);
-      if (raw) return JSON.parse(raw) as ActiveProgram;
+      if (raw) return normalize(JSON.parse(raw) as ActiveProgram);
     } catch {
       //
     }

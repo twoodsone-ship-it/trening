@@ -24,7 +24,7 @@ export const WorkoutProgressRing: React.FC<WorkoutProgressRingProps> = ({
         fill="none"
         stroke="currentColor"
         strokeWidth={stroke}
-        className="text-slate-200 dark:text-zinc-800"
+        className="text-white/10"
       />
       <circle
         cx={size / 2}
@@ -36,7 +36,7 @@ export const WorkoutProgressRing: React.FC<WorkoutProgressRingProps> = ({
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
-        className="text-emerald-500 transition-[stroke-dashoffset] duration-300"
+        className="text-lime transition-[stroke-dashoffset] duration-300"
       />
     </svg>
   );

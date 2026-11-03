@@ -78,7 +78,8 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const [viewingTechniqueEx, setViewingTechniqueEx] = useState<ActiveExerciseSession | null>(null);
   const [swappingExIndex, setSwappingExIndex] = useState<number | null>(null);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
-  const [focusMode, setFocusMode] = useState(settings.focusModeDefault);
+  const [focusMode, setFocusMode] = useState(settings.focusModeDefault !== false);
+  const [expandedExIdx, setExpandedExIdx] = useState(0);
   const [rpeTarget, setRpeTarget] = useState<{ exIdx: number; setIdx: number } | null>(null);
   const [elapsedMinutes, setElapsedMinutes] = useState(
     Math.max(1, Math.round((Date.now() - startTime) / 60000))
@@ -395,11 +396,16 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
 
   const progress = workoutProgress(exercises);
   const focusTarget = findFocusTarget(exercises);
+  const currentExIdx = focusTarget?.exIdx ?? expandedExIdx;
+
+  useEffect(() => {
+    if (focusTarget) setExpandedExIdx(focusTarget.exIdx);
+  }, [focusTarget?.exIdx]);
+
   const blocks = groupBySuperset(
-    exercises.map((ex, idx) => ({ ...ex, id: ex.exerciseId, _idx: idx }))
+    exercises.map((ex) => ({ ...ex, id: ex.exerciseId }))
   );
 
-  // Map blocks back to original indices
   let cursor = 0;
   const indexedBlocks = blocks.map(block => {
     if (block.kind === 'single') {
@@ -418,32 +424,56 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     };
   });
 
+  const renderCard = (ex: ActiveExerciseSession, exIdx: number) => (
+    <ActiveExerciseCard
+      exercise={ex}
+      expanded={expandedExIdx === exIdx}
+      onToggleExpand={() => setExpandedExIdx(prev => (prev === exIdx ? -1 : exIdx))}
+      historySessions={ex.historySessions}
+      onOpenTechnique={() => setViewingTechniqueEx(ex)}
+      onOpenSwap={() => setSwappingExIndex(exIdx)}
+      onOpenPlateCalc={() => setSelectedPlateCalcWeight(ex.targetWeight)}
+      onCycleSetType={(setIdx) => cycleSetType(exIdx, setIdx)}
+      onCopyPrevious={(setIdx) => copyPreviousSet(exIdx, setIdx)}
+      onWeightDelta={(setIdx, delta) => updateSetWeight(exIdx, setIdx, delta)}
+      onRepsDelta={(setIdx, delta) => updateSetReps(exIdx, setIdx, delta)}
+      onToggleComplete={(setIdx) => toggleSetComplete(exIdx, setIdx)}
+      onAddSet={() => addSet(exIdx)}
+      onAddWarmup={() => addWarmupSet(exIdx)}
+      onRemoveLastSet={() => removeSet(exIdx, ex.sets.length - 1)}
+    />
+  );
+
   return (
-    <div className="min-h-screen bg-app-atmosphere pb-[calc(7rem+env(safe-area-inset-bottom))] text-slate-900 dark:text-zinc-100">
-      <div className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-sm">
+    <div className="min-h-screen bg-app-atmosphere pb-[calc(7rem+env(safe-area-inset-bottom))] text-white">
+      <div className="sticky top-0 z-40 bg-ink/90 backdrop-blur-md border-b border-white/10 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1 flex items-center gap-3">
             <div className="relative shrink-0">
               <WorkoutProgressRing percent={progress.percent} />
-              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold font-mono text-emerald-600 dark:text-emerald-400">
+              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold font-mono text-lime">
                 {progress.percent}
               </span>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600 dark:bg-emerald-500" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime" />
                 </span>
                 <h1 className="font-bold text-sm sm:text-base truncate" title={workoutName}>{workoutName}</h1>
               </div>
-              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-muted mt-0.5 flex-wrap">
+              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-muted mt-0.5">
                 <span className="flex items-center gap-1 font-mono">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {elapsedMinutes} мин
+                  <Clock className="w-3.5 h-3.5 text-lime" /> {elapsedMinutes} мин
                 </span>
                 <span>•</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                <span className="font-mono text-lime font-bold">
                   {progress.completed}/{progress.total}
+                </span>
+                <span className="text-white/30">·</span>
+                <span className="text-[10px] truncate text-muted">
+                  Сейчас: {exercises[currentExIdx]?.name || '—'}
                 </span>
               </div>
             </div>
@@ -455,23 +485,18 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               onClick={() => setFocusMode(v => !v)}
               className={cn(
                 'p-2 rounded-xl border transition min-h-[40px] min-w-[40px] flex items-center justify-center',
-                focusMode
-                  ? 'bg-emerald-500 text-black border-emerald-400'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700'
+                focusMode ? 'bg-lime text-ink border-lime' : 'bg-white/5 text-muted border-white/10'
               )}
               title="Фокус-режим"
             >
               <Focus className="w-4 h-4" />
             </button>
-            <button
-              onClick={onCancelWorkout}
-              className="px-2.5 py-1.5 text-xs text-muted hover:text-red-500 rounded-lg transition"
-            >
+            <button onClick={onCancelWorkout} className="px-2.5 py-1.5 text-xs text-muted hover:text-rose-400 rounded-lg">
               Отмена
             </button>
             <button
               onClick={handleFinish}
-              className="px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition"
+              className="px-3 sm:px-4 py-2 btn-lime rounded-xl text-xs sm:text-sm flex items-center gap-1.5"
             >
               <CheckCircle2 className="w-4 h-4" /> <span>Завершить</span>
             </button>
@@ -479,34 +504,20 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-4 sm:space-y-5">
+      <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-3">
         {indexedBlocks.map((block, blockIdx) => {
           if (block.kind === 'single') {
             const exIdx = block.exIdx;
-            const ex = block.item;
             return (
-              <div key={ex.exerciseId + '-' + exIdx} className="space-y-2">
-                <ActiveExerciseCard
-                  exercise={ex}
-                  onOpenTechnique={() => setViewingTechniqueEx(ex)}
-                  onOpenSwap={() => setSwappingExIndex(exIdx)}
-                  onOpenPlateCalc={() => setSelectedPlateCalcWeight(ex.targetWeight)}
-                  onCycleSetType={(setIdx) => cycleSetType(exIdx, setIdx)}
-                  onCopyPrevious={(setIdx) => copyPreviousSet(exIdx, setIdx)}
-                  onWeightDelta={(setIdx, delta) => updateSetWeight(exIdx, setIdx, delta)}
-                  onRepsDelta={(setIdx, delta) => updateSetReps(exIdx, setIdx, delta)}
-                  onToggleComplete={(setIdx) => toggleSetComplete(exIdx, setIdx)}
-                  onAddSet={() => addSet(exIdx)}
-                  onAddWarmup={() => addWarmupSet(exIdx)}
-                  onRemoveLastSet={() => removeSet(exIdx, ex.sets.length - 1)}
-                />
+              <div key={block.item.exerciseId + '-' + exIdx} className="space-y-2">
+                {renderCard(block.item, exIdx)}
                 {exIdx < exercises.length - 1 && (
                   <button
                     type="button"
                     onClick={() => toggleSupersetPair(exIdx)}
-                    className="w-full text-[11px] font-semibold text-blue-600 dark:text-blue-400 py-1.5 flex items-center justify-center gap-1 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xl transition"
+                    className="w-full text-[11px] font-semibold text-sky-400 py-1.5 flex items-center justify-center gap-1"
                   >
-                    <Link2 className="w-3.5 h-3.5" /> Связать суперсет со следующим
+                    <Link2 className="w-3.5 h-3.5" /> Суперсет со следующим
                   </button>
                 )}
               </div>
@@ -514,52 +525,25 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           }
 
           return (
-            <div
-              key={block.groupId + '-' + blockIdx}
-              className="rounded-[1.75rem] border-2 border-blue-500/40 bg-blue-500/5 p-2 space-y-2"
-            >
+            <div key={block.groupId + '-' + blockIdx} className="rounded-[1.75rem] border border-sky-400/40 bg-sky-500/5 p-2 space-y-2">
               <div className="px-2 pt-1 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                  <Link2 className="w-3.5 h-3.5" /> Суперсет / круг
+                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1">
+                  <Link2 className="w-3.5 h-3.5" /> Суперсет
                 </span>
-                <button
-                  type="button"
-                  onClick={() => toggleSupersetPair(block.indices[0])}
-                  className="text-[10px] text-muted hover:text-red-500"
-                >
+                <button type="button" onClick={() => toggleSupersetPair(block.indices[0])} className="text-[10px] text-muted">
                   Развязать
                 </button>
               </div>
-              {block.indices.map(exIdx => {
-                const ex = exercises[exIdx];
-                return (
-                  <ActiveExerciseCard
-                    key={ex.exerciseId + '-' + exIdx}
-                    exercise={ex}
-                    onOpenTechnique={() => setViewingTechniqueEx(ex)}
-                    onOpenSwap={() => setSwappingExIndex(exIdx)}
-                    onOpenPlateCalc={() => setSelectedPlateCalcWeight(ex.targetWeight)}
-                    onCycleSetType={(setIdx) => cycleSetType(exIdx, setIdx)}
-                    onCopyPrevious={(setIdx) => copyPreviousSet(exIdx, setIdx)}
-                    onWeightDelta={(setIdx, delta) => updateSetWeight(exIdx, setIdx, delta)}
-                    onRepsDelta={(setIdx, delta) => updateSetReps(exIdx, setIdx, delta)}
-                    onToggleComplete={(setIdx) => toggleSetComplete(exIdx, setIdx)}
-                    onAddSet={() => addSet(exIdx)}
-                    onAddWarmup={() => addWarmupSet(exIdx)}
-                    onRemoveLastSet={() => removeSet(exIdx, ex.sets.length - 1)}
-                  />
-                );
-              })}
+              {block.indices.map(exIdx => renderCard(exercises[exIdx], exIdx))}
             </div>
           );
         })}
 
         <button
           onClick={() => setIsAddingExercise(true)}
-          className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-zinc-700 hover:border-emerald-500 rounded-3xl text-xs sm:text-sm font-bold text-muted hover:text-emerald-600 dark:hover:text-emerald-400 bg-white/60 dark:bg-zinc-900/40 transition flex items-center justify-center gap-2"
+          className="w-full py-4 border border-dashed border-white/15 hover:border-lime/50 rounded-3xl text-xs font-bold text-muted hover:text-lime transition flex items-center justify-center gap-2"
         >
-          <Plus className="w-4 h-4" />
-          <span>+ Добавить упражнение</span>
+          <Plus className="w-4 h-4" /> Добавить упражнение
         </button>
       </div>
 

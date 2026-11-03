@@ -123,6 +123,8 @@ export interface ActiveExerciseSession {
     weight: number;
     sets: SetHistoryEntry[];
   };
+  /** Compact history for in-workout progress chart */
+  historySessions?: { date: string; weight: number; totalVolume: number }[];
 }
 
 export interface ActiveWorkout {
@@ -160,14 +162,27 @@ export type ProgramGoal = 'recomp' | 'cut' | 'bulk' | 'strength';
 
 export type DaysPerWeek = 2 | 3 | 4 | 5 | 6;
 
+/** What gear the athlete has available when generating a program */
+export type GymProfile = 'full' | 'dumbbells' | 'home';
+
 /** User-selected training program (goal + frequency). Workouts are generated from this. */
 export interface ActiveProgram {
   goal: ProgramGoal;
   daysPerWeek: DaysPerWeek;
+  gymProfile: GymProfile;
   title: string;
   startedAt: string;
   /** Template ids in weekly order */
   templateIds: string[];
+}
+
+export interface ProgramAdaptationAdvice {
+  id: string;
+  severity: 'info' | 'warning';
+  title: string;
+  message: string;
+  suggestedDaysPerWeek?: DaysPerWeek;
+  actionLabel: string;
 }
 
 export interface AppSettings {
@@ -181,6 +196,7 @@ export interface AppSettings {
   theme: 'light' | 'dark';
   currentWeek: 'A' | 'B';
   activeProgram?: ActiveProgram | null;
+  gymProfile?: GymProfile;
 }
 
 export type HapticEvent =

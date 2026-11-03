@@ -6,6 +6,7 @@ import type {
   AppSettings,
   CompletedWorkout,
   DaysPerWeek,
+  GymProfile,
   ProgramGoal,
   ReadinessLevel,
   WorkoutTemplate
@@ -67,7 +68,12 @@ function buildActiveExercises(
             weight: lastSession.weight,
             sets: lastSession.sets
           }
-        : undefined
+        : undefined,
+      historySessions: ex.history.map(h => ({
+        date: h.date,
+        weight: h.weight,
+        totalVolume: h.totalVolume
+      }))
     };
   });
 }
@@ -110,13 +116,14 @@ export function useWorkoutSession() {
     storageService.saveActiveWorkout(activeWorkout);
   }, [activeWorkout]);
 
-  const applyProgram = useCallback((goal: ProgramGoal, days: DaysPerWeek) => {
+  const applyProgram = useCallback((goal: ProgramGoal, days: DaysPerWeek, gym: GymProfile = 'full') => {
     const previous = storageService.getTemplates();
-    const { program, templates: generated } = buildProgramTemplates(goal, days, previous);
+    const { program, templates: generated } = buildProgramTemplates(goal, days, previous, gym);
     storageService.applyGeneratedProgram(program, generated);
     setActiveProgram(program);
     setTemplates(generated);
-    setSettings(storageService.getSettings());
+    setSettings({ ...storageService.getSettings(), gymProfile: gym, focusModeDefault: true });
+    storageService.saveSettings({ ...storageService.getSettings(), gymProfile: gym, focusModeDefault: true, activeProgram: program });
   }, []);
 
   const startWorkout = useCallback((template: WorkoutTemplate, readiness: ReadinessLevel = 'optimal') => {

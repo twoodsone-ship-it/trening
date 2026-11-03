@@ -1,11 +1,14 @@
-import React from 'react';
-import { Calculator, Plus, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calculator, ChevronDown, Plus, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import type { ActiveExerciseSession, SetHistoryEntry } from '../../types';
 import { cn } from '../../utils/cn';
 import { WorkoutSetRow } from './WorkoutSetRow';
+import { ExerciseHistoryChart } from '../ExerciseHistoryChart';
 
 interface ActiveExerciseCardProps {
   exercise: ActiveExerciseSession;
+  expanded: boolean;
+  onToggleExpand: () => void;
   onOpenTechnique: () => void;
   onOpenSwap: () => void;
   onOpenPlateCalc: () => void;
@@ -17,18 +20,22 @@ interface ActiveExerciseCardProps {
   onAddSet: () => void;
   onAddWarmup: () => void;
   onRemoveLastSet: () => void;
+  /** Optional history sessions for chart (from template exercise) */
+  historySessions?: { date: string; weight: number; totalVolume: number }[];
 }
 
 const badgeStyles: Record<string, string> = {
-  emerald: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/40 text-emerald-900 dark:text-emerald-200',
-  amber: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-500/40 text-amber-900 dark:text-amber-200',
-  purple: 'bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-500/40 text-violet-900 dark:text-violet-200',
-  red: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/40 text-rose-900 dark:text-rose-200',
-  blue: 'bg-slate-50 dark:bg-zinc-950/80 border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300'
+  emerald: 'bg-lime/10 border-lime/30 text-lime',
+  amber: 'bg-amber-500/10 border-amber-400/30 text-amber-300',
+  purple: 'bg-violet-500/10 border-violet-400/30 text-violet-300',
+  red: 'bg-rose-500/10 border-rose-400/30 text-rose-300',
+  blue: 'bg-white/5 border-white/10 text-muted'
 };
 
 export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
   exercise: ex,
+  expanded,
+  onToggleExpand,
   onOpenTechnique,
   onOpenSwap,
   onOpenPlateCalc,
@@ -39,122 +46,137 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
   onToggleComplete,
   onAddSet,
   onAddWarmup,
-  onRemoveLastSet
+  onRemoveLastSet,
+  historySessions
 }) => {
+  const [showChart, setShowChart] = useState(false);
   const completedCount = ex.sets.filter(s => s.completed).length;
   const badgeClass = badgeStyles[ex.recommendation.badgeColor] || badgeStyles.blue;
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-3.5 sm:p-5 shadow-sm dark:shadow-xl transition">
-      <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
-        <div className="min-w-0 flex-1">
+    <div
+      className={cn(
+        'rounded-3xl border transition overflow-hidden',
+        expanded ? 'border-lime/35 bg-ink-2' : 'border-white/8 bg-white/[0.03]'
+      )}
+    >
+      <button
+        type="button"
+        onClick={onToggleExpand}
+        className="w-full text-left p-4 flex items-center justify-between gap-3"
+      >
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
-              {ex.category}
-            </span>
-            <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
-              {completedCount}/{ex.sets.length}
+            <span className="text-[10px] font-bold uppercase tracking-wider text-lime/90">{ex.category}</span>
+            <span className="text-xs font-mono text-muted">{completedCount}/{ex.sets.length}</span>
+          </div>
+          <h2 className="font-bold text-base text-white mt-0.5 truncate">{ex.name}</h2>
+          {!expanded && (
+            <p className="text-xs text-muted mt-0.5 font-mono">
+              {ex.targetWeight} кг · {ex.minReps}–{ex.maxReps}
+            </p>
+          )}
+        </div>
+        <ChevronDown className={cn('w-5 h-5 text-muted transition', expanded && 'rotate-180 text-lime')} />
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-3 border-t border-white/8 pt-3">
+          <div className="flex items-center gap-1.5">
+            <button onClick={onOpenTechnique} className="p-2 rounded-xl bg-lime/10 text-lime border border-lime/20 text-xs font-semibold flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" /> Техника
+            </button>
+            <button onClick={onOpenSwap} className="p-2 rounded-xl bg-white/5 text-white/70 border border-white/10 text-xs font-semibold flex items-center gap-1">
+              <RefreshCw className="w-3.5 h-3.5" /> Замена
+            </button>
+            <button onClick={onOpenPlateCalc} className="p-2 rounded-xl bg-white/5 text-white/70 border border-white/10">
+              <Calculator className="w-4 h-4" />
+            </button>
+            {historySessions && historySessions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowChart(v => !v)}
+                className="ml-auto text-[11px] font-bold text-lime px-2 py-1"
+              >
+                {showChart ? 'Скрыть график' : 'График'}
+              </button>
+            )}
+          </div>
+
+          {showChart && historySessions && (
+            <div className="surface-panel p-3">
+              <ExerciseHistoryChart
+                history={historySessions.map((h, i) => ({
+                  id: String(i),
+                  workoutId: '',
+                  date: h.date,
+                  targetSets: 0,
+                  minReps: 0,
+                  maxReps: 0,
+                  weight: h.weight,
+                  sets: [],
+                  totalVolume: h.totalVolume,
+                  estimated1RM: 0
+                }))}
+              />
+            </div>
+          )}
+
+          <div className={cn('p-2.5 rounded-2xl border text-xs flex items-center justify-between gap-2', badgeClass)}>
+            <div className="min-w-0">
+              <span className="font-bold text-white block truncate">{ex.recommendation.badgeText}</span>
+              <span className="text-[11px] opacity-80 block truncate">
+                Цель: {ex.targetWeight} кг × {ex.minReps}-{ex.maxReps}
+              </span>
+            </div>
+            <span className="text-[10px] px-2 py-1 bg-black/30 rounded-lg font-mono font-bold shrink-0">
+              +{ex.weightStep}кг
             </span>
           </div>
-          <h2 className="font-bold text-sm sm:text-lg text-slate-900 dark:text-white mt-1 leading-snug">{ex.name}</h2>
-        </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={onOpenTechnique}
-            title="Техника и анимация"
-            className="p-2 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-zinc-800 hover:bg-emerald-100 dark:hover:bg-zinc-700 border border-emerald-200 dark:border-zinc-700 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Техника</span>
-          </button>
-          <button
-            onClick={onOpenSwap}
-            title="Заменить упражнение (тренажер занят / нет в зале)"
-            className="p-2 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 border border-blue-200 dark:border-zinc-700 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Замена</span>
-          </button>
-          <button
-            onClick={onOpenPlateCalc}
-            title="Калькулятор блинов"
-            className="p-2 text-slate-600 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl transition"
-          >
-            <Calculator className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+          <div className="space-y-2">
+            <div className="grid grid-cols-[28px_56px_1fr_1fr_44px] gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted px-1 text-center">
+              <span>Сет</span>
+              <span>Пред.</span>
+              <span>Вес</span>
+              <span>Повт.</span>
+              <span>✓</span>
+            </div>
+            {ex.sets.map((set, setIdx) => {
+              const prevSet: SetHistoryEntry | undefined = ex.previousPerformance?.sets[setIdx];
+              return (
+                <WorkoutSetRow
+                  key={set.id}
+                  set={set}
+                  previousSet={prevSet}
+                  weightStep={ex.weightStep}
+                  onCycleType={() => onCycleSetType(setIdx)}
+                  onCopyPrevious={() => onCopyPrevious(setIdx)}
+                  onWeightDelta={(delta) => onWeightDelta(setIdx, delta)}
+                  onRepsDelta={(delta) => onRepsDelta(setIdx, delta)}
+                  onToggleComplete={() => onToggleComplete(setIdx)}
+                />
+              );
+            })}
+          </div>
 
-      <div className={cn('mt-3 p-2.5 sm:p-3 rounded-2xl border text-xs flex items-center justify-between gap-2', badgeClass)}>
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-base shrink-0">⚡</span>
-          <div className="min-w-0">
-            <span className="font-bold text-slate-900 dark:text-white block truncate">
-              {ex.recommendation.badgeText}
-            </span>
-            <span className="text-[11px] opacity-80 block truncate">
-              Цель: {ex.targetWeight} кг × {ex.minReps}-{ex.maxReps} повт.
-            </span>
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex gap-1.5">
+              <button onClick={onAddSet} className="text-xs font-semibold text-lime px-2.5 py-1.5 rounded-lg hover:bg-lime/10 flex items-center gap-1">
+                <Plus className="w-3.5 h-3.5" /> Сет
+              </button>
+              <button onClick={onAddWarmup} className="text-xs font-semibold text-amber-400 px-2.5 py-1.5 rounded-lg hover:bg-amber-500/10 flex items-center gap-1">
+                <Plus className="w-3.5 h-3.5" /> Разминка
+              </button>
+            </div>
+            {ex.sets.length > 1 && (
+              <button onClick={onRemoveLastSet} className="text-xs text-muted hover:text-rose-400 flex items-center gap-1 px-2 py-1">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
-        <span className="text-[10px] px-2 py-1 bg-white/80 dark:bg-black/40 rounded-lg font-mono font-bold shadow-xs shrink-0 whitespace-nowrap">
-          +{ex.weightStep}кг
-        </span>
-      </div>
-
-      <div className="mt-3.5 space-y-2">
-        <div className="grid grid-cols-[28px_56px_1fr_1fr_44px] gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 px-1 text-center items-center">
-          <span>Сет</span>
-          <span title="Нажмите на прошлое значение, чтобы скопировать">Пред.</span>
-          <span>Вес, кг</span>
-          <span>Повторы</span>
-          <span>Готово</span>
-        </div>
-
-        {ex.sets.map((set, setIdx) => {
-          const prevSet: SetHistoryEntry | undefined = ex.previousPerformance?.sets[setIdx];
-          return (
-            <WorkoutSetRow
-              key={set.id}
-              set={set}
-              previousSet={prevSet}
-              weightStep={ex.weightStep}
-              onCycleType={() => onCycleSetType(setIdx)}
-              onCopyPrevious={() => onCopyPrevious(setIdx)}
-              onWeightDelta={(delta) => onWeightDelta(setIdx, delta)}
-              onRepsDelta={(delta) => onRepsDelta(setIdx, delta)}
-              onToggleComplete={() => onToggleComplete(setIdx)}
-            />
-          );
-        })}
-      </div>
-
-      <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-100 dark:border-zinc-800/60">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <button
-            onClick={onAddSet}
-            className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition"
-          >
-            <Plus className="w-3.5 h-3.5" /> Сет
-          </button>
-          <button
-            onClick={onAddWarmup}
-            className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition"
-          >
-            <Plus className="w-3.5 h-3.5" /> Разминка
-          </button>
-        </div>
-
-        {ex.sets.length > 1 && (
-          <button
-            onClick={onRemoveLastSet}
-            className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 px-2 py-1 transition"
-          >
-            <Trash2 className="w-3.5 h-3.5" /> Удалить последний
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 };

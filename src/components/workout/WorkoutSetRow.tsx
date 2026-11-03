@@ -118,7 +118,7 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
         <button
           type="button"
           onClick={() => {
-            if (!set.completed && onStartFocus) {
+            if (!set.completed && onStartFocus && !isFocusTarget) {
               onStartFocus();
               return;
             }

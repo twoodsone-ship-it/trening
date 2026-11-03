@@ -118,6 +118,7 @@ export const App: React.FC = () => {
           soundEnabled={settings.soundEnabled}
           vibrationEnabled={settings.vibrationEnabled}
           voiceEnabled={settings.voiceEnabled}
+          clearBottomNav={!isViewActiveWorkout && !programSetupOpen}
         />
 
         <SettingsModal

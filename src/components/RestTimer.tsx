@@ -124,7 +124,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           'fixed right-4 z-50 flex items-center gap-2 bg-ink-2 border border-lime/50 shadow-2xl shadow-lime/10 text-white px-3.5 py-2.5 rounded-full transition hover:scale-105 active:scale-95 min-h-[44px]',
           clearBottomNav
             ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))]'
-            : 'bottom-[max(1rem,env(safe-area-inset-bottom))]'
+            : 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]'
         )}
       >
         <span className="relative flex h-2.5 w-2.5">

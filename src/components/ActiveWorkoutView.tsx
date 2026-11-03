@@ -79,6 +79,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const [swappingExIndex, setSwappingExIndex] = useState<number | null>(null);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [focusMode, setFocusMode] = useState(settings.focusModeDefault !== false);
+  const [forcedFocus, setForcedFocus] = useState<{ exIdx: number; setIdx: number } | null>(null);
   const [expandedExIdx, setExpandedExIdx] = useState(0);
   const [rpeTarget, setRpeTarget] = useState<{ exIdx: number; setIdx: number } | null>(null);
   const [elapsedMinutes, setElapsedMinutes] = useState(
@@ -395,12 +396,31 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   };
 
   const progress = workoutProgress(exercises);
-  const focusTarget = findFocusTarget(exercises);
+  const autoFocus = findFocusTarget(exercises);
+  const focusTarget =
+    forcedFocus &&
+    exercises[forcedFocus.exIdx]?.sets[forcedFocus.setIdx] &&
+    !exercises[forcedFocus.exIdx].sets[forcedFocus.setIdx].completed
+      ? forcedFocus
+      : autoFocus;
   const currentExIdx = focusTarget?.exIdx ?? expandedExIdx;
+
+  useEffect(() => {
+    if (forcedFocus) {
+      const set = exercises[forcedFocus.exIdx]?.sets[forcedFocus.setIdx];
+      if (!set || set.completed) setForcedFocus(null);
+    }
+  }, [exercises, forcedFocus]);
 
   useEffect(() => {
     if (focusTarget) setExpandedExIdx(focusTarget.exIdx);
   }, [focusTarget?.exIdx]);
+
+  const openFocusForSet = (exIdx: number, setIdx: number) => {
+    setForcedFocus({ exIdx, setIdx });
+    setExpandedExIdx(exIdx);
+    setFocusMode(true);
+  };
 
   const blocks = groupBySuperset(
     exercises.map((ex) => ({ ...ex, id: ex.exerciseId }))
@@ -438,6 +458,8 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       onWeightDelta={(setIdx, delta) => updateSetWeight(exIdx, setIdx, delta)}
       onRepsDelta={(setIdx, delta) => updateSetReps(exIdx, setIdx, delta)}
       onToggleComplete={(setIdx) => toggleSetComplete(exIdx, setIdx)}
+      onStartFocus={(setIdx) => openFocusForSet(exIdx, setIdx)}
+      focusSetIdx={focusMode && focusTarget?.exIdx === exIdx ? focusTarget.setIdx : null}
       onAddSet={() => addSet(exIdx)}
       onAddWarmup={() => addWarmupSet(exIdx)}
       onRemoveLastSet={() => removeSet(exIdx, ex.sets.length - 1)}
@@ -445,7 +467,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-app-atmosphere pb-[calc(7rem+env(safe-area-inset-bottom))] text-white">
+    <div className="min-h-screen bg-app-atmosphere pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white">
       <div className="sticky top-0 z-40 bg-ink/90 backdrop-blur-md border-b border-white/10 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1 flex items-center gap-3">
@@ -484,21 +506,19 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               type="button"
               onClick={() => setFocusMode(v => !v)}
               className={cn(
-                'p-2 rounded-xl border transition min-h-[40px] min-w-[40px] flex items-center justify-center',
+                'p-2.5 rounded-xl border transition min-h-[48px] min-w-[48px] flex items-center justify-center',
                 focusMode ? 'bg-lime text-ink border-lime' : 'bg-white/5 text-muted border-white/10'
               )}
               title="Фокус-режим"
             >
               <Focus className="w-4 h-4" />
             </button>
-            <button onClick={onCancelWorkout} className="px-2.5 py-1.5 text-xs text-muted hover:text-rose-400 rounded-lg">
-              Отмена
-            </button>
             <button
-              onClick={handleFinish}
-              className="px-3 sm:px-4 py-2 btn-lime rounded-xl text-xs sm:text-sm flex items-center gap-1.5"
+              type="button"
+              onClick={onCancelWorkout}
+              className="px-3 py-2.5 min-h-[48px] text-xs text-muted hover:text-rose-400 rounded-xl"
             >
-              <CheckCircle2 className="w-4 h-4" /> <span>Завершить</span>
+              Отмена
             </button>
           </div>
         </div>
@@ -540,11 +560,39 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         })}
 
         <button
+          type="button"
           onClick={() => setIsAddingExercise(true)}
-          className="w-full py-4 border border-dashed border-white/15 hover:border-lime/50 rounded-3xl text-xs font-bold text-muted hover:text-lime transition flex items-center justify-center gap-2"
+          className="w-full py-4 min-h-[52px] border border-dashed border-white/15 hover:border-lime/50 rounded-3xl text-xs font-bold text-muted hover:text-lime transition flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" /> Добавить упражнение
         </button>
+      </div>
+
+      {/* Sticky bottom CTAs — Navigation hidden during active workout; pad for safe-area only */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-ink/95 backdrop-blur-xl px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="max-w-2xl mx-auto flex items-center gap-2">
+          {focusTarget && (
+            <button
+              type="button"
+              onClick={() => openFocusForSet(focusTarget.exIdx, focusTarget.setIdx)}
+              className="flex-1 min-h-[52px] btn-lime rounded-2xl text-sm flex items-center justify-center gap-2"
+            >
+              <Focus className="w-4 h-4" /> Начать сет
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleFinish}
+            className={cn(
+              'min-h-[52px] rounded-2xl text-sm font-bold flex items-center justify-center gap-1.5 px-4 border',
+              focusTarget
+                ? 'bg-white/5 text-white border-white/15'
+                : 'flex-1 btn-lime border-lime'
+            )}
+          >
+            <CheckCircle2 className="w-4 h-4" /> Завершить
+          </button>
+        </div>
       </div>
 
       {focusMode && focusTarget && (
@@ -558,6 +606,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           onComplete={() => {
             toggleSetComplete(focusTarget.exIdx, focusTarget.setIdx);
             setFocusMode(false);
+            setForcedFocus(null);
           }}
         />
       )}

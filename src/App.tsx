@@ -19,6 +19,7 @@ const WorkoutSummaryView = lazy(() =>
 );
 
 export const App: React.FC = () => {
+  const [programSetupOpen, setProgramSetupOpen] = React.useState(false);
   const {
     activeTab,
     setActiveTab,
@@ -86,6 +87,7 @@ export const App: React.FC = () => {
                 activeProgram={activeProgram}
                 onApplyProgram={applyProgram}
                 onStartWorkout={startWorkout}
+                onSetupVisibilityChange={setProgramSetupOpen}
               />
             )}
 
@@ -95,13 +97,15 @@ export const App: React.FC = () => {
               </Suspense>
             )}
 
-            <Navigation
-              activeTab={activeTab}
-              onSelectTab={setActiveTab}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-              hasActiveWorkout={!!activeWorkout}
-              onReturnToActiveWorkout={() => setIsViewActiveWorkout(true)}
-            />
+            {!programSetupOpen && (
+              <Navigation
+                activeTab={activeTab}
+                onSelectTab={setActiveTab}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+                hasActiveWorkout={!!activeWorkout}
+                onReturnToActiveWorkout={() => setIsViewActiveWorkout(true)}
+              />
+            )}
           </>
         )}
       </div>

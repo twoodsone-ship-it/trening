@@ -27,6 +27,8 @@ interface HomeViewProps {
   activeProgram: ActiveProgram | null;
   onApplyProgram: (goal: ProgramGoal, days: DaysPerWeek, gym: GymProfile) => void;
   onStartWorkout: (template: WorkoutTemplate, readiness: ReadinessLevel) => void;
+  /** Hide bottom nav while program wizard is open */
+  onSetupVisibilityChange?: (open: boolean) => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -34,12 +36,19 @@ export const HomeView: React.FC<HomeViewProps> = ({
   history,
   activeProgram,
   onApplyProgram,
-  onStartWorkout
+  onStartWorkout,
+  onSetupVisibilityChange
 }) => {
-  const [setupOpen, setSetupOpen] = useState(!activeProgram);
+  // Only force setup when user taps «Сменить» — otherwise show wizard iff no saved program
+  const [forceSetup, setForceSetup] = useState(false);
+  const setupOpen = forceSetup || !activeProgram;
   const [briefingTemplate, setBriefingTemplate] = useState<WorkoutTemplate | null>(null);
   const [checkinTemplate, setCheckinTemplate] = useState<WorkoutTemplate | null>(null);
   const [dismissedAdviceId, setDismissedAdviceId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    onSetupVisibilityChange?.(setupOpen);
+  }, [setupOpen, onSetupVisibilityChange]);
 
   const todayTemplate = useMemo(
     () => pickTodaysTemplate(templates, activeProgram, history),
@@ -79,10 +88,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
     return (
       <ProgramSetupFlow
         existingTemplates={templates}
-        onCancel={activeProgram ? () => setSetupOpen(false) : undefined}
+        onCancel={activeProgram ? () => setForceSetup(false) : undefined}
         onConfirm={(goal, days, gym) => {
           onApplyProgram(goal, days, gym);
-          setSetupOpen(false);
+          setForceSetup(false);
         }}
       />
     );
@@ -169,7 +178,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
           <button
             type="button"
-            onClick={() => setSetupOpen(true)}
+            onClick={() => setForceSetup(true)}
             className="shrink-0 px-3 py-2 rounded-xl border border-white/10 text-xs font-semibold text-muted hover:text-white flex items-center gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Сменить

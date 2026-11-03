@@ -120,10 +120,17 @@ export function useWorkoutSession() {
     const previous = storageService.getTemplates();
     const { program, templates: generated } = buildProgramTemplates(goal, days, previous, gym);
     storageService.applyGeneratedProgram(program, generated);
+    const nextSettings = {
+      ...storageService.getSettings(),
+      gymProfile: gym,
+      focusModeDefault: true as const,
+      activeProgram: program
+    };
+    storageService.saveSettings(nextSettings);
+    storageService.saveActiveProgram(program);
     setActiveProgram(program);
     setTemplates(generated);
-    setSettings({ ...storageService.getSettings(), gymProfile: gym, focusModeDefault: true });
-    storageService.saveSettings({ ...storageService.getSettings(), gymProfile: gym, focusModeDefault: true, activeProgram: program });
+    setSettings(nextSettings);
   }, []);
 
   const startWorkout = useCallback((template: WorkoutTemplate, readiness: ReadinessLevel = 'optimal') => {

@@ -14,15 +14,20 @@ import {
   Sun,
   Moon,
   Repeat,
-  Undo2
+  Undo2,
+  Mic,
+  Focus,
+  HeartPulse
 } from 'lucide-react';
-import { AppSettings } from '../types';
+import { AppSettings, CompletedWorkout } from '../types';
 import { storageService } from '../services/storageService';
+import { downloadCsv, workoutsToCsv } from '../utils/healthExport';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   settings: AppSettings;
+  history?: CompletedWorkout[];
   onUpdateSettings: (newSettings: AppSettings) => void;
   onDataReload: () => void;
 }
@@ -31,6 +36,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   settings,
+  history = [],
   onUpdateSettings,
   onDataReload
 }) => {
@@ -209,7 +215,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               <div>
                 <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200 block">Вибрация (Haptic)</span>
-                <span className="text-xs text-slate-500">Вибро-оповещения в кармане</span>
+                <span className="text-xs text-slate-500">Карта паттернов: сет / таймер / PR</span>
               </div>
             </div>
             <button
@@ -220,6 +226,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${
                 settings.vibrationEnabled ? 'right-0.5' : 'left-0.5'
+              }`} />
+            </button>
+          </div>
+
+          {/* Voice countdown */}
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800">
+            <div className="flex items-center gap-3">
+              <Mic className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200 block">Голосовой отсчёт</span>
+                <span className="text-xs text-slate-500">SpeechSynthesis: 3…2…1 и «начинайте»</span>
+              </div>
+            </div>
+            <button
+              onClick={() => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled })}
+              className={`w-12 h-6 rounded-full transition relative ${
+                settings.voiceEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-800'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${
+                settings.voiceEnabled ? 'right-0.5' : 'left-0.5'
+              }`} />
+            </button>
+          </div>
+
+          {/* Focus mode default */}
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800">
+            <div className="flex items-center gap-3">
+              <Focus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <span className="font-semibold text-sm text-slate-800 dark:text-zinc-200 block">Фокус-режим по умолчанию</span>
+                <span className="text-xs text-slate-500">Крупный текущий сет на весь экран</span>
+              </div>
+            </div>
+            <button
+              onClick={() => onUpdateSettings({ ...settings, focusModeDefault: !settings.focusModeDefault })}
+              className={`w-12 h-6 rounded-full transition relative ${
+                settings.focusModeDefault ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-zinc-800'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${
+                settings.focusModeDefault ? 'right-0.5' : 'left-0.5'
               }`} />
             </button>
           </div>
@@ -247,17 +295,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Backup / Restore section */}
+          {/* Health CSV + Backup */}
           <div className="bg-slate-50 dark:bg-zinc-950 p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 block">
-              Резервное копирование (Offline JSON)
+              Экспорт и резервные копии
             </span>
+            <button
+              onClick={() => {
+                downloadCsv(
+                  `ironforge_health_${new Date().toISOString().slice(0, 10)}.csv`,
+                  workoutsToCsv(history)
+                );
+              }}
+              className="w-full py-2 px-3 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 dark:border-zinc-700 transition"
+            >
+              <HeartPulse className="w-4 h-4 text-rose-500" /> CSV для Apple Health / Google Fit
+            </button>
             <div className="flex gap-2">
               <button
                 onClick={handleExport}
                 className="flex-1 py-2 px-3 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 dark:border-zinc-700 transition"
               >
-                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Экспорт
+                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> JSON
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}

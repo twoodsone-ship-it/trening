@@ -1,7 +1,8 @@
 /**
- * Web Audio API and Native Haptic Vibration Service for Gym Rest Timers.
- * Completely offline, zero external sound asset dependencies.
+ * Web Audio API, speech synthesis, and haptic vibration for gym workouts.
  */
+
+import type { HapticEvent } from '../types';
 
 let audioCtx: AudioContext | null = null;
 
@@ -19,10 +20,18 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
+/** Distinct haptic patterns for gym events */
+export const HAPTIC_MAP: Record<HapticEvent, number | number[]> = {
+  setComplete: [100, 50, 100],
+  copyPrevious: [40],
+  timerTick: 60,
+  timerDone: [200, 100, 200, 100, 400],
+  pr: [150, 100, 250],
+  rpeConfirm: [50, 30, 50],
+  button: 30
+};
+
 export const soundService = {
-  /**
-   * Short alert beep for countdown (3, 2, 1)
-   */
   playCountdownBeep() {
     try {
       const ctx = getAudioContext();
@@ -32,7 +41,7 @@ export const soundService = {
       const gain = ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(660, ctx.currentTime); // E5
+      osc.frequency.setValueAtTime(660, ctx.currentTime);
 
       gain.gain.setValueAtTime(0.15, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
@@ -43,20 +52,17 @@ export const soundService = {
       osc.start();
       osc.stop(ctx.currentTime + 0.12);
     } catch {
-      // Audio autoplay policy or blocked
+      //
     }
   },
 
-  /**
-   * Cheerful high-pitch success chime when rest timer finishes
-   */
   playRestFinishedChime() {
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
 
       const now = ctx.currentTime;
-      const notes = [587.33, 739.99, 880, 1174.66]; // D5, F#5, A5, D6
+      const notes = [587.33, 739.99, 880, 1174.66];
 
       notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
@@ -75,20 +81,17 @@ export const soundService = {
         osc.stop(now + idx * 0.08 + 0.35);
       });
     } catch {
-      // Ignore
+      //
     }
   },
 
-  /**
-   * Sound effect for completing a set or workout PR
-   */
   playPrFanfare() {
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
 
       const now = ctx.currentTime;
-      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      const notes = [523.25, 659.25, 783.99, 1046.50];
 
       notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
@@ -107,30 +110,53 @@ export const soundService = {
         osc.stop(now + idx * 0.1 + 0.4);
       });
     } catch {
-      // Ignore
+      //
     }
   },
 
-  /**
-   * Haptic vibration for mobile phones (gym in pocket)
-   */
   vibrate(pattern: number | number[] = [100, 50, 150]) {
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate(pattern);
       } catch {
-        // Not supported or blocked
+        //
       }
     }
+  },
+
+  haptic(event: HapticEvent, enabled = true) {
+    if (!enabled) return;
+    this.vibrate(HAPTIC_MAP[event]);
+  },
+
+  /** Spoken countdown / rest cues via SpeechSynthesis (offline-capable on most phones) */
+  speak(text: string, enabled = true, lang = 'ru-RU') {
+    if (!enabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang;
+      utter.rate = 1.05;
+      utter.pitch = 1;
+      utter.volume = 1;
+      window.speechSynthesis.speak(utter);
+    } catch {
+      //
+    }
+  },
+
+  speakCountdown(seconds: number, enabled = true) {
+    if (seconds <= 0) {
+      this.speak('Отдых окончен. Начинайте подход', enabled);
+      return;
+    }
+    this.speak(String(seconds), enabled);
   }
 };
 
 let wakeLockSentinel: any = null;
 
 export const wakeLockService = {
-  /**
-   * Request screen wake lock to keep display on during gym workout
-   */
   async requestWakeLock(): Promise<boolean> {
     if (typeof window === 'undefined' || !('wakeLock' in navigator)) {
       return false;
@@ -149,9 +175,6 @@ export const wakeLockService = {
     }
   },
 
-  /**
-   * Release screen wake lock when workout finishes or is cancelled
-   */
   async releaseWakeLock(): Promise<void> {
     try {
       if (wakeLockSentinel && !wakeLockSentinel.released) {
@@ -159,7 +182,7 @@ export const wakeLockService = {
         wakeLockSentinel = null;
       }
     } catch {
-      // Ignore
+      //
     }
   },
 

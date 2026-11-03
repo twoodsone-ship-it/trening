@@ -3,10 +3,10 @@ export type MuscleCategory = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 
 export type EquipmentType = 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'smith' | 'bodyweight';
 
 export interface ExerciseTechniqueGuide {
-  setup: string;        // Исходное положение
-  execution: string;    // Движение и сокращение
-  breathing: string;    // Вдох / выдох
-  mistakes: string[];   // Частые ошибки
+  setup: string;
+  execution: string;
+  breathing: string;
+  mistakes: string[];
   primaryMuscles: string;
 }
 
@@ -19,7 +19,7 @@ export interface WorkoutSet {
   setNumber: number;
   weight: number;
   reps: number;
-  rpe?: number; // 6 to 10
+  rpe?: number;
   completed: boolean;
   isWarmup?: boolean;
   type?: WorkoutSetType;
@@ -37,14 +37,14 @@ export interface SetHistoryEntry {
 export interface ExerciseSession {
   id: string;
   workoutId: string;
-  date: string; // ISO date
+  date: string;
   targetSets: number;
   minReps: number;
   maxReps: number;
   weight: number;
   sets: SetHistoryEntry[];
   progressionNote?: string;
-  totalVolume: number; // weight * reps sum
+  totalVolume: number;
   estimated1RM: number;
 }
 
@@ -53,17 +53,19 @@ export interface Exercise {
   name: string;
   category: MuscleCategory;
   equipment?: EquipmentType;
-  animationType?: string; // key for animated biomechanics visual
-  gifUrl?: string;        // Verified accurate 3D animated GIF URL from ExerciseDB
+  animationType?: string;
+  gifUrl?: string;
   technique?: ExerciseTechniqueGuide;
-  alternatives?: string[]; // IDs of swap exercises
+  alternatives?: string[];
   weekVariant?: 'A' | 'B' | 'both';
-  targetSets: number;    // e.g. 3
-  minReps: number;       // e.g. 8
-  maxReps: number;       // e.g. 12
-  weightStep: number;    // e.g. 2.5 kg
-  currentWeight: number; // current working weight (kg)
-  restSeconds: number;   // rest time between sets (e.g. 90)
+  /** Shared id groups exercises into a superset / circuit */
+  supersetGroupId?: string;
+  targetSets: number;
+  minReps: number;
+  maxReps: number;
+  weightStep: number;
+  currentWeight: number;
+  restSeconds: number;
   notes?: string;
   history: ExerciseSession[];
 }
@@ -74,16 +76,18 @@ export interface WorkoutTemplate {
   description: string;
   icon?: string;
   weekVariant?: 'A' | 'B' | 'all';
+  /** Optional day-of-week hint: 0=Sun … 6=Sat */
+  scheduledDays?: number[];
   exercises: Exercise[];
 }
 
-export type ProgressionDecision = 
-  | 'INCREASE_WEIGHT'     // Hit max reps on all sets with good RPE -> Add weight, drop reps to min
-  | 'CONSOLIDATE_WEIGHT'  // Hit reps but RPE 10 / extreme grind -> Repeat same weight
-  | 'INCREASE_REPS'       // Working inside the rep bracket -> Add reps
-  | 'PLATEAU_WARNING'     // Stalled for 3+ sessions -> Microload or deload recommended
-  | 'DELOAD_RECOMMENDED'  // Significant fatigue detected
-  | 'FIRST_SESSION';      // No previous session history
+export type ProgressionDecision =
+  | 'INCREASE_WEIGHT'
+  | 'CONSOLIDATE_WEIGHT'
+  | 'INCREASE_REPS'
+  | 'PLATEAU_WARNING'
+  | 'DELOAD_RECOMMENDED'
+  | 'FIRST_SESSION';
 
 export interface ProgressionRecommendation {
   decision: ProgressionDecision;
@@ -105,6 +109,7 @@ export interface ActiveExerciseSession {
   gifUrl?: string;
   technique?: ExerciseTechniqueGuide;
   alternatives?: string[];
+  supersetGroupId?: string;
   targetSets: number;
   minReps: number;
   maxReps: number;
@@ -118,6 +123,14 @@ export interface ActiveExerciseSession {
     weight: number;
     sets: SetHistoryEntry[];
   };
+}
+
+export interface ActiveWorkout {
+  templateId: string;
+  templateName: string;
+  readiness?: ReadinessLevel;
+  startTime: number;
+  exercises: ActiveExerciseSession[];
 }
 
 export interface CompletedWorkout {
@@ -146,9 +159,20 @@ export interface CompletedWorkout {
 export interface AppSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
+  voiceEnabled: boolean;
+  focusModeDefault: boolean;
   defaultRestSeconds: number;
-  barbellWeightKg: number; // default 20 kg
+  barbellWeightKg: number;
   unit: 'kg' | 'lbs';
   theme: 'light' | 'dark';
   currentWeek: 'A' | 'B';
 }
+
+export type HapticEvent =
+  | 'setComplete'
+  | 'copyPrevious'
+  | 'timerTick'
+  | 'timerDone'
+  | 'pr'
+  | 'rpeConfirm'
+  | 'button';

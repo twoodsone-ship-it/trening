@@ -1,5 +1,6 @@
 import React from 'react';
-import { Layers, BarChart2, Settings, Play, Dumbbell } from 'lucide-react';
+import { Layers, BarChart2, Settings } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 interface NavigationProps {
   activeTab: 'templates' | 'analytics';
@@ -23,11 +24,12 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Templates Tab */}
         <button
           onClick={() => onSelectTab('templates')}
-          className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 sm:px-4 rounded-xl min-w-[64px] min-h-[44px] active:scale-95 transition ${
+          className={cn(
+            'flex flex-col items-center justify-center gap-1 py-1.5 px-3 sm:px-4 rounded-xl min-w-[64px] min-h-[44px] active:scale-95 transition',
             activeTab === 'templates'
               ? 'text-emerald-600 dark:text-emerald-400 font-bold'
               : 'text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
-          }`}
+          )}
         >
           <Layers className="w-5 h-5" />
           <span className="text-[10px] tracking-wide font-medium">Программы</span>
@@ -50,11 +52,12 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Analytics Tab */}
         <button
           onClick={() => onSelectTab('analytics')}
-          className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 sm:px-4 rounded-xl min-w-[64px] min-h-[44px] active:scale-95 transition ${
+          className={cn(
+            'flex flex-col items-center justify-center gap-1 py-1.5 px-3 sm:px-4 rounded-xl min-w-[64px] min-h-[44px] active:scale-95 transition',
             activeTab === 'analytics'
               ? 'text-emerald-600 dark:text-emerald-400 font-bold'
               : 'text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
-          }`}
+          )}
         >
           <BarChart2 className="w-5 h-5" />
           <span className="text-[10px] tracking-wide font-medium">Аналитика</span>

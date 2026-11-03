@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { CompletedWorkout, WorkoutTemplate } from '../types';
 import { calculate1RM } from '../services/progressionEngine';
+import { calculateStreak, workoutsThisWeek } from '../utils/streak';
 
 interface AnalyticsViewProps {
   history: CompletedWorkout[];
@@ -27,6 +28,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
   const totalVolumeKg = history.reduce((sum, w) => sum + w.totalVolumeKg, 0);
   const totalSets = history.reduce((sum, w) => sum + w.totalSets, 0);
   const totalVolumeTons = (totalVolumeKg / 1000).toFixed(1);
+  const streak = calculateStreak(history);
+  const weekCount = workoutsThisWeek(history);
 
   // Find Personal Records (Max 1RM per exercise across history)
   const prMap = new Map<string, { exerciseName: string; category: string; maxWeight: number; max1RM: number; date: string }>();
@@ -81,6 +84,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
         <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
           Статистика прогресса, тоннаж и расчетные 1RM максимумы
         </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
+            <Flame className="w-3.5 h-3.5" /> Streak {streak} дн.
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+            Эта неделя: {weekCount}
+          </span>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}

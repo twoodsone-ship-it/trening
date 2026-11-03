@@ -1,6 +1,22 @@
-import type { AppSettings, CompletedWorkout, WorkoutTemplate, ActiveExerciseSession, Exercise, MuscleCategory, EquipmentType, ExerciseTechniqueGuide, ReadinessLevel } from '../types/index.ts';
+import type {
+  AppSettings,
+  CompletedWorkout,
+  WorkoutTemplate,
+  ActiveWorkout,
+  Exercise,
+  ReadinessLevel
+} from '../types/index.ts';
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
+import {
+  normalizeMuscleCategory,
+  normalizeEquipment,
+  resolveAnimationType,
+  resolveTechnique,
+  resolveAlternatives
+} from '../utils/catalogEnrichment';
+
+export { normalizeMuscleCategory, normalizeEquipment };
 
 const STORAGE_KEYS = {
   TEMPLATES: 'ironforge_templates_v1',
@@ -11,47 +27,22 @@ const STORAGE_KEYS = {
   EMERGENCY_SNAPSHOT: 'ironforge_emergency_snapshot_v1'
 };
 
+const TEMPLATES_VERSION = 'v2.2';
+
 const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
+  voiceEnabled: true,
+  focusModeDefault: false,
   defaultRestSeconds: 90,
   barbellWeightKg: 20,
   unit: 'kg',
-  theme: 'light',
+  theme: 'dark',
   currentWeek: 'A'
 };
 
-export function normalizeMuscleCategory(raw: unknown): MuscleCategory {
-  if (typeof raw !== 'string') return 'Chest';
-  const lower = raw.trim().toLowerCase();
-  if (lower === 'chest' || lower.includes('груд')) return 'Chest';
-  if (lower === 'back' || lower.includes('спин')) return 'Back';
-  if (lower === 'legs' || lower.includes('ног') || lower.includes('бедр') || lower.includes('квадр') || lower.includes('ягодиц')) return 'Legs';
-  if (lower === 'shoulders' || lower.includes('плеч') || lower.includes('дельт')) return 'Shoulders';
-  if (lower === 'arms' || lower.includes('рук') || lower.includes('бицеп') || lower.includes('трицеп')) return 'Arms';
-  if (lower === 'core' || lower.includes('кор') || lower.includes('пресс') || lower.includes('живот')) return 'Core';
-  return 'Chest';
-}
-
-export function normalizeEquipment(raw: unknown, name?: string): EquipmentType {
-  if (typeof raw === 'string') {
-    const lower = raw.trim().toLowerCase();
-    if (lower === 'barbell' || lower === 'штанга') return 'barbell';
-    if (lower === 'dumbbell' || lower === 'гантели' || lower === 'гантель') return 'dumbbell';
-    if (lower === 'cable' || lower === 'блок' || lower === 'кроссовер') return 'cable';
-    if (lower === 'machine' || lower === 'тренажер' || lower === 'хаммер') return 'machine';
-    if (lower === 'smith' || lower === 'смит') return 'smith';
-    if (lower === 'bodyweight' || lower === 'свой вес' || lower === 'собственный вес') return 'bodyweight';
-  }
-  if (name) {
-    const n = name.toLowerCase();
-    if (n.includes('гантел')) return 'dumbbell';
-    if (n.includes('блок') || n.includes('кроссовер')) return 'cable';
-    if (n.includes('тренажер') || n.includes('хаммер')) return 'machine';
-    if (n.includes('смит')) return 'smith';
-    if (n.includes('турник') || n.includes('брусь') || n.includes('подтягиван') || n.includes('отжиман') || n.includes('планк') || n.includes('ролик')) return 'bodyweight';
-  }
-  return 'barbell';
+function cloneDefaultTemplates(): WorkoutTemplate[] {
+  return JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
 }
 
 export function migrateExercise(rawEx: any): Exercise {
@@ -74,49 +65,28 @@ export function migrateExercise(rawEx: any): Exercise {
   }
 
   const catalogItem = EXERCISE_CATALOG[rawEx.id];
-  const category: MuscleCategory = catalogItem?.category || normalizeMuscleCategory(rawEx.category);
-  const equipment: EquipmentType = catalogItem?.equipment || normalizeEquipment(rawEx.equipment, rawEx.name);
-
-  const defaultAlternatives: string[] = (catalogItem?.alternatives && catalogItem.alternatives.length > 0)
-    ? catalogItem.alternatives
-    : Object.values(EXERCISE_CATALOG)
-        .filter(c => c.category === category && c.id !== rawEx.id)
-        .slice(0, 5)
-        .map(c => c.id);
-
-  const defaultTechnique: ExerciseTechniqueGuide = catalogItem?.technique || rawEx.technique || {
-    primaryMuscles: `${category} целевые мышечные группы`,
-    setup: 'Займите устойчивое исходное положение, сохраняя нейтральное положение позвоночника.',
-    execution: 'Выполняйте движение подконтрольно в полной амплитуде, акцентируя сокращение мышц.',
-    breathing: 'Вдох при опускании/растяжении, выдох на усилии.',
-    mistakes: ['Чрезмерный читинг', 'Потеря контроля осанки']
-  };
-
-  const defaultAnimation = catalogItem?.animationType || rawEx.animationType || (
-    category === 'Chest' ? 'bench-press' :
-    category === 'Back' ? 'row' :
-    category === 'Legs' ? 'squat' :
-    category === 'Shoulders' ? 'overhead-press' :
-    category === 'Arms' ? 'bicep-curl' : 'squat'
-  );
+  const category = catalogItem?.category || normalizeMuscleCategory(rawEx.category);
+  const equipment = catalogItem?.equipment || normalizeEquipment(rawEx.equipment, rawEx.name);
+  const exerciseId = rawEx.id || ('ex-' + Date.now());
 
   return {
-    id: rawEx.id || ('ex-' + Date.now()),
+    id: exerciseId,
     name: rawEx.name || catalogItem?.name || 'Упражнение',
     category,
     equipment,
-    animationType: defaultAnimation,
+    animationType: resolveAnimationType(category, catalogItem?.animationType, rawEx.animationType),
     gifUrl: catalogItem?.gifUrl || rawEx.gifUrl,
-    technique: defaultTechnique,
-    alternatives: (Array.isArray(rawEx.alternatives) && rawEx.alternatives.length > 0)
-      ? rawEx.alternatives
-      : defaultAlternatives,
+    technique: resolveTechnique(category, catalogItem?.technique, rawEx.technique),
+    alternatives: resolveAlternatives(exerciseId, category, catalogItem?.alternatives, rawEx.alternatives),
     weekVariant: rawEx.weekVariant || 'both',
+    supersetGroupId: rawEx.supersetGroupId,
     targetSets: Number(rawEx.targetSets) || catalogItem?.defaultSets || 3,
     minReps: Number(rawEx.minReps) || catalogItem?.minReps || 8,
     maxReps: Number(rawEx.maxReps) || catalogItem?.maxReps || 12,
     weightStep: Number(rawEx.weightStep) || catalogItem?.weightStep || 2.5,
-    currentWeight: rawEx.currentWeight !== undefined ? Number(rawEx.currentWeight) : (catalogItem?.defaultWeight ?? 50),
+    currentWeight: rawEx.currentWeight !== undefined
+      ? Number(rawEx.currentWeight)
+      : (catalogItem?.defaultWeight ?? 50),
     restSeconds: Number(rawEx.restSeconds) || catalogItem?.restSeconds || 90,
     notes: rawEx.notes,
     history: Array.isArray(rawEx.history) ? rawEx.history : []
@@ -125,7 +95,7 @@ export function migrateExercise(rawEx: any): Exercise {
 
 export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
   if (!Array.isArray(templates) || templates.length === 0) {
-    return JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    return cloneDefaultTemplates();
   }
   return templates.map(t => ({
     id: t.id || ('template-' + Date.now()),
@@ -137,50 +107,25 @@ export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
   }));
 }
 
-export function migrateActiveSession(workout: any): {
-  templateId: string;
-  templateName: string;
-  readiness?: ReadinessLevel;
-  startTime: number;
-  exercises: ActiveExerciseSession[];
-} | null {
+export function migrateActiveSession(workout: any): ActiveWorkout | null {
   if (!workout || !Array.isArray(workout.exercises)) return null;
 
-  const migratedExercises: ActiveExerciseSession[] = workout.exercises.map((rawEx: any) => {
+  const migratedExercises = workout.exercises.map((rawEx: any) => {
     const catalogItem = EXERCISE_CATALOG[rawEx.exerciseId || rawEx.id];
-    const category: MuscleCategory = catalogItem?.category || normalizeMuscleCategory(rawEx.category);
-    const equipment: EquipmentType = catalogItem?.equipment || normalizeEquipment(rawEx.equipment, rawEx.name);
-    const defaultAnimation = catalogItem?.animationType || rawEx.animationType || (
-      category === 'Chest' ? 'bench-press' :
-      category === 'Back' ? 'row' :
-      category === 'Legs' ? 'squat' :
-      category === 'Shoulders' ? 'overhead-press' :
-      category === 'Arms' ? 'bicep-curl' : 'squat'
-    );
-    const defaultTechnique = catalogItem?.technique || rawEx.technique || {
-      primaryMuscles: `${category} целевые мышцы`,
-      setup: 'Исходное положение стабильное, позвоночник в нейтральном положении.',
-      execution: 'Подконтрольное движение по полной амплитуде.',
-      breathing: 'Вдох на спуске, выдох на усилии.',
-      mistakes: ['Чрезмерный читинг']
-    };
-    const defaultAlternatives = (catalogItem?.alternatives && catalogItem.alternatives.length > 0)
-      ? catalogItem.alternatives
-      : (
-        Array.isArray(rawEx.alternatives) && rawEx.alternatives.length > 0
-          ? rawEx.alternatives
-          : Object.values(EXERCISE_CATALOG).filter(c => c.category === category && c.id !== (rawEx.exerciseId || rawEx.id)).slice(0, 5).map(c => c.id)
-      );
+    const category = catalogItem?.category || normalizeMuscleCategory(rawEx.category);
+    const equipment = catalogItem?.equipment || normalizeEquipment(rawEx.equipment, rawEx.name);
+    const exerciseId = rawEx.exerciseId || rawEx.id || ('ex-' + Date.now());
 
     return {
-      exerciseId: rawEx.exerciseId || rawEx.id || ('ex-' + Date.now()),
+      exerciseId,
       name: rawEx.name || catalogItem?.name || 'Упражнение',
       category,
       equipment,
-      animationType: defaultAnimation,
+      animationType: resolveAnimationType(category, catalogItem?.animationType, rawEx.animationType),
       gifUrl: catalogItem?.gifUrl || rawEx.gifUrl,
-      technique: defaultTechnique,
-      alternatives: defaultAlternatives,
+      technique: resolveTechnique(category, catalogItem?.technique, rawEx.technique),
+      alternatives: resolveAlternatives(exerciseId, category, catalogItem?.alternatives, rawEx.alternatives),
+      supersetGroupId: rawEx.supersetGroupId,
       targetSets: Number(rawEx.targetSets) || catalogItem?.defaultSets || 3,
       minReps: Number(rawEx.minReps) || catalogItem?.minReps || 8,
       maxReps: Number(rawEx.maxReps) || catalogItem?.maxReps || 12,
@@ -205,7 +150,7 @@ export function migrateActiveSession(workout: any): {
   return {
     templateId: workout.templateId || 'custom',
     templateName: workout.templateName || 'Тренировка',
-    readiness: workout.readiness || 'optimal',
+    readiness: (workout.readiness as ReadinessLevel) || 'optimal',
     startTime: Number(workout.startTime) || Date.now(),
     exercises: migratedExercises
   };
@@ -216,7 +161,7 @@ export const storageService = {
     try {
       const version = localStorage.getItem('ironforge_templates_version');
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-      if (data && version === 'v2.2') {
+      if (data && version === TEMPLATES_VERSION) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length >= 8) {
           const migrated = migrateTemplatesList(parsed);
@@ -228,11 +173,10 @@ export const storageService = {
     } catch {
       console.warn('Failed to parse templates from storage');
     }
-    // Initial seed or auto-upgrade to tailored 8-program system
-    const freshTemplates: WorkoutTemplate[] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    const freshTemplates = cloneDefaultTemplates();
     try {
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
-      localStorage.setItem('ironforge_templates_version', 'v2.2');
+      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
     } catch (e) {
       console.error('Failed to persist fresh templates', e);
     }
@@ -264,19 +208,16 @@ export const storageService = {
     history.unshift(workout);
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
 
-    // Also update exercise working weights and history inside templates
     const templates = this.getTemplates();
     const template = templates.find(t => t.id === workout.templateId);
     if (template) {
       workout.exercises.forEach(completedEx => {
         const exercise = template.exercises.find(e => e.id === completedEx.exerciseId);
         if (exercise) {
-          // If progression recommends new weight, update current weight
           if (completedEx.progression.decision === 'INCREASE_WEIGHT') {
             exercise.currentWeight = completedEx.progression.nextWeight;
           }
 
-          // Record session history
           const totalVol = completedEx.sets.reduce((sum, s) => sum + (s.weight * s.reps), 0);
           const maxSet1RM = Math.max(...completedEx.sets.map(s => {
             if (s.reps <= 0) return 0;
@@ -311,25 +252,18 @@ export const storageService = {
     } catch {
       // fallback
     }
-    return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS };
   },
 
   saveSettings(settings: AppSettings) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   },
 
-  getActiveWorkout(): {
-    templateId: string;
-    templateName: string;
-    readiness?: ReadinessLevel;
-    startTime: number;
-    exercises: ActiveExerciseSession[];
-  } | null {
+  getActiveWorkout(): ActiveWorkout | null {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT);
       if (data) {
-        const parsed = JSON.parse(data);
-        return migrateActiveSession(parsed);
+        return migrateActiveSession(JSON.parse(data));
       }
     } catch {
       //
@@ -337,13 +271,7 @@ export const storageService = {
     return null;
   },
 
-  saveActiveWorkout(workout: {
-    templateId: string;
-    templateName: string;
-    readiness?: ReadinessLevel;
-    startTime: number;
-    exercises: ActiveExerciseSession[];
-  } | null) {
+  saveActiveWorkout(workout: ActiveWorkout | null) {
     if (workout === null) {
       localStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKOUT);
     } else {
@@ -422,22 +350,12 @@ export const storageService = {
       const raw = localStorage.getItem(STORAGE_KEYS.EMERGENCY_SNAPSHOT);
       if (!raw) return false;
       const snap = JSON.parse(raw);
-      if (snap.templates !== undefined && snap.templates !== null) {
-        localStorage.setItem(STORAGE_KEYS.TEMPLATES, snap.templates);
-      }
-      if (snap.history !== undefined && snap.history !== null) {
-        localStorage.setItem(STORAGE_KEYS.HISTORY, snap.history);
-      }
-      if (snap.settings !== undefined && snap.settings !== null) {
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, snap.settings);
-      }
-      if (snap.activeWorkout !== undefined && snap.activeWorkout !== null) {
-        localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT, snap.activeWorkout);
-      }
-      if (snap.customExercises !== undefined && snap.customExercises !== null) {
-        localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, snap.customExercises);
-      }
-      if (snap.templatesVersion !== undefined && snap.templatesVersion !== null) {
+      if (snap.templates != null) localStorage.setItem(STORAGE_KEYS.TEMPLATES, snap.templates);
+      if (snap.history != null) localStorage.setItem(STORAGE_KEYS.HISTORY, snap.history);
+      if (snap.settings != null) localStorage.setItem(STORAGE_KEYS.SETTINGS, snap.settings);
+      if (snap.activeWorkout != null) localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT, snap.activeWorkout);
+      if (snap.customExercises != null) localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, snap.customExercises);
+      if (snap.templatesVersion != null) {
         localStorage.setItem('ironforge_templates_version', snap.templatesVersion);
       }
       return true;
@@ -454,12 +372,10 @@ export const storageService = {
   importBackupJson(jsonString: string): boolean {
     try {
       const data = JSON.parse(jsonString);
-      // Pre-import safety snapshot
       this.createEmergencySnapshot();
 
       if (data.templates && Array.isArray(data.templates)) {
-        const migrated = migrateTemplatesList(data.templates);
-        localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(migrated));
+        localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(migrateTemplatesList(data.templates)));
       }
       if (data.history && Array.isArray(data.history)) {
         localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(data.history));
@@ -483,14 +399,13 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKOUT);
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
     localStorage.removeItem(STORAGE_KEYS.CUSTOM_EXERCISES);
-    localStorage.setItem('ironforge_templates_version', 'v2.2');
-    // Restore fresh clone of DEFAULT_TEMPLATES so user immediately has clean initial state
-    const freshTemplates: WorkoutTemplate[] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
+    const freshTemplates = cloneDefaultTemplates();
     localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
   },
 
   resetTemplates(): WorkoutTemplate[] {
-    const freshTemplates: WorkoutTemplate[] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    const freshTemplates = cloneDefaultTemplates();
     localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
     return freshTemplates;
   }

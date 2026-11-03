@@ -12,7 +12,7 @@ export default {
           dark: '#0a0a0c',
           card: '#121217',
           border: '#27272a',
-          accent: '#10b981', // Emerald green
+          accent: '#10b981',
           accentHover: '#059669',
           danger: '#ef4444',
           warning: '#f59e0b',
@@ -21,7 +21,9 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
       }
     },
   },

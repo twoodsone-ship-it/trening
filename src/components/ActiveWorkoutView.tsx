@@ -1,29 +1,33 @@
-import React, { useState } from 'react';
-import { 
-  Check, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  Calculator, 
-  Flame, 
-  TrendingUp, 
-  CheckCircle2, 
-  X, 
-  Info,
-  Clock,
-  Dumbbell,
-  RefreshCw,
-  HelpCircle,
-  Sparkles
-} from 'lucide-react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { CheckCircle2, Clock, Focus, Link2, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { ActiveExerciseSession, CompletedWorkout, WorkoutSet, WorkoutSetType, ReadinessLevel } from '../types';
+import type {
+  ActiveExerciseSession,
+  AppSettings,
+  CompletedWorkout,
+  ReadinessLevel,
+  WorkoutSet
+} from '../types';
 import { soundService, wakeLockService } from '../services/audioService';
-import { calculate1RM, calculateVolume, evaluateDoubleProgression } from '../services/progressionEngine';
-import { PlateCalculatorModal } from './PlateCalculatorModal';
-import { ExerciseTechniqueModal } from './ExerciseTechniqueModal';
-import { ExerciseSwapModal } from './ExerciseSwapModal';
-import { CatalogExerciseItem } from '../data/exerciseCatalog';
+import { calculateVolume, evaluateDoubleProgression } from '../services/progressionEngine';
+import type { CatalogExerciseItem } from '../data/exerciseCatalog';
+import { ActiveExerciseCard } from './workout/ActiveExerciseCard';
+import { WorkoutProgressRing } from './workout/WorkoutProgressRing';
+import { RpePickerModal } from './RpePickerModal';
+import { FocusSetOverlay } from './FocusSetOverlay';
+import { isWarmupSet, nextSetType, renumberSets, workoutProgress } from '../utils/workoutHelpers';
+import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/superset';
+import { cn } from '../utils/cn';
+
+const PlateCalculatorModal = lazy(() =>
+  import('./PlateCalculatorModal').then(m => ({ default: m.PlateCalculatorModal }))
+);
+const ExerciseTechniqueModal = lazy(() =>
+  import('./ExerciseTechniqueModal').then(m => ({ default: m.ExerciseTechniqueModal }))
+);
+const ExerciseSwapModal = lazy(() =>
+  import('./ExerciseSwapModal').then(m => ({ default: m.ExerciseSwapModal }))
+);
 
 interface ActiveWorkoutViewProps {
   workoutName: string;
@@ -31,10 +35,31 @@ interface ActiveWorkoutViewProps {
   readiness?: ReadinessLevel;
   startTime: number;
   exercises: ActiveExerciseSession[];
+  settings: AppSettings;
   onUpdateExercises: (exercises: ActiveExerciseSession[]) => void;
   onFinishWorkout: (completed: CompletedWorkout) => void;
   onCancelWorkout: () => void;
   onTriggerRestTimer: (seconds: number) => void;
+}
+
+function patchExercise(
+  exercises: ActiveExerciseSession[],
+  exIdx: number,
+  patch: (ex: ActiveExerciseSession) => ActiveExerciseSession
+): ActiveExerciseSession[] {
+  return exercises.map((ex, i) => (i === exIdx ? patch(ex) : ex));
+}
+
+function patchSet(
+  exercises: ActiveExerciseSession[],
+  exIdx: number,
+  setIdx: number,
+  patch: (set: WorkoutSet) => WorkoutSet
+): ActiveExerciseSession[] {
+  return patchExercise(exercises, exIdx, ex => ({
+    ...ex,
+    sets: renumberSets(ex.sets.map((s, i) => (i === setIdx ? patch(s) : s)))
+  }));
 }
 
 export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
@@ -43,42 +68,34 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   readiness = 'optimal',
   startTime,
   exercises,
+  settings,
   onUpdateExercises,
   onFinishWorkout,
   onCancelWorkout,
   onTriggerRestTimer
 }) => {
   const [selectedPlateCalcWeight, setSelectedPlateCalcWeight] = useState<number | null>(null);
-  
-  // Technique & Animation Modal
   const [viewingTechniqueEx, setViewingTechniqueEx] = useState<ActiveExerciseSession | null>(null);
-
-  // Exercise Swap Modal (Machine Busy / Missing)
   const [swappingExIndex, setSwappingExIndex] = useState<number | null>(null);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
-
-  // Time elapsed ticker
+  const [focusMode, setFocusMode] = useState(settings.focusModeDefault);
+  const [rpeTarget, setRpeTarget] = useState<{ exIdx: number; setIdx: number } | null>(null);
   const [elapsedMinutes, setElapsedMinutes] = useState(
     Math.max(1, Math.round((Date.now() - startTime) / 60000))
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setInterval(() => {
       setElapsedMinutes(Math.max(1, Math.round((Date.now() - startTime) / 60000)));
     }, 30000);
     return () => clearInterval(timer);
   }, [startTime]);
 
-  // Screen Wake Lock to prevent phone screen from locking during workout
-  React.useEffect(() => {
+  useEffect(() => {
     wakeLockService.requestWakeLock();
-
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        wakeLockService.requestWakeLock();
-      }
+      if (document.visibilityState === 'visible') wakeLockService.requestWakeLock();
     };
-
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -86,146 +103,144 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     };
   }, []);
 
+  const completeSetWithRpe = (exIdx: number, setIdx: number, rpe?: number) => {
+    let next = patchSet(exercises, exIdx, setIdx, s => ({
+      ...s,
+      completed: true,
+      rpe: rpe ?? s.rpe ?? 8
+    }));
+    onUpdateExercises(next);
+    soundService.haptic('setComplete', settings.vibrationEnabled);
+    soundService.playCountdownBeep();
+    onTriggerRestTimer(exercises[exIdx].restSeconds || settings.defaultRestSeconds || 90);
+  };
+
   const toggleSetComplete = (exIdx: number, setIdx: number) => {
-    const updated = [...exercises];
-    const targetSet = updated[exIdx].sets[setIdx];
-    const willBeCompleted = !targetSet.completed;
-    targetSet.completed = willBeCompleted;
-
-    onUpdateExercises(updated);
-
-    if (willBeCompleted) {
-      soundService.vibrate([100, 50, 100]);
-      soundService.playCountdownBeep();
-      // Auto-trigger rest timer for this exercise
-      onTriggerRestTimer(updated[exIdx].restSeconds || 90);
+    const targetSet = exercises[exIdx].sets[setIdx];
+    if (targetSet.completed) {
+      onUpdateExercises(patchSet(exercises, exIdx, setIdx, s => ({ ...s, completed: false })));
+      return;
     }
+    setRpeTarget({ exIdx, setIdx });
   };
 
   const updateSetWeight = (exIdx: number, setIdx: number, delta: number) => {
-    const updated = [...exercises];
-    const set = updated[exIdx].sets[setIdx];
-    const newWeight = Math.max(0, Math.round((set.weight + delta) * 10) / 10);
-    set.weight = newWeight;
-    onUpdateExercises(updated);
+    onUpdateExercises(
+      patchSet(exercises, exIdx, setIdx, s => ({
+        ...s,
+        weight: Math.max(0, Math.round((s.weight + delta) * 10) / 10)
+      }))
+    );
   };
 
   const updateSetReps = (exIdx: number, setIdx: number, delta: number) => {
-    const updated = [...exercises];
-    const set = updated[exIdx].sets[setIdx];
-    const newReps = Math.max(0, set.reps + delta);
-    set.reps = newReps;
-    onUpdateExercises(updated);
+    onUpdateExercises(
+      patchSet(exercises, exIdx, setIdx, s => ({
+        ...s,
+        reps: Math.max(0, s.reps + delta)
+      }))
+    );
+  };
+
+  const copyPreviousSet = (exIdx: number, setIdx: number) => {
+    const prev = exercises[exIdx].previousPerformance?.sets[setIdx];
+    if (!prev) return;
+    onUpdateExercises(
+      patchSet(exercises, exIdx, setIdx, s => ({
+        ...s,
+        weight: prev.weight,
+        reps: prev.reps,
+        rpe: prev.rpe ?? s.rpe
+      }))
+    );
+    soundService.haptic('copyPrevious', settings.vibrationEnabled);
   };
 
   const cycleSetType = (exIdx: number, setIdx: number) => {
-    const updated = [...exercises];
-    const targetSet = updated[exIdx].sets[setIdx];
-    const order: WorkoutSetType[] = ['working', 'warmup', 'failure', 'dropset'];
-    const current = targetSet.type || (targetSet.isWarmup ? 'warmup' : 'working');
-    const nextIdx = (order.indexOf(current) + 1) % order.length;
-    const nextType = order[nextIdx];
-
-    targetSet.type = nextType;
-    targetSet.isWarmup = nextType === 'warmup';
-    
-    let workingNum = 1;
-    updated[exIdx].sets.forEach(s => {
-      if (s.type === 'warmup' || s.isWarmup) {
-        s.setNumber = 0;
-      } else {
-        s.setNumber = workingNum++;
-      }
-    });
-
-    onUpdateExercises(updated);
+    onUpdateExercises(
+      patchSet(exercises, exIdx, setIdx, s => {
+        const nextType = nextSetType(s.type, s.isWarmup);
+        return { ...s, type: nextType, isWarmup: nextType === 'warmup' };
+      })
+    );
   };
 
   const addWarmupSet = (exIdx: number) => {
-    const updated = [...exercises];
-    const ex = updated[exIdx];
-    const warmupWeight = Math.max(0, Math.round((ex.targetWeight * 0.5) / 2.5) * 2.5);
-    const warmupSet: WorkoutSet = {
-      id: 'warmup-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
-      setNumber: 0,
-      weight: warmupWeight,
-      reps: Math.min(ex.maxReps, 12),
-      rpe: 6,
-      completed: false,
-      type: 'warmup',
-      isWarmup: true
-    };
-    
-    const firstWorkingIdx = ex.sets.findIndex(s => s.type !== 'warmup' && !s.isWarmup);
-    if (firstWorkingIdx !== -1) {
-      ex.sets.splice(firstWorkingIdx, 0, warmupSet);
-    } else {
-      ex.sets.unshift(warmupSet);
-    }
-
-    let workingNum = 1;
-    ex.sets.forEach(s => {
-      if (s.type === 'warmup' || s.isWarmup) {
-        s.setNumber = 0;
-      } else {
-        s.setNumber = workingNum++;
-      }
-    });
-
-    onUpdateExercises(updated);
+    onUpdateExercises(
+      patchExercise(exercises, exIdx, ex => {
+        const warmupWeight = Math.max(0, Math.round((ex.targetWeight * 0.5) / 2.5) * 2.5);
+        const warmupSet: WorkoutSet = {
+          id: 'warmup-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
+          setNumber: 0,
+          weight: warmupWeight,
+          reps: Math.min(ex.maxReps, 12),
+          rpe: 6,
+          completed: false,
+          type: 'warmup',
+          isWarmup: true
+        };
+        const firstWorkingIdx = ex.sets.findIndex(s => !isWarmupSet(s));
+        const sets = [...ex.sets];
+        if (firstWorkingIdx !== -1) sets.splice(firstWorkingIdx, 0, warmupSet);
+        else sets.unshift(warmupSet);
+        return { ...ex, sets: renumberSets(sets) };
+      })
+    );
   };
 
   const addSet = (exIdx: number) => {
-    const updated = [...exercises];
-    const ex = updated[exIdx];
-    const workingSets = ex.sets.filter(s => s.type !== 'warmup' && !s.isWarmup);
-    const lastWorking = workingSets[workingSets.length - 1] || ex.sets[ex.sets.length - 1];
-    ex.sets.push({
-      id: 'set-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
-      setNumber: workingSets.length + 1,
-      weight: lastWorking ? lastWorking.weight : ex.targetWeight,
-      reps: lastWorking ? lastWorking.reps : ex.minReps,
-      rpe: 8,
-      completed: false,
-      type: 'working',
-      isWarmup: false
-    });
-    
-    let workingNum = 1;
-    ex.sets.forEach(s => {
-      if (s.type === 'warmup' || s.isWarmup) {
-        s.setNumber = 0;
-      } else {
-        s.setNumber = workingNum++;
-      }
-    });
-
-    onUpdateExercises(updated);
+    onUpdateExercises(
+      patchExercise(exercises, exIdx, ex => {
+        const workingSets = ex.sets.filter(s => !isWarmupSet(s));
+        const lastWorking = workingSets[workingSets.length - 1] || ex.sets[ex.sets.length - 1];
+        const newSet: WorkoutSet = {
+          id: 'set-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
+          setNumber: workingSets.length + 1,
+          weight: lastWorking ? lastWorking.weight : ex.targetWeight,
+          reps: lastWorking ? lastWorking.reps : ex.minReps,
+          rpe: 8,
+          completed: false,
+          type: 'working',
+          isWarmup: false
+        };
+        return { ...ex, sets: renumberSets([...ex.sets, newSet]) };
+      })
+    );
   };
 
   const removeSet = (exIdx: number, setIdx: number) => {
-    const updated = [...exercises];
-    if (updated[exIdx].sets.length <= 1) return;
-    updated[exIdx].sets.splice(setIdx, 1);
-    
-    let workingNum = 1;
-    updated[exIdx].sets.forEach(s => {
-      if (s.type === 'warmup' || s.isWarmup) {
-        s.setNumber = 0;
-      } else {
-        s.setNumber = workingNum++;
-      }
-    });
-
-    onUpdateExercises(updated);
+    if (exercises[exIdx].sets.length <= 1) return;
+    onUpdateExercises(
+      patchExercise(exercises, exIdx, ex => ({
+        ...ex,
+        sets: renumberSets(ex.sets.filter((_, i) => i !== setIdx))
+      }))
+    );
   };
 
-  // Handle swapping an exercise for another
+  const toggleSupersetPair = (exIdx: number) => {
+    if (exIdx >= exercises.length - 1) return;
+    const a = exercises[exIdx];
+    const b = exercises[exIdx + 1];
+    if (a.supersetGroupId && a.supersetGroupId === b.supersetGroupId) {
+      onUpdateExercises(
+        exercises.map((ex, i) =>
+          i === exIdx || i === exIdx + 1 ? { ...ex, supersetGroupId: undefined } : ex
+        )
+      );
+      return;
+    }
+    const gid = newSupersetGroupId();
+    onUpdateExercises(
+      exercises.map((ex, i) =>
+        i === exIdx || i === exIdx + 1 ? { ...ex, supersetGroupId: gid } : ex
+      )
+    );
+  };
+
   const handleSwapExercise = (newCatalogEx: CatalogExerciseItem) => {
     if (swappingExIndex === null) return;
-    const updated = [...exercises];
-    const oldEx = updated[swappingExIndex];
-
+    const oldEx = exercises[swappingExIndex];
     const recommendation = evaluateDoubleProgression(
       newCatalogEx.defaultSets,
       newCatalogEx.minReps,
@@ -235,56 +250,56 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       []
     );
 
-    // Keep completed sets or seed new sets with matching target
     const targetSetCount = Math.max(newCatalogEx.defaultSets, oldEx.sets.length);
-    const newSets: WorkoutSet[] = [];
-    for (let i = 0; i < targetSetCount; i++) {
+    const newSets: WorkoutSet[] = Array.from({ length: targetSetCount }).map((_, i) => {
       const existing = oldEx.sets[i];
       if (existing) {
-        newSets.push({
+        return {
           id: existing.id || ('swap-' + Date.now() + '-' + i),
           setNumber: i + 1,
           weight: existing.completed ? existing.weight : newCatalogEx.defaultWeight,
           reps: existing.completed ? existing.reps : newCatalogEx.minReps,
           rpe: existing.rpe || 8,
-          completed: existing.completed
-        });
-      } else {
-        newSets.push({
-          id: 'swap-' + Date.now() + '-' + i,
-          setNumber: i + 1,
-          weight: newCatalogEx.defaultWeight,
-          reps: newCatalogEx.minReps,
-          rpe: 8,
-          completed: false
-        });
+          completed: existing.completed,
+          type: existing.type || 'working',
+          isWarmup: existing.isWarmup
+        };
       }
-    }
+      return {
+        id: 'swap-' + Date.now() + '-' + i,
+        setNumber: i + 1,
+        weight: newCatalogEx.defaultWeight,
+        reps: newCatalogEx.minReps,
+        rpe: 8,
+        completed: false,
+        type: 'working' as const
+      };
+    });
 
-    updated[swappingExIndex] = {
-      exerciseId: newCatalogEx.id,
-      name: newCatalogEx.name,
-      category: newCatalogEx.category,
-      equipment: newCatalogEx.equipment,
-      animationType: newCatalogEx.animationType,
-      gifUrl: newCatalogEx.gifUrl,
-      technique: newCatalogEx.technique,
-      alternatives: newCatalogEx.alternatives,
-      targetSets: newCatalogEx.defaultSets,
-      minReps: newCatalogEx.minReps,
-      maxReps: newCatalogEx.maxReps,
-      weightStep: newCatalogEx.weightStep,
-      targetWeight: newCatalogEx.defaultWeight,
-      restSeconds: newCatalogEx.restSeconds,
-      sets: newSets,
-      recommendation
-    };
-
-    onUpdateExercises(updated);
+    onUpdateExercises(
+      patchExercise(exercises, swappingExIndex, () => ({
+        exerciseId: newCatalogEx.id,
+        name: newCatalogEx.name,
+        category: newCatalogEx.category,
+        equipment: newCatalogEx.equipment,
+        animationType: newCatalogEx.animationType,
+        gifUrl: newCatalogEx.gifUrl,
+        technique: newCatalogEx.technique,
+        alternatives: newCatalogEx.alternatives,
+        supersetGroupId: oldEx.supersetGroupId,
+        targetSets: newCatalogEx.defaultSets,
+        minReps: newCatalogEx.minReps,
+        maxReps: newCatalogEx.maxReps,
+        weightStep: newCatalogEx.weightStep,
+        targetWeight: newCatalogEx.defaultWeight,
+        restSeconds: newCatalogEx.restSeconds,
+        sets: renumberSets(newSets),
+        recommendation
+      }))
+    );
     setSwappingExIndex(null);
   };
 
-  // Handle adding an extra exercise to the workout on the fly
   const handleAddNewExercise = (newCatalogEx: CatalogExerciseItem) => {
     const recommendation = evaluateDoubleProgression(
       newCatalogEx.defaultSets,
@@ -294,15 +309,6 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       newCatalogEx.defaultWeight,
       []
     );
-
-    const initialSets: WorkoutSet[] = Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
-      id: 's-' + Date.now() + '-' + i,
-      setNumber: i + 1,
-      weight: newCatalogEx.defaultWeight,
-      reps: newCatalogEx.minReps,
-      rpe: 8,
-      completed: false
-    }));
 
     const newSessionEx: ActiveExerciseSession = {
       exerciseId: newCatalogEx.id,
@@ -319,7 +325,15 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       weightStep: newCatalogEx.weightStep,
       targetWeight: newCatalogEx.defaultWeight,
       restSeconds: newCatalogEx.restSeconds,
-      sets: initialSets,
+      sets: Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
+        id: 's-' + Date.now() + '-' + i,
+        setNumber: i + 1,
+        weight: newCatalogEx.defaultWeight,
+        reps: newCatalogEx.minReps,
+        rpe: 8,
+        completed: false,
+        type: 'working' as const
+      })),
       recommendation
     };
 
@@ -330,16 +344,13 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const handleFinish = () => {
     const endTime = Date.now();
     const duration = Math.max(1, Math.round((endTime - startTime) / 60000));
-    
     let totalVolume = 0;
     let totalSetsCount = 0;
 
     const completedExercises = exercises.map(ex => {
       const completedSets = ex.sets.filter(s => s.completed);
-      const vol = calculateVolume(completedSets);
-      totalVolume += vol;
+      totalVolume += calculateVolume(completedSets);
       totalSetsCount += completedSets.length;
-
       return {
         exerciseId: ex.exerciseId,
         name: ex.name,
@@ -353,27 +364,22 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           weight: s.weight,
           reps: s.reps,
           rpe: s.rpe,
-          type: s.type || (s.isWarmup ? 'warmup' : 'working'),
-          isWarmup: s.type === 'warmup' || s.isWarmup
+          type: s.type || (s.isWarmup ? 'warmup' as const : 'working' as const),
+          isWarmup: isWarmupSet(s)
         })),
         progression: ex.recommendation
       };
     });
 
-    // PR Confetti & Victory Fanfare
     try {
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 }
-      });
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
       soundService.playPrFanfare();
-      soundService.vibrate([150, 100, 250]);
+      soundService.haptic('pr', settings.vibrationEnabled);
     } catch {
       //
     }
 
-    const completedWorkout: CompletedWorkout = {
+    onFinishWorkout({
       id: 'w-' + Date.now(),
       templateId,
       templateName: workoutName,
@@ -384,61 +390,82 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       totalVolumeKg: Math.round(totalVolume),
       totalSets: totalSetsCount,
       exercises: completedExercises
-    };
-
-    onFinishWorkout(completedWorkout);
+    });
   };
 
-  const totalCompletedSets = exercises.reduce(
-    (sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0
+  const progress = workoutProgress(exercises);
+  const focusTarget = findFocusTarget(exercises);
+  const blocks = groupBySuperset(
+    exercises.map((ex, idx) => ({ ...ex, id: ex.exerciseId, _idx: idx }))
   );
-  const totalPlannedSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+
+  // Map blocks back to original indices
+  let cursor = 0;
+  const indexedBlocks = blocks.map(block => {
+    if (block.kind === 'single') {
+      const exIdx = cursor;
+      cursor += 1;
+      return { kind: 'single' as const, exIdx, item: exercises[exIdx] };
+    }
+    const start = cursor;
+    const indices = block.items.map((_, i) => start + i);
+    cursor += block.items.length;
+    return {
+      kind: 'superset' as const,
+      groupId: block.groupId,
+      indices,
+      items: indices.map(i => exercises[i])
+    };
+  });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gym-dark pb-[calc(7rem+env(safe-area-inset-bottom))] text-slate-900 dark:text-zinc-100 transition-colors duration-200">
-      
-      {/* Sticky Workout Top Bar */}
-      <div className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-sm">
+    <div className="min-h-screen bg-app-atmosphere pb-[calc(7rem+env(safe-area-inset-bottom))] text-slate-900 dark:text-zinc-100">
+      <div className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 shadow-sm">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600 dark:bg-emerald-500"></span>
+          <div className="min-w-0 flex-1 flex items-center gap-3">
+            <div className="relative shrink-0">
+              <WorkoutProgressRing percent={progress.percent} />
+              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                {progress.percent}
               </span>
-              <h1 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate" title={workoutName}>{workoutName}</h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 mt-0.5 flex-wrap">
-              <span className="flex items-center gap-1 font-mono">
-                <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {elapsedMinutes} мин
-              </span>
-              <span>•</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                {totalCompletedSets}/{totalPlannedSets} сетов
-              </span>
-              <span>•</span>
-              {readiness === 'optimal' && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  🟢 В ресурсе
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600 dark:bg-emerald-500" />
                 </span>
-              )}
-              {readiness === 'tired' && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                  🟡 Устал
+                <h1 className="font-bold text-sm sm:text-base truncate" title={workoutName}>{workoutName}</h1>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-muted mt-0.5 flex-wrap">
+                <span className="flex items-center gap-1 font-mono">
+                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {elapsedMinutes} мин
                 </span>
-              )}
-              {readiness === 'sleep_deprived' && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                  🔴 Недосып
+                <span>•</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                  {progress.completed}/{progress.total}
                 </span>
-              )}
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
             <button
+              type="button"
+              onClick={() => setFocusMode(v => !v)}
+              className={cn(
+                'p-2 rounded-xl border transition min-h-[40px] min-w-[40px] flex items-center justify-center',
+                focusMode
+                  ? 'bg-emerald-500 text-black border-emerald-400'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700'
+              )}
+              title="Фокус-режим"
+            >
+              <Focus className="w-4 h-4" />
+            </button>
+            <button
               onClick={onCancelWorkout}
-              className="px-2.5 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-zinc-900 rounded-lg transition"
+              className="px-2.5 py-1.5 text-xs text-muted hover:text-red-500 rounded-lg transition"
             >
               Отмена
             </button>
@@ -452,299 +479,176 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         </div>
       </div>
 
-      {/* Main Exercise Cards List */}
       <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-4 sm:space-y-5">
-        {exercises.map((ex, exIdx) => {
-          const completedCount = ex.sets.filter(s => s.completed).length;
-
-          return (
-            <div 
-              key={ex.exerciseId + '-' + exIdx}
-              className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-3.5 sm:p-5 shadow-sm dark:shadow-xl transition"
-            >
-              {/* Exercise Header */}
-              <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800/80">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
-                      {ex.category}
-                    </span>
-                    <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
-                      {completedCount}/{ex.sets.length}
-                    </span>
-                  </div>
-                  <h2 className="font-bold text-sm sm:text-lg text-slate-900 dark:text-white mt-1 leading-snug">{ex.name}</h2>
-                </div>
-
-                {/* Action Buttons: Animation/Technique, Swap, Plate Calculator */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {/* View Technique & Animation */}
+        {indexedBlocks.map((block, blockIdx) => {
+          if (block.kind === 'single') {
+            const exIdx = block.exIdx;
+            const ex = block.item;
+            return (
+              <div key={ex.exerciseId + '-' + exIdx} className="space-y-2">
+                <ActiveExerciseCard
+                  exercise={ex}
+                  onOpenTechnique={() => setViewingTechniqueEx(ex)}
+                  onOpenSwap={() => setSwappingExIndex(exIdx)}
+                  onOpenPlateCalc={() => setSelectedPlateCalcWeight(ex.targetWeight)}
+                  onCycleSetType={(setIdx) => cycleSetType(exIdx, setIdx)}
+                  onCopyPrevious={(setIdx) => copyPreviousSet(exIdx, setIdx)}
+                  onWeightDelta={(setIdx, delta) => updateSetWeight(exIdx, setIdx, delta)}
+                  onRepsDelta={(setIdx, delta) => updateSetReps(exIdx, setIdx, delta)}
+                  onToggleComplete={(setIdx) => toggleSetComplete(exIdx, setIdx)}
+                  onAddSet={() => addSet(exIdx)}
+                  onAddWarmup={() => addWarmupSet(exIdx)}
+                  onRemoveLastSet={() => removeSet(exIdx, ex.sets.length - 1)}
+                />
+                {exIdx < exercises.length - 1 && (
                   <button
-                    onClick={() => setViewingTechniqueEx(ex)}
-                    title="Техника и анимация"
-                    className="p-2 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-zinc-800 hover:bg-emerald-100 dark:hover:bg-zinc-700 border border-emerald-200 dark:border-zinc-700 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
+                    type="button"
+                    onClick={() => toggleSupersetPair(exIdx)}
+                    className="w-full text-[11px] font-semibold text-blue-600 dark:text-blue-400 py-1.5 flex items-center justify-center gap-1 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xl transition"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Техника</span>
-                  </button>
-
-                  {/* Swap Exercise Button (Busy or missing machine) */}
-                  <button
-                    onClick={() => setSwappingExIndex(exIdx)}
-                    title="Заменить упражнение (тренажер занят / нет в зале)"
-                    className="p-2 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 border border-blue-200 dark:border-zinc-700 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Замена</span>
-                  </button>
-
-                  {/* Plate calculator trigger */}
-                  <button
-                    onClick={() => setSelectedPlateCalcWeight(ex.targetWeight)}
-                    title="Калькулятор блинов"
-                    className="p-2 text-slate-600 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl transition"
-                  >
-                    <Calculator className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Smart Progression Recommendation Alert Box */}
-              <div className={`mt-3 p-2.5 sm:p-3 rounded-2xl border text-xs flex items-center justify-between gap-2 ${
-                ex.recommendation.badgeColor === 'emerald'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/40 text-emerald-900 dark:text-emerald-200'
-                  : ex.recommendation.badgeColor === 'amber'
-                  ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-500/40 text-amber-900 dark:text-amber-200'
-                  : 'bg-slate-50 dark:bg-zinc-950/80 border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300'
-              }`}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base shrink-0">⚡</span>
-                  <div className="min-w-0">
-                    <span className="font-bold text-slate-900 dark:text-white block truncate">
-                      {ex.recommendation.badgeText}
-                    </span>
-                    <span className="text-[11px] opacity-80 block truncate">
-                      Цель: {ex.targetWeight} кг × {ex.minReps}-{ex.maxReps} повт.
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-1 bg-white/80 dark:bg-black/40 rounded-lg font-mono font-bold shadow-xs shrink-0 whitespace-nowrap">
-                  +{ex.weightStep}кг
-                </span>
-              </div>
-
-              {/* Sets Table */}
-              <div className="mt-3.5 space-y-2">
-                {/* Table Header: Perfectly locked columns */}
-                <div className="grid grid-cols-[28px_56px_1fr_1fr_44px] gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 px-1 text-center items-center">
-                  <span>Сет</span>
-                  <span>Пред.</span>
-                  <span>Вес, кг</span>
-                  <span>Повторы</span>
-                  <span>Готово</span>
-                </div>
-
-                {/* Set Rows */}
-                {ex.sets.map((set, setIdx) => {
-                  const prevSet = ex.previousPerformance?.sets[setIdx];
-
-                  return (
-                    <div 
-                      key={set.id}
-                      className={`grid grid-cols-[28px_56px_1fr_1fr_44px] gap-1.5 items-center p-1 sm:p-1.5 rounded-2xl border transition ${
-                        set.completed 
-                          ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-500/40' 
-                          : 'bg-slate-50/80 dark:bg-zinc-950/60 border-slate-200 dark:border-zinc-800/80'
-                      }`}
-                    >
-                      {/* Set Number / Type Switcher Badge */}
-                      <div className="flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => cycleSetType(exIdx, setIdx)}
-                          title="Нажмите для смены типа: Рабочий / Разминка (Р) / Отказ (О) / Дропсет (Д)"
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-mono font-bold text-xs transition active:scale-95 shadow-2xs border ${
-                            (set.type === 'warmup' || set.isWarmup)
-                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                              : set.type === 'failure'
-                              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                              : set.type === 'dropset'
-                              ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30'
-                              : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700'
-                          }`}
-                        >
-                          {(set.type === 'warmup' || set.isWarmup) ? 'Р' : set.type === 'failure' ? 'О' : set.type === 'dropset' ? 'Д' : set.setNumber}
-                        </button>
-                      </div>
-
-                      {/* Ghost Data from Previous Session */}
-                      <div className="text-center text-[11px] font-mono text-slate-400 dark:text-zinc-500 truncate" title={prevSet ? `${prevSet.weight}кг × ${prevSet.reps}` : '—'}>
-                        {prevSet ? `${prevSet.weight}×${prevSet.reps}` : '—'}
-                      </div>
-
-                      {/* Weight Stepper */}
-                      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-0.5 shadow-2xs">
-                        <button
-                          onClick={() => updateSetWeight(exIdx, setIdx, -ex.weightStep)}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
-                          aria-label="Уменьшить вес"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white px-0.5 text-center min-w-0 truncate">
-                          {set.weight}
-                        </span>
-                        <button
-                          onClick={() => updateSetWeight(exIdx, setIdx, +ex.weightStep)}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
-                          aria-label="Увеличить вес"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      {/* Reps Stepper */}
-                      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-0.5 shadow-2xs">
-                        <button
-                          onClick={() => updateSetReps(exIdx, setIdx, -1)}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
-                          aria-label="Уменьшить повторения"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white px-0.5 text-center min-w-0 truncate">
-                          {set.reps}
-                        </span>
-                        <button
-                          onClick={() => updateSetReps(exIdx, setIdx, +1)}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs active:scale-90 transition shrink-0"
-                          aria-label="Увеличить повторения"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      {/* Complete Checkbox */}
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => toggleSetComplete(exIdx, setIdx)}
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition active:scale-90 shadow-sm ${
-                            set.completed
-                              ? 'bg-emerald-500 text-white shadow-emerald-500/30'
-                              : 'bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-400 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700'
-                          }`}
-                          aria-label="Отметить подход выполненным"
-                        >
-                          <Check className={`w-4 h-4 sm:w-5 sm:h-5 ${set.completed ? 'stroke-[3]' : ''}`} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Add / Remove Set Row */}
-              <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-100 dark:border-zinc-800/60">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    onClick={() => addSet(exIdx)}
-                    className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Сет
-                  </button>
-                  <button
-                    onClick={() => addWarmupSet(exIdx)}
-                    className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Разминка
-                  </button>
-                </div>
-
-                {ex.sets.length > 1 && (
-                  <button
-                    onClick={() => removeSet(exIdx, ex.sets.length - 1)}
-                    className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 px-2 py-1 transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Удалить последний
+                    <Link2 className="w-3.5 h-3.5" /> Связать суперсет со следующим
                   </button>
                 )}
               </div>
+            );
+          }
 
+          return (
+            <div
+              key={block.groupId + '-' + blockIdx}
+              className="rounded-[1.75rem] border-2 border-blue-500/40 bg-blue-500/5 p-2 space-y-2"
+            >
+              <div className="px-2 pt-1 flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                  <Link2 className="w-3.5 h-3.5" /> Суперсет / круг
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleSupersetPair(block.indices[0])}
+                  className="text-[10px] text-muted hover:text-red-500"
+                >
+                  Развязать
+                </button>
+              </div>
+              {block.indices.map(exIdx => {
+                const ex = exercises[exIdx];
+                return (
+                  <ActiveExerciseCard
+                    key={ex.exerciseId + '-' + exIdx}
+                    exercise={ex}
+                    onOpenTechnique={() => setViewingTechniqueEx(ex)}
+                    onOpenSwap={() => setSwappingExIndex(exIdx)}
+                    onOpenPlateCalc={() => setSelectedPlateCalcWeight(ex.targetWeight)}
+                    onCycleSetType={(setIdx) => cycleSetType(exIdx, setIdx)}
+                    onCopyPrevious={(setIdx) => copyPreviousSet(exIdx, setIdx)}
+                    onWeightDelta={(setIdx, delta) => updateSetWeight(exIdx, setIdx, delta)}
+                    onRepsDelta={(setIdx, delta) => updateSetReps(exIdx, setIdx, delta)}
+                    onToggleComplete={(setIdx) => toggleSetComplete(exIdx, setIdx)}
+                    onAddSet={() => addSet(exIdx)}
+                    onAddWarmup={() => addWarmupSet(exIdx)}
+                    onRemoveLastSet={() => removeSet(exIdx, ex.sets.length - 1)}
+                  />
+                );
+              })}
             </div>
           );
         })}
 
-        {/* Add Exercise to Workout Button */}
         <button
           onClick={() => setIsAddingExercise(true)}
-          className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-zinc-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-3xl text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 bg-white/60 dark:bg-zinc-900/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98"
+          className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-zinc-700 hover:border-emerald-500 rounded-3xl text-xs sm:text-sm font-bold text-muted hover:text-emerald-600 dark:hover:text-emerald-400 bg-white/60 dark:bg-zinc-900/40 transition flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          <span>+ Добавить упражнение в эту тренировку</span>
+          <span>+ Добавить упражнение</span>
         </button>
       </div>
 
-      {/* Technique & Animation Modal */}
-      {viewingTechniqueEx && (
-        <ExerciseTechniqueModal
-          exerciseId={viewingTechniqueEx.exerciseId}
-          exerciseName={viewingTechniqueEx.name}
-          category={viewingTechniqueEx.category}
-          equipment={viewingTechniqueEx.equipment}
-          animationType={viewingTechniqueEx.animationType || 'bench-press'}
-          gifUrl={viewingTechniqueEx.gifUrl}
-          technique={viewingTechniqueEx.technique}
+      {focusMode && focusTarget && (
+        <FocusSetOverlay
+          exercise={exercises[focusTarget.exIdx]}
+          set={exercises[focusTarget.exIdx].sets[focusTarget.setIdx]}
+          setIndex={focusTarget.setIdx}
+          onClose={() => setFocusMode(false)}
+          onWeightDelta={(delta) => updateSetWeight(focusTarget.exIdx, focusTarget.setIdx, delta)}
+          onRepsDelta={(delta) => updateSetReps(focusTarget.exIdx, focusTarget.setIdx, delta)}
+          onComplete={() => toggleSetComplete(focusTarget.exIdx, focusTarget.setIdx)}
+        />
+      )}
+
+      {rpeTarget && (
+        <RpePickerModal
           isOpen={true}
-          onClose={() => setViewingTechniqueEx(null)}
-          onOpenSwapModal={() => {
-            const idx = exercises.findIndex(e => e.exerciseId === viewingTechniqueEx.exerciseId);
-            if (idx !== -1) {
-              setSwappingExIndex(idx);
-            }
+          initialRpe={exercises[rpeTarget.exIdx].sets[rpeTarget.setIdx].rpe || 8}
+          exerciseName={exercises[rpeTarget.exIdx].name}
+          setLabel={`Сет ${exercises[rpeTarget.exIdx].sets[rpeTarget.setIdx].setNumber || rpeTarget.setIdx + 1}`}
+          vibrationEnabled={settings.vibrationEnabled}
+          onConfirm={(rpe) => {
+            completeSetWithRpe(rpeTarget.exIdx, rpeTarget.setIdx, rpe);
+            setRpeTarget(null);
+          }}
+          onSkip={() => {
+            completeSetWithRpe(rpeTarget.exIdx, rpeTarget.setIdx);
+            setRpeTarget(null);
           }}
         />
       )}
 
-      {/* Exercise Swap Modal */}
-      {swappingExIndex !== null && exercises[swappingExIndex] && (
-        <ExerciseSwapModal
-          currentExercise={{
-            id: exercises[swappingExIndex].exerciseId,
-            name: exercises[swappingExIndex].name,
-            category: exercises[swappingExIndex].category,
-            equipment: exercises[swappingExIndex].equipment,
-            alternatives: exercises[swappingExIndex].alternatives
-          }}
-          isOpen={true}
-          onClose={() => setSwappingExIndex(null)}
-          onSelectAlternative={handleSwapExercise}
-        />
-      )}
+      <Suspense fallback={null}>
+        {viewingTechniqueEx && (
+          <ExerciseTechniqueModal
+            exerciseId={viewingTechniqueEx.exerciseId}
+            exerciseName={viewingTechniqueEx.name}
+            category={viewingTechniqueEx.category}
+            equipment={viewingTechniqueEx.equipment}
+            animationType={viewingTechniqueEx.animationType || 'bench-press'}
+            gifUrl={viewingTechniqueEx.gifUrl}
+            technique={viewingTechniqueEx.technique}
+            isOpen={true}
+            onClose={() => setViewingTechniqueEx(null)}
+            onOpenSwapModal={() => {
+              const idx = exercises.findIndex(e => e.exerciseId === viewingTechniqueEx.exerciseId);
+              if (idx !== -1) setSwappingExIndex(idx);
+            }}
+          />
+        )}
 
-      {/* Add New Exercise Modal */}
-      {isAddingExercise && (
-        <ExerciseSwapModal
-          currentExercise={{
-            id: '',
-            name: 'Новое упражнение',
-            category: 'Chest',
-            alternatives: []
-          }}
-          isOpen={true}
-          onClose={() => setIsAddingExercise(false)}
-          onSelectAlternative={handleAddNewExercise}
-        />
-      )}
+        {swappingExIndex !== null && exercises[swappingExIndex] && (
+          <ExerciseSwapModal
+            currentExercise={{
+              id: exercises[swappingExIndex].exerciseId,
+              name: exercises[swappingExIndex].name,
+              category: exercises[swappingExIndex].category,
+              equipment: exercises[swappingExIndex].equipment,
+              alternatives: exercises[swappingExIndex].alternatives
+            }}
+            isOpen={true}
+            onClose={() => setSwappingExIndex(null)}
+            onSelectAlternative={handleSwapExercise}
+          />
+        )}
 
-      {/* Plate Calculator Modal */}
-      {selectedPlateCalcWeight !== null && (
-        <PlateCalculatorModal
-          initialWeight={selectedPlateCalcWeight}
-          isOpen={true}
-          onClose={() => setSelectedPlateCalcWeight(null)}
-        />
-      )}
+        {isAddingExercise && (
+          <ExerciseSwapModal
+            currentExercise={{
+              id: '',
+              name: 'Новое упражнение',
+              category: 'Chest',
+              alternatives: []
+            }}
+            isOpen={true}
+            onClose={() => setIsAddingExercise(false)}
+            onSelectAlternative={handleAddNewExercise}
+          />
+        )}
 
+        {selectedPlateCalcWeight !== null && (
+          <PlateCalculatorModal
+            initialWeight={selectedPlateCalcWeight}
+            isOpen={true}
+            onClose={() => setSelectedPlateCalcWeight(null)}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

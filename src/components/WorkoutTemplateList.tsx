@@ -1,30 +1,34 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { 
   Play, 
-  Dumbbell, 
-  ChevronRight, 
-  Flame, 
-  TrendingUp, 
   Plus, 
-  Settings2, 
   Zap,
-  MoreVertical,
-  Calendar,
   Layers,
   Sparkles,
   RefreshCw,
   Repeat
 } from 'lucide-react';
-import { Exercise, WorkoutTemplate, ReadinessLevel } from '../types';
+import { CompletedWorkout, Exercise, WorkoutTemplate, ReadinessLevel } from '../types';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
-import { ExerciseProgressionModal } from './ExerciseProgressionModal';
-import { ExerciseTechniqueModal } from './ExerciseTechniqueModal';
-import { ExerciseSwapModal } from './ExerciseSwapModal';
 import { ReadinessCheckinModal } from './ReadinessCheckinModal';
+import { WeeklyPlanCard } from './WeeklyPlanCard';
 import { CatalogExerciseItem } from '../data/exerciseCatalog';
+import { applyDeloadToTemplate } from '../utils/deload';
+import { linkAsSuperset } from '../utils/superset';
+
+const ExerciseProgressionModal = lazy(() =>
+  import('./ExerciseProgressionModal').then(m => ({ default: m.ExerciseProgressionModal }))
+);
+const ExerciseTechniqueModal = lazy(() =>
+  import('./ExerciseTechniqueModal').then(m => ({ default: m.ExerciseTechniqueModal }))
+);
+const ExerciseSwapModal = lazy(() =>
+  import('./ExerciseSwapModal').then(m => ({ default: m.ExerciseSwapModal }))
+);
 
 interface WorkoutTemplateListProps {
   templates: WorkoutTemplate[];
+  history: CompletedWorkout[];
   currentWeek: 'A' | 'B';
   onChangeWeek: (week: 'A' | 'B') => void;
   onStartWorkout: (template: WorkoutTemplate, readiness: ReadinessLevel) => void;
@@ -34,6 +38,7 @@ interface WorkoutTemplateListProps {
 
 export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
   templates,
+  history,
   currentWeek,
   onChangeWeek,
   onStartWorkout,
@@ -151,6 +156,13 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
         </div>
       </div>
 
+      <WeeklyPlanCard
+        templates={templates}
+        history={history}
+        currentWeek={currentWeek}
+        onStartSuggested={(t) => setCheckinTemplate(t)}
+      />
+
       {/* Weekly Rotation Switcher Tabs */}
       <div className="bg-white dark:bg-zinc-900 p-1.5 sm:p-2 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm flex items-center gap-1.5 sm:gap-2">
         <button
@@ -223,17 +235,31 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                 <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">{template.description}</p>
               </div>
 
-              <button
-                onClick={() => setCheckinTemplate(template)}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white dark:text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition shrink-0"
-              >
-                <Play className="w-4 h-4 fill-current" /> Начать
-              </button>
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <button
+                  onClick={() => setCheckinTemplate(template)}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white dark:text-black font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition"
+                >
+                  <Play className="w-4 h-4 fill-current" /> Начать
+                </button>
+                <button
+                  type="button"
+                  title="Делоад −10% ко всем весам"
+                  onClick={() => {
+                    if (window.confirm(`Применить делоад −10% ко всем весам в «${template.name}»?`)) {
+                      onUpdateTemplate(applyDeloadToTemplate(template, 0.1));
+                    }
+                  }}
+                  className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide rounded-xl border border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition"
+                >
+                  Делоад −10%
+                </button>
+              </div>
             </div>
 
             {/* Exercises mini preview list */}
             <div className="space-y-2 mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
-              {template.exercises.map(exercise => {
+              {template.exercises.map((exercise, exIdx) => {
                 const recommendation = evaluateDoubleProgression(
                   exercise.targetSets,
                   exercise.minReps,
@@ -242,11 +268,17 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                   exercise.currentWeight,
                   exercise.history
                 );
+                const next = template.exercises[exIdx + 1];
+                const linked = !!(exercise.supersetGroupId && next?.supersetGroupId === exercise.supersetGroupId);
 
                 return (
+                  <div key={exercise.id} className="space-y-1">
                   <div
-                    key={exercise.id}
-                    className="flex items-center justify-between gap-2 p-2.5 bg-slate-50 dark:bg-zinc-950/60 hover:bg-slate-100 dark:hover:bg-zinc-950 border border-slate-200 dark:border-zinc-800/60 rounded-2xl transition"
+                    className={`flex items-center justify-between gap-2 p-2.5 bg-slate-50 dark:bg-zinc-950/60 hover:bg-slate-100 dark:hover:bg-zinc-950 border rounded-2xl transition ${
+                      exercise.supersetGroupId
+                        ? 'border-blue-400/50 dark:border-blue-500/40'
+                        : 'border-slate-200 dark:border-zinc-800/60'
+                    }`}
                   >
                     <div 
                       onClick={() => setSelectedExercise({ exercise, templateId: template.id })}
@@ -293,6 +325,36 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                       </span>
                     </div>
                   </div>
+                  {next && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (linked) {
+                          onUpdateTemplate({
+                            ...template,
+                            exercises: template.exercises.map(e =>
+                              e.supersetGroupId === exercise.supersetGroupId
+                                ? { ...e, supersetGroupId: undefined }
+                                : e
+                            )
+                          });
+                        } else {
+                          onUpdateTemplate({
+                            ...template,
+                            exercises: linkAsSuperset(template.exercises, [exIdx, exIdx + 1])
+                          });
+                        }
+                      }}
+                      className={`w-full text-[10px] font-semibold py-1 rounded-lg transition ${
+                        linked
+                          ? 'text-blue-600 dark:text-blue-400 bg-blue-500/10'
+                          : 'text-slate-400 hover:text-blue-500'
+                      }`}
+                    >
+                      {linked ? '↔ Суперсет' : '＋ Связать суперсет'}
+                    </button>
+                  )}
+                  </div>
                 );
               })}
             </div>
@@ -301,52 +363,51 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
         ))}
       </div>
 
-      {/* Modal: Exercise Detail & Edit */}
-      {selectedExercise && (
-        <ExerciseProgressionModal
-          exercise={selectedExercise.exercise}
-          isOpen={true}
-          onClose={() => setSelectedExercise(null)}
-          onUpdateExercise={handleUpdateExercise}
-        />
-      )}
+      <Suspense fallback={null}>
+        {selectedExercise && (
+          <ExerciseProgressionModal
+            exercise={selectedExercise.exercise}
+            isOpen={true}
+            onClose={() => setSelectedExercise(null)}
+            onUpdateExercise={handleUpdateExercise}
+          />
+        )}
 
-      {/* Modal: Exercise Technique Animation Guide */}
-      {viewingTechniqueEx && (
-        <ExerciseTechniqueModal
-          exerciseId={viewingTechniqueEx.exercise.id}
-          exerciseName={viewingTechniqueEx.exercise.name}
-          category={viewingTechniqueEx.exercise.category}
-          equipment={viewingTechniqueEx.exercise.equipment}
-          animationType={viewingTechniqueEx.exercise.animationType || 'bench-press'}
-          gifUrl={viewingTechniqueEx.exercise.gifUrl}
-          technique={viewingTechniqueEx.exercise.technique}
-          isOpen={true}
-          onClose={() => setViewingTechniqueEx(null)}
-          onOpenSwapModal={() => {
-            setSwappingEx({
-              exercise: viewingTechniqueEx.exercise,
-              templateId: viewingTechniqueEx.templateId
-            });
-          }}
-        />
-      )}
+        {viewingTechniqueEx && (
+          <ExerciseTechniqueModal
+            exerciseId={viewingTechniqueEx.exercise.id}
+            exerciseName={viewingTechniqueEx.exercise.name}
+            category={viewingTechniqueEx.exercise.category}
+            equipment={viewingTechniqueEx.exercise.equipment}
+            animationType={viewingTechniqueEx.exercise.animationType || 'bench-press'}
+            gifUrl={viewingTechniqueEx.exercise.gifUrl}
+            technique={viewingTechniqueEx.exercise.technique}
+            isOpen={true}
+            onClose={() => setViewingTechniqueEx(null)}
+            onOpenSwapModal={() => {
+              setSwappingEx({
+                exercise: viewingTechniqueEx.exercise,
+                templateId: viewingTechniqueEx.templateId
+              });
+            }}
+          />
+        )}
 
-      {/* Modal: Swap Exercise */}
-      {swappingEx && (
-        <ExerciseSwapModal
-          currentExercise={{
-            id: swappingEx.exercise.id,
-            name: swappingEx.exercise.name,
-            category: swappingEx.exercise.category,
-            equipment: swappingEx.exercise.equipment,
-            alternatives: swappingEx.exercise.alternatives
-          }}
-          isOpen={true}
-          onClose={() => setSwappingEx(null)}
-          onSelectAlternative={handleSwapExerciseInTemplate}
-        />
-      )}
+        {swappingEx && (
+          <ExerciseSwapModal
+            currentExercise={{
+              id: swappingEx.exercise.id,
+              name: swappingEx.exercise.name,
+              category: swappingEx.exercise.category,
+              equipment: swappingEx.exercise.equipment,
+              alternatives: swappingEx.exercise.alternatives
+            }}
+            isOpen={true}
+            onClose={() => setSwappingEx(null)}
+            onSelectAlternative={handleSwapExerciseInTemplate}
+          />
+        )}
+      </Suspense>
 
       {/* Modal: Create Program */}
       {isCreatingNew && (

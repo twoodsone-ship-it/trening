@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Clock, Minus, Plus, X } from 'lucide-react';
 import type { ActiveExerciseSession, WorkoutSet } from '../types';
 import { EXERCISE_GIF_MAP } from '../data/exerciseCatalog';
@@ -56,8 +57,10 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
     return () => clearInterval(id);
   }, [exercise.exerciseId, setIndex]);
 
-  return (
-    <div className="fixed inset-0 z-[55] bg-app-atmosphere flex flex-col text-white animate-fade-in">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[220] bg-app-atmosphere flex flex-col text-white animate-fade-in">
       <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
         <button
           type="button"
@@ -154,7 +157,8 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

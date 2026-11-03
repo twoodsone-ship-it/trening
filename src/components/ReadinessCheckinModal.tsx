@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, BatteryCharging } from 'lucide-react';
 import { ReadinessLevel, WorkoutTemplate } from '../types';
 import { cn } from '../utils/cn';
@@ -16,7 +17,7 @@ export const ReadinessCheckinModal: React.FC<ReadinessCheckinModalProps> = ({
   onClose,
   onConfirm
 }) => {
-  if (!isOpen || !template) return null;
+  if (!isOpen || !template || typeof document === 'undefined') return null;
 
   const options: Array<{
     level: ReadinessLevel;
@@ -56,66 +57,83 @@ export const ReadinessCheckinModal: React.FC<ReadinessCheckinModalProps> = ({
     }
   ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md surface-panel p-5 animate-slide-up border-lime/20 max-h-[min(94dvh,calc(100dvh-1.5rem))] overflow-y-auto">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <BatteryCharging className="w-5 h-5 text-lime shrink-0" />
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Чекин</p>
-              <h3 className="font-extrabold text-lg text-white leading-tight">Готовность ЦНС</h3>
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div
+        className="w-full max-w-md surface-panel border-lime/25 flex flex-col max-h-[min(88dvh,640px)] overflow-hidden shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="readiness-title"
+      >
+        <div className="p-5 pb-3 overflow-y-auto min-h-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <BatteryCharging className="w-5 h-5 text-lime shrink-0" />
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Чекин</p>
+                <h3 id="readiness-title" className="font-extrabold text-lg text-white leading-tight">
+                  Готовность ЦНС
+                </h3>
+              </div>
             </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/5 text-muted hover:text-white active:scale-95 transition shrink-0"
-            aria-label="Закрыть"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <p className="text-sm text-muted mt-3 leading-relaxed">
-          Тренировка: <span className="font-bold text-white">{template.name}</span>.
-          Выберите самочувствие перед стартом для авторегуляции прогрессии:
-        </p>
-
-        <div className="mt-4 space-y-2.5">
-          {options.map((opt) => (
             <button
-              key={opt.level}
               type="button"
-              onClick={() => onConfirm(opt.level)}
-              className={cn(
-                'w-full text-left p-4 rounded-3xl border border-white/10 bg-white/[0.03]',
-                'hover:border-lime/40 hover:bg-lime/5 transition active:scale-[0.98] group min-h-[44px]'
-              )}
+              onClick={onClose}
+              className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/5 text-muted hover:text-white active:scale-95 transition shrink-0"
+              aria-label="Закрыть"
             >
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-lg">{opt.icon}</span>
-                  <span className="font-bold text-base text-white group-hover:text-lime transition truncate">
-                    {opt.title}
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <p className="text-sm text-muted mt-3 leading-relaxed">
+            Тренировка: <span className="font-bold text-white">{template.name}</span>. Выберите
+            самочувствие перед стартом для авторегуляции прогрессии:
+          </p>
+
+          <div className="mt-4 space-y-2.5">
+            {options.map(opt => (
+              <button
+                key={opt.level}
+                type="button"
+                onClick={() => onConfirm(opt.level)}
+                className={cn(
+                  'w-full text-left p-4 rounded-3xl border border-white/10 bg-white/[0.03]',
+                  'hover:border-lime/40 hover:bg-lime/5 transition active:scale-[0.98] group min-h-[44px]'
+                )}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg">{opt.icon}</span>
+                    <span className="font-bold text-base text-white group-hover:text-lime transition truncate">
+                      {opt.title}
+                    </span>
+                  </div>
+                  <span
+                    className={cn(
+                      'text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0',
+                      opt.badgeColor
+                    )}
+                  >
+                    {opt.badge}
                   </span>
                 </div>
-                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0', opt.badgeColor)}>
-                  {opt.badge}
-                </span>
-              </div>
-              <p className="text-xs text-muted leading-relaxed">{opt.description}</p>
-              <div className="mt-2 text-[11px] font-mono text-lime/90 bg-white/[0.04] p-2 rounded-xl border border-white/8">
-                🛡️ {opt.regulationEffect}
-              </div>
-            </button>
-          ))}
+                <p className="text-xs text-muted leading-relaxed">{opt.description}</p>
+                <div className="mt-2 text-[11px] font-mono text-lime/90 bg-white/[0.04] p-2 rounded-xl border border-white/8">
+                  {opt.regulationEffect}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <p className="text-[11px] text-muted mt-4 text-center leading-relaxed">
-          Авторегуляция защищает от ложного отката весов при временном накоплении усталости.
-        </p>
+        <div className="shrink-0 border-t border-white/10 px-5 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))]">
+          <p className="text-[11px] text-muted text-center leading-relaxed">
+            Авторегуляция защищает от ложного отката весов при усталости.
+          </p>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

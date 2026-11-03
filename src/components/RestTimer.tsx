@@ -1,19 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, RotateCcw, Plus, Minus, X, Bell, Focus } from 'lucide-react';
 import { soundService } from '../services/audioService';
+import { restTimerStorage } from '../utils/restTimerStorage';
 import { cn } from '../utils/cn';
 
 interface RestTimerProps {
   initialSeconds: number;
   isOpen: boolean;
   onClose: () => void;
-  /** Fired once when countdown reaches 0 — reopen focus set */
+  /** Fired once when countdown reaches 0 */
   onFinished?: () => void;
   soundEnabled?: boolean;
   vibrationEnabled?: boolean;
   voiceEnabled?: boolean;
-  /** Lift minimized chip above bottom Navigation when it is visible */
   clearBottomNav?: boolean;
+}
+
+function notifyRestDone() {
+  try {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission !== 'granted') return;
+    const n = new Notification('IronForge — отдых окончен', {
+      body: 'Начинайте следующий подход',
+      tag: 'ironforge-rest-done',
+      silent: false
+    });
+    window.setTimeout(() => n.close(), 8000);
+  } catch {
+    //
+  }
 }
 
 export const RestTimer: React.FC<RestTimerProps> = ({
@@ -30,6 +45,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [done, setDone] = useState(false);
 
   const targetEndTimeRef = useRef<number>(Date.now() + initialSeconds * 1000);
   const lastBeepSecondsRef = useRef<number>(-1);
@@ -37,43 +53,38 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   const onFinishedRef = useRef(onFinished);
   onFinishedRef.current = onFinished;
 
-  const fireFinished = () => {
+  const fireFinished = (fromBackground = false) => {
     if (finishedFiredRef.current) return;
     finishedFiredRef.current = true;
+    setDone(true);
+    setIsRunning(false);
+    restTimerStorage.clearEndsAt();
+    restTimerStorage.markPendingFocusResume();
+    if (fromBackground || document.hidden) notifyRestDone();
+    if (soundEnabled) soundService.playRestFinishedChime();
+    if (vibrationEnabled) soundService.haptic('timerDone');
+    if (voiceEnabled) soundService.speakCountdown(0, true);
     onFinishedRef.current?.();
   };
 
+  // Start / restart when opened
   useEffect(() => {
+    if (!isOpen) return;
+    const endsAt = Date.now() + initialSeconds * 1000;
+    targetEndTimeRef.current = endsAt;
+    restTimerStorage.setEndsAt(endsAt);
     setTotalSeconds(initialSeconds);
     setTimeLeft(initialSeconds);
     setIsRunning(true);
     setIsMinimized(false);
-    targetEndTimeRef.current = Date.now() + initialSeconds * 1000;
+    setDone(false);
     lastBeepSecondsRef.current = -1;
     finishedFiredRef.current = false;
   }, [initialSeconds, isOpen]);
 
+  // Absolute-time ticker — works after unlock because deadline is wall-clock
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isRunning && isOpen) {
-        const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
-        setTimeLeft(remaining);
-        if (remaining <= 0) {
-          if (soundEnabled) soundService.playRestFinishedChime();
-          if (vibrationEnabled) soundService.haptic('timerDone');
-          if (voiceEnabled) soundService.speakCountdown(0, true);
-          setIsRunning(false);
-          fireFinished();
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isRunning, isOpen, soundEnabled, vibrationEnabled, voiceEnabled]);
-
-  useEffect(() => {
-    if (!isRunning || !isOpen) return;
+    if (!isOpen || !isRunning || done) return;
 
     const tick = () => {
       const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
@@ -87,18 +98,41 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       }
 
       if (remaining <= 0) {
-        if (soundEnabled) soundService.playRestFinishedChime();
-        if (vibrationEnabled) soundService.haptic('timerDone');
-        if (voiceEnabled) soundService.speakCountdown(0, true);
-        setIsRunning(false);
-        fireFinished();
+        fireFinished(document.hidden);
       }
     };
 
     tick();
-    const timer = setInterval(tick, 250);
-    return () => clearInterval(timer);
-  }, [isRunning, isOpen, soundEnabled, vibrationEnabled, voiceEnabled]);
+    const timer = window.setInterval(tick, 250);
+    return () => window.clearInterval(timer);
+  }, [isOpen, isRunning, done, soundEnabled, vibrationEnabled, voiceEnabled]);
+
+  // Unlock / tab focus: always reconcile, even if interval was frozen
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const reconcile = () => {
+      if (document.visibilityState !== 'visible') return;
+      const stored = restTimerStorage.getEndsAt();
+      if (stored != null) targetEndTimeRef.current = stored;
+      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        fireFinished(false);
+      } else if (!done) {
+        setIsRunning(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', reconcile);
+    window.addEventListener('pageshow', reconcile);
+    window.addEventListener('focus', reconcile);
+    return () => {
+      document.removeEventListener('visibilitychange', reconcile);
+      window.removeEventListener('pageshow', reconcile);
+      window.removeEventListener('focus', reconcile);
+    };
+  }, [isOpen, done]);
 
   if (!isOpen) return null;
 
@@ -106,12 +140,17 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   const seconds = timeLeft % 60;
   const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   const progressPercent = totalSeconds > 0 ? ((totalSeconds - timeLeft) / totalSeconds) * 100 : 0;
-  const done = timeLeft <= 0;
+  const isDone = done || timeLeft <= 0;
 
   const addTime = (secs: number) => {
-    if (done) finishedFiredRef.current = false;
-    targetEndTimeRef.current += secs * 1000;
-    if (done) targetEndTimeRef.current = Date.now() + secs * 1000;
+    finishedFiredRef.current = false;
+    setDone(false);
+    if (isDone) {
+      targetEndTimeRef.current = Date.now() + Math.max(secs, 1) * 1000;
+    } else {
+      targetEndTimeRef.current += secs * 1000;
+    }
+    restTimerStorage.setEndsAt(targetEndTimeRef.current);
     const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
     setTimeLeft(remaining);
     setTotalSeconds(prev => Math.max(prev, remaining));
@@ -120,7 +159,9 @@ export const RestTimer: React.FC<RestTimerProps> = ({
 
   const resetTimer = () => {
     finishedFiredRef.current = false;
+    setDone(false);
     targetEndTimeRef.current = Date.now() + totalSeconds * 1000;
+    restTimerStorage.setEndsAt(targetEndTimeRef.current);
     setTimeLeft(totalSeconds);
     setIsRunning(true);
     lastBeepSecondsRef.current = -1;
@@ -131,12 +172,13 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       setIsRunning(false);
     } else {
       targetEndTimeRef.current = Date.now() + timeLeft * 1000;
+      restTimerStorage.setEndsAt(targetEndTimeRef.current);
       setIsRunning(true);
     }
   };
 
   const goToSet = () => {
-    fireFinished();
+    fireFinished(false);
     onClose();
   };
 
@@ -144,9 +186,9 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     return (
       <button
         type="button"
-        onClick={() => (done ? goToSet() : setIsMinimized(false))}
+        onClick={() => (isDone ? goToSet() : setIsMinimized(false))}
         className={cn(
-          'fixed right-4 z-50 flex items-center gap-2 bg-ink-2 border border-lime/50 shadow-2xl shadow-lime/10 text-white px-3.5 py-2.5 rounded-full transition hover:scale-105 active:scale-95 min-h-[44px]',
+          'fixed right-4 z-[60] flex items-center gap-2 bg-ink-2 border border-lime/50 shadow-2xl shadow-lime/10 text-white px-3.5 py-2.5 rounded-full transition hover:scale-105 active:scale-95 min-h-[44px]',
           clearBottomNav
             ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))]'
             : 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))]'
@@ -157,25 +199,25 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime" />
         </span>
         <span className="font-mono font-bold text-base text-lime tabular-nums">
-          {done ? 'GO' : formattedTime}
+          {isDone ? 'GO' : formattedTime}
         </span>
-        <span className="text-[11px] text-muted font-semibold">{done ? 'К сету' : 'Отдых'}</span>
+        <span className="text-[11px] text-muted font-semibold">{isDone ? 'К сету' : 'Отдых'}</span>
       </button>
     );
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 p-3 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-ink via-ink/80 to-transparent backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-x-0 bottom-0 z-[60] p-3 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-ink via-ink/80 to-transparent backdrop-blur-md animate-fade-in">
       <div className="max-w-md mx-auto surface-panel bg-ink-2/95 p-4 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Bell className={cn('w-4 h-4 text-lime', !done && 'animate-bounce')} />
+            <Bell className={cn('w-4 h-4 text-lime', !isDone && 'animate-bounce')} />
             <span className="text-xs font-semibold tracking-wider uppercase text-muted">
-              {done ? 'Отдых завершён' : 'Таймер отдыха'}
+              {isDone ? 'Отдых завершён' : 'Таймер отдыха'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {!done && (
+            {!isDone && (
               <button
                 type="button"
                 onClick={() => setIsMinimized(true)}
@@ -186,7 +228,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             )}
             <button
               type="button"
-              onClick={done ? goToSet : onClose}
+              onClick={isDone ? goToSet : onClose}
               className="p-2 text-muted rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Закрыть"
             >
@@ -198,19 +240,19 @@ export const RestTimer: React.FC<RestTimerProps> = ({
         <div className="relative overflow-hidden bg-ink rounded-2xl p-4 mb-3 border border-white/10 text-center">
           <div
             className="absolute left-0 top-0 bottom-0 bg-lime/15 border-r border-lime/30 transition-all duration-1000 ease-linear"
-            style={{ width: `${done ? 100 : progressPercent}%` }}
+            style={{ width: `${isDone ? 100 : progressPercent}%` }}
           />
           <div className="relative z-10">
             <div
               className={cn(
                 'font-mono font-black tracking-tight text-5xl tabular-nums transition',
-                done ? 'text-lime' : timeLeft <= 5 ? 'text-rose-400 scale-105' : 'text-lime'
+                isDone ? 'text-lime' : timeLeft <= 5 ? 'text-rose-400 scale-105' : 'text-lime'
               )}
             >
               {formattedTime}
             </div>
             <p className="text-xs text-muted mt-1">
-              {done
+              {isDone
                 ? 'Пора к следующему подходу'
                 : voiceEnabled
                 ? 'Голосовой отсчёт 3…2…1'
@@ -219,7 +261,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           </div>
         </div>
 
-        {done ? (
+        {isDone ? (
           <button
             type="button"
             onClick={goToSet}

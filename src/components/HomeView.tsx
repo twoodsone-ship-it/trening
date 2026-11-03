@@ -85,7 +85,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
     });
   }, [activeProgram, templates, history, today]);
 
-  const beginFlow = (t: WorkoutTemplate) => setBriefingTemplate(t);
+  const beginFlow = (t: WorkoutTemplate) => {
+    // Hide nav immediately (don't wait for useEffect) so briefing CTA isn't covered
+    onSetupVisibilityChange?.(true);
+    setBriefingTemplate(t);
+  };
 
   if (setupOpen) {
     return (

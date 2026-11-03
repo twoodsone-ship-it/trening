@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useCallback, useRef } from 'react';
 import { HomeView } from './components/HomeView';
 import { ActiveWorkoutView } from './components/ActiveWorkoutView';
 import { Navigation } from './components/Navigation';
@@ -21,6 +21,12 @@ const WorkoutSummaryView = lazy(() =>
 export const App: React.FC = () => {
   const [programSetupOpen, setProgramSetupOpen] = React.useState(false);
   const [restResumeNonce, setRestResumeNonce] = React.useState(0);
+  const focusResumeRef = useRef<(() => void) | null>(null);
+
+  const registerFocusResume = useCallback((fn: (() => void) | null) => {
+    focusResumeRef.current = fn;
+  }, []);
+
   const {
     activeTab,
     setActiveTab,
@@ -49,6 +55,17 @@ export const App: React.FC = () => {
     updateSettings
   } = useWorkoutSession();
 
+  const handleRestFinished = useCallback(() => {
+    setIsRestTimerOpen(false);
+    setRestResumeNonce(n => n + 1);
+    // Imperative open after timer closes — survives lock-screen thaw
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        focusResumeRef.current?.();
+      });
+    });
+  }, [setIsRestTimerOpen]);
+
   if (pendingSummary) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-app-atmosphere" />}>
@@ -75,6 +92,7 @@ export const App: React.FC = () => {
             exercises={activeWorkout.exercises}
             settings={settings}
             restResumeNonce={restResumeNonce}
+            onRegisterFocusResume={registerFocusResume}
             onUpdateExercises={updateActiveExercises}
             onFinishWorkout={finishWorkout}
             onCancelWorkout={cancelWorkout}
@@ -118,10 +136,7 @@ export const App: React.FC = () => {
           initialSeconds={restTimerSeconds}
           isOpen={isRestTimerOpen}
           onClose={() => setIsRestTimerOpen(false)}
-          onFinished={() => {
-            setIsRestTimerOpen(false);
-            setRestResumeNonce(n => n + 1);
-          }}
+          onFinished={handleRestFinished}
           soundEnabled={settings.soundEnabled}
           vibrationEnabled={settings.vibrationEnabled}
           voiceEnabled={settings.voiceEnabled}

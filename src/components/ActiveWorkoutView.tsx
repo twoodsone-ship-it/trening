@@ -17,6 +17,7 @@ import { RpePickerModal } from './RpePickerModal';
 import { FocusSetOverlay } from './FocusSetOverlay';
 import { isWarmupSet, nextSetType, renumberSets, workoutProgress } from '../utils/workoutHelpers';
 import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/superset';
+import { restTimerStorage } from '../utils/restTimerStorage';
 import { cn } from '../utils/cn';
 
 const PlateCalculatorModal = lazy(() =>
@@ -42,6 +43,8 @@ interface ActiveWorkoutViewProps {
   onTriggerRestTimer: (seconds: number) => void;
   /** Bumps when rest timer hits 0 — reopen focus for next set */
   restResumeNonce?: number;
+  /** Register imperative resume so App can open focus after rest (incl. unlock) */
+  onRegisterFocusResume?: (resume: (() => void) | null) => void;
 }
 
 function patchExercise(
@@ -75,7 +78,8 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   onFinishWorkout,
   onCancelWorkout,
   onTriggerRestTimer,
-  restResumeNonce = 0
+  restResumeNonce = 0,
+  onRegisterFocusResume
 }) => {
   const [selectedPlateCalcWeight, setSelectedPlateCalcWeight] = useState<number | null>(null);
   const [viewingTechniqueEx, setViewingTechniqueEx] = useState<ActiveExerciseSession | null>(null);
@@ -419,19 +423,65 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     if (focusTarget) setExpandedExIdx(focusTarget.exIdx);
   }, [focusTarget?.exIdx]);
 
+  const exercisesRef = React.useRef(exercises);
+  exercisesRef.current = exercises;
+
   const openFocusForSet = (exIdx: number, setIdx: number) => {
+    setRpeTarget(null);
     setForcedFocus({ exIdx, setIdx });
     setExpandedExIdx(exIdx);
     setFocusMode(true);
   };
 
+  const resumeFocusAfterRest = React.useCallback(() => {
+    const next = findFocusTarget(exercisesRef.current);
+    if (!next) return false;
+    openFocusForSet(next.exIdx, next.setIdx);
+    restTimerStorage.consumePendingFocusResume();
+    return true;
+  }, []);
+
+  useEffect(() => {
+    onRegisterFocusResume?.(() => {
+      resumeFocusAfterRest();
+    });
+    return () => onRegisterFocusResume?.(null);
+  }, [onRegisterFocusResume, resumeFocusAfterRest]);
+
   useEffect(() => {
     if (!restResumeNonce) return;
-    const next = findFocusTarget(exercises);
-    if (!next) return;
-    setRpeTarget(null);
-    openFocusForSet(next.exIdx, next.setIdx);
-  }, [restResumeNonce]);
+    // Double rAF: wait until RestTimer unmount paints, then open focus above everything
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resumeFocusAfterRest();
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [restResumeNonce, resumeFocusAfterRest]);
+
+  // After unlock / return to app with pending rest-done flag
+  useEffect(() => {
+    const tryPending = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!restTimerStorage.hasPendingFocusResume()) return;
+      resumeFocusAfterRest();
+    };
+    tryPending();
+    document.addEventListener('visibilitychange', tryPending);
+    window.addEventListener('pageshow', tryPending);
+    window.addEventListener('focus', tryPending);
+    return () => {
+      document.removeEventListener('visibilitychange', tryPending);
+      window.removeEventListener('pageshow', tryPending);
+      window.removeEventListener('focus', tryPending);
+    };
+  }, [resumeFocusAfterRest]);
+
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => undefined);
+    }
+  }, []);
 
   const blocks = groupBySuperset(
     exercises.map((ex) => ({ ...ex, id: ex.exerciseId }))

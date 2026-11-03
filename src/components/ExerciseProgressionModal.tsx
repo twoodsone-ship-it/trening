@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, TrendingUp, History, Settings2, Award, Zap, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { Exercise, ProgressionRecommendation } from '../types';
+import { X, History, Settings2, Zap } from 'lucide-react';
+import { Exercise } from '../types';
 import { evaluateDoubleProgression, calculate1RM } from '../services/progressionEngine';
+import { cn } from '../utils/cn';
 
 interface ExerciseProgressionModalProps {
   exercise: Exercise;
@@ -17,8 +18,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
   onUpdateExercise
 }) => {
   const [activeTab, setActiveTab] = useState<'progression' | 'history' | 'settings'>('progression');
-  
-  // Editable state
+
   const [weight, setWeight] = useState(exercise.currentWeight);
   const [targetSets, setTargetSets] = useState(exercise.targetSets);
   const [minReps, setMinReps] = useState(exercise.minReps);
@@ -50,7 +50,6 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
     onClose();
   };
 
-  // 1RM History points for chart
   const historyPoints = exercise.history.map((h, idx) => ({
     session: idx + 1,
     date: new Date(h.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
@@ -59,80 +58,70 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
     volume: h.totalVolume
   }));
 
-  const maxOneRM = historyPoints.length > 0 
-    ? Math.max(...historyPoints.map(p => p.oneRM), 1) 
+  const maxOneRM = historyPoints.length > 0
+    ? Math.max(...historyPoints.map(p => p.oneRM), 1)
     : calculate1RM(exercise.currentWeight, exercise.maxReps);
 
+  const badgeTone =
+    recommendation.badgeColor === 'emerald'
+      ? 'bg-lime/10 border-lime/40 text-lime'
+      : recommendation.badgeColor === 'amber'
+      ? 'bg-amber-500/10 border-amber-400/40 text-amber-200'
+      : recommendation.badgeColor === 'purple' || recommendation.badgeColor === 'red'
+      ? 'bg-rose-500/10 border-rose-400/40 text-rose-200'
+      : 'bg-sky-500/10 border-sky-400/40 text-sky-200';
+
+  const tabs = [
+    { id: 'progression' as const, label: 'Прогрессия', icon: Zap },
+    { id: 'history' as const, label: `История (${exercise.history.length})`, icon: History },
+    { id: 'settings' as const, label: 'Параметры', icon: Settings2 }
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg bg-zinc-900 border border-zinc-700 rounded-3xl shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden">
-        
-        {/* Top Header */}
-        <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-zinc-800 bg-zinc-900/90 gap-2">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-lg surface-panel border-lime/20 shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden animate-slide-up">
+        <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-white/8 gap-2 shrink-0">
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold tracking-wider uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold tracking-wider uppercase text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
               {exercise.category}
             </span>
-            <h3 className="font-bold text-base sm:text-lg text-zinc-100 mt-1 truncate">{exercise.name}</h3>
+            <h3 className="font-extrabold text-base sm:text-lg text-white mt-1 truncate">{exercise.name}</h3>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 active:scale-95 transition shrink-0"
+            className="w-11 h-11 flex items-center justify-center text-muted hover:text-white rounded-2xl bg-white/5 active:scale-95 transition shrink-0"
             aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab switchers */}
-        <div className="flex border-b border-zinc-800 bg-zinc-950/40 px-3">
-          <button
-            onClick={() => setActiveTab('progression')}
-            className={`flex-1 py-3 text-xs font-semibold flex items-center justify-center gap-1.5 border-b-2 transition ${
-              activeTab === 'progression' 
-                ? 'border-emerald-500 text-emerald-400' 
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Zap className="w-4 h-4" /> Прогрессия
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex-1 py-3 text-xs font-semibold flex items-center justify-center gap-1.5 border-b-2 transition ${
-              activeTab === 'history' 
-                ? 'border-emerald-500 text-emerald-400' 
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <History className="w-4 h-4" /> История ({exercise.history.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`flex-1 py-3 text-xs font-semibold flex items-center justify-center gap-1.5 border-b-2 transition ${
-              activeTab === 'settings' 
-                ? 'border-emerald-500 text-emerald-400' 
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Settings2 className="w-4 h-4" /> Параметры
-          </button>
+        <div className="flex border-b border-white/8 bg-ink/40 px-2 shrink-0">
+          {tabs.map(t => {
+            const Icon = t.icon;
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveTab(t.id)}
+                className={cn(
+                  'flex-1 py-3 text-xs font-semibold flex items-center justify-center gap-1.5 border-b-2 transition min-h-[44px]',
+                  active ? 'border-lime text-lime' : 'border-transparent text-muted hover:text-white'
+                )}
+              >
+                <Icon className="w-4 h-4" /> {t.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Modal Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
           {activeTab === 'progression' && (
             <div className="space-y-4">
-              {/* Main Badge Card */}
-              <div className={`p-4 rounded-xl border ${
-                recommendation.badgeColor === 'emerald'
-                  ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
-                  : recommendation.badgeColor === 'amber'
-                  ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
-                  : recommendation.badgeColor === 'purple'
-                  ? 'bg-purple-950/30 border-purple-500/40 text-purple-200'
-                  : 'bg-blue-950/30 border-blue-500/40 text-blue-200'
-              }`}>
-                <div className="flex items-center justify-between mb-2">
+              <div className={cn('p-4 rounded-2xl border', badgeTone)}>
+                <div className="flex items-center justify-between mb-2 gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider">
                     Статус умной прогрессии
                   </span>
@@ -143,84 +132,79 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                 <h4 className="font-bold text-base text-white mb-1.5">
                   Цель: {recommendation.nextWeight} кг × {recommendation.targetRepRange} повт.
                 </h4>
-                <p className="text-xs leading-relaxed text-zinc-300">
+                <p className="text-xs leading-relaxed text-muted">
                   {recommendation.analysis}
                 </p>
                 <div className="mt-3 pt-3 border-t border-white/10 text-xs font-medium text-white flex items-center gap-2">
-                  <span className="text-emerald-400">⚡ План:</span> {recommendation.suggestedAction}
+                  <span className="text-lime">⚡ План:</span> {recommendation.suggestedAction}
                 </div>
               </div>
 
-              {/* Formula & Rules Breakdown */}
-              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/8 space-y-2">
+                <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">
                   Параметры двойной прогрессии
                 </span>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block">Диапазон повторений:</span>
-                    <span className="font-mono font-bold text-sm text-zinc-100">
+                  <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">
+                    <span className="text-muted block">Диапазон повторений:</span>
+                    <span className="font-mono font-bold text-sm text-white">
                       {exercise.minReps} - {exercise.maxReps} повт.
                     </span>
                   </div>
-                  <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block">Рабочих подходов:</span>
-                    <span className="font-mono font-bold text-sm text-zinc-100">
+                  <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">
+                    <span className="text-muted block">Рабочих подходов:</span>
+                    <span className="font-mono font-bold text-sm text-white">
                       {exercise.targetSets} подхода
                     </span>
                   </div>
-                  <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block">Шаг веса (+ΔW):</span>
-                    <span className="font-mono font-bold text-sm text-emerald-400">
+                  <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">
+                    <span className="text-muted block">Шаг веса (+ΔW):</span>
+                    <span className="font-mono font-bold text-sm text-lime">
                       +{exercise.weightStep} кг
                     </span>
                   </div>
-                  <div className="bg-zinc-900 p-2.5 rounded-lg border border-zinc-800/80">
-                    <span className="text-zinc-500 block">Отдых между сетами:</span>
-                    <span className="font-mono font-bold text-sm text-zinc-100">
+                  <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">
+                    <span className="text-muted block">Отдых между сетами:</span>
+                    <span className="font-mono font-bold text-sm text-white">
                       {exercise.restSeconds} сек.
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* 1RM Trend Visualization */}
-              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+              <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/8">
+                <div className="flex justify-between items-center mb-3 gap-2">
+                  <span className="text-xs font-bold text-muted uppercase tracking-wider">
                     Оценка 1RM (Расчетный максимум)
                   </span>
-                  <span className="text-xs font-mono font-bold text-emerald-400">
+                  <span className="text-xs font-mono font-bold text-lime">
                     ~{Math.round(calculate1RM(exercise.currentWeight, exercise.minReps))} кг
                   </span>
                 </div>
-                
+
                 {historyPoints.length === 0 ? (
-                  <p className="text-zinc-500 text-xs text-center py-4">
+                  <p className="text-muted text-xs text-center py-4">
                     Завершите первую тренировку для построения графика прогресса.
                   </p>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-end gap-2 h-24 pt-4 border-b border-zinc-800">
-                      {historyPoints.map((pt, i) => {
-                        const heightPct = Math.max(15, Math.min(100, (pt.oneRM / maxOneRM) * 100));
-                        return (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                            {/* Hover tooltip */}
-                            <div className="absolute -top-7 hidden group-hover:block bg-zinc-800 text-[10px] px-1.5 py-0.5 rounded shadow z-10 whitespace-nowrap">
-                              {pt.oneRM} кг ({pt.date})
-                            </div>
-                            <div 
-                              style={{ height: `${heightPct}%` }}
-                              className="w-full bg-emerald-500/80 group-hover:bg-emerald-400 rounded-t transition-all"
-                            />
-                            <span className="text-[9px] text-zinc-500 truncate w-full text-center">
-                              {pt.date}
-                            </span>
+                  <div className="flex items-end gap-2 h-24 pt-4 border-b border-white/8">
+                    {historyPoints.map((pt, i) => {
+                      const heightPct = Math.max(15, Math.min(100, (pt.oneRM / maxOneRM) * 100));
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                          <div className="absolute -top-7 hidden group-hover:block bg-ink-3 text-[10px] px-1.5 py-0.5 rounded shadow z-10 whitespace-nowrap border border-white/10">
+                            {pt.oneRM} кг ({pt.date})
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div
+                            style={{ height: `${heightPct}%` }}
+                            className="w-full bg-lime/80 group-hover:bg-lime rounded-t transition-all"
+                          />
+                          <span className="text-[9px] text-muted truncate w-full text-center">
+                            {pt.date}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -230,39 +214,38 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
           {activeTab === 'history' && (
             <div className="space-y-3">
               {exercise.history.length === 0 ? (
-                <p className="text-zinc-500 text-sm text-center py-8">
+                <p className="text-muted text-sm text-center py-8">
                   История подходов пуста. Начните тренировку!
                 </p>
               ) : (
                 [...exercise.history].reverse().map(session => (
-                  <div key={session.id} className="bg-zinc-950 border border-zinc-800/80 rounded-xl p-3.5 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-zinc-300">
-                        {new Date(session.date).toLocaleDateString('ru-RU', { 
-                          day: 'numeric', 
-                          month: 'long', 
-                          year: 'numeric' 
+                  <div key={session.id} className="bg-white/[0.03] border border-white/8 rounded-2xl p-3.5 space-y-2">
+                    <div className="flex items-center justify-between text-xs gap-2">
+                      <span className="font-semibold text-white">
+                        {new Date(session.date).toLocaleDateString('ru-RU', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
                         })}
                       </span>
-                      <span className="font-mono font-bold text-emerald-400">
+                      <span className="font-mono font-bold text-lime">
                         Вес: {session.weight} кг
                       </span>
                     </div>
 
-                    {/* Sets pills */}
                     <div className="flex flex-wrap gap-2 pt-1">
                       {session.sets.map(s => (
-                        <div 
+                        <div
                           key={s.setNumber}
-                          className="bg-zinc-900 border border-zinc-700/60 px-2.5 py-1 rounded-lg text-xs font-mono text-zinc-200"
+                          className="bg-ink/50 border border-white/10 px-2.5 py-1 rounded-lg text-xs font-mono text-muted"
                         >
-                          Сет {s.setNumber}: <span className="font-bold text-emerald-400">{s.reps}</span> повт.
-                          {s.rpe && <span className="text-zinc-500 text-[10px] ml-1">@RPE{s.rpe}</span>}
+                          Сет {s.setNumber}: <span className="font-bold text-lime">{s.reps}</span> повт.
+                          {s.rpe && <span className="text-muted text-[10px] ml-1">@RPE{s.rpe}</span>}
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-zinc-900">
+                    <div className="flex items-center justify-between text-[11px] text-muted pt-1 border-t border-white/8">
                       <span>Общий тоннаж: {session.totalVolume} кг</span>
                       <span>1RM: ~{session.estimated1RM} кг</span>
                     </div>
@@ -275,7 +258,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
           {activeTab === 'settings' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                <label className="block text-xs uppercase tracking-wider text-muted font-semibold mb-1">
                   Текущий рабочий вес (кг)
                 </label>
                 <input
@@ -283,49 +266,49 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                   step="0.5"
                   value={weight}
                   onChange={e => setWeight(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-2.5 font-mono text-lg font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 font-mono text-lg font-bold text-lime focus:outline-none focus:border-lime/50 min-h-[48px]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                  <label className="block text-xs uppercase tracking-wider text-muted font-semibold mb-1">
                     Мин. повторений
                   </label>
                   <input
                     type="number"
                     value={minReps}
                     onChange={e => setMinReps(parseInt(e.target.value) || 1)}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 font-mono text-sm text-zinc-100"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 font-mono text-sm text-white min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                  <label className="block text-xs uppercase tracking-wider text-muted font-semibold mb-1">
                     Макс. повторений
                   </label>
                   <input
                     type="number"
                     value={maxReps}
                     onChange={e => setMaxReps(parseInt(e.target.value) || 1)}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 font-mono text-sm text-zinc-100"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 font-mono text-sm text-white min-h-[44px]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                  <label className="block text-xs uppercase tracking-wider text-muted font-semibold mb-1">
                     Кол-во подходов
                   </label>
                   <input
                     type="number"
                     value={targetSets}
                     onChange={e => setTargetSets(parseInt(e.target.value) || 1)}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 font-mono text-sm text-zinc-100"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 font-mono text-sm text-white min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                  <label className="block text-xs uppercase tracking-wider text-muted font-semibold mb-1">
                     Шаг веса (+кг)
                   </label>
                   <input
@@ -333,13 +316,13 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                     step="0.5"
                     value={weightStep}
                     onChange={e => setWeightStep(parseFloat(e.target.value) || 0.5)}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 font-mono text-sm text-zinc-100"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 font-mono text-sm text-white min-h-[44px]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                <label className="block text-xs uppercase tracking-wider text-muted font-semibold mb-1">
                   Отдых между подходами (сек.)
                 </label>
                 <div className="flex gap-2">
@@ -348,11 +331,12 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                       key={sec}
                       type="button"
                       onClick={() => setRestSeconds(sec)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition ${
-                        restSeconds === sec 
-                          ? 'bg-emerald-500 text-black font-bold' 
-                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                      }`}
+                      className={cn(
+                        'flex-1 py-2.5 rounded-xl text-xs font-semibold transition border min-h-[44px]',
+                        restSeconds === sec
+                          ? 'btn-lime border-lime'
+                          : 'bg-white/5 text-muted border-white/10'
+                      )}
                     >
                       {sec}с
                     </button>
@@ -363,14 +347,13 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
               <button
                 type="button"
                 onClick={handleSaveSettings}
-                className="w-full mt-4 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition"
+                className="w-full mt-4 py-3.5 btn-lime font-bold rounded-2xl transition min-h-[52px]"
               >
                 Сохранить настройки упражнения
               </button>
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import type {
   AppSettings,
+  ActiveProgram,
   CompletedWorkout,
   WorkoutTemplate,
   ActiveWorkout,
@@ -24,10 +25,11 @@ const STORAGE_KEYS = {
   SETTINGS: 'ironforge_settings_v1',
   ACTIVE_WORKOUT: 'ironforge_active_session_v1',
   CUSTOM_EXERCISES: 'ironforge_custom_exercises_v1',
-  EMERGENCY_SNAPSHOT: 'ironforge_emergency_snapshot_v1'
+  EMERGENCY_SNAPSHOT: 'ironforge_emergency_snapshot_v1',
+  ACTIVE_PROGRAM: 'ironforge_active_program_v1'
 };
 
-const TEMPLATES_VERSION = 'v2.2';
+const TEMPLATES_VERSION = 'v3.0';
 
 const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
@@ -159,33 +161,24 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
 export const storageService = {
   getTemplates(): WorkoutTemplate[] {
     try {
-      const version = localStorage.getItem('ironforge_templates_version');
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-      if (data && version === TEMPLATES_VERSION) {
+      if (data) {
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length >= 8) {
-          const migrated = migrateTemplatesList(parsed);
-          if (migrated && migrated.length > 0) {
-            return migrated;
-          }
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return migrateTemplatesList(parsed);
         }
       }
     } catch {
       console.warn('Failed to parse templates from storage');
     }
-    const freshTemplates = cloneDefaultTemplates();
-    try {
-      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
-      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
-    } catch (e) {
-      console.error('Failed to persist fresh templates', e);
-    }
-    return freshTemplates;
+    // Empty until user picks a program — return [] so Home shows setup wizard
+    return [];
   },
 
   saveTemplates(templates: WorkoutTemplate[]) {
     try {
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
     } catch (e) {
       console.error('Failed to save templates', e);
     }
@@ -408,5 +401,32 @@ export const storageService = {
     const freshTemplates = cloneDefaultTemplates();
     localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(freshTemplates));
     return freshTemplates;
+  },
+
+  getActiveProgram(): ActiveProgram | null {
+    try {
+      const fromSettings = this.getSettings().activeProgram;
+      if (fromSettings) return fromSettings;
+      const raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROGRAM);
+      if (raw) return JSON.parse(raw) as ActiveProgram;
+    } catch {
+      //
+    }
+    return null;
+  },
+
+  saveActiveProgram(program: ActiveProgram | null) {
+    if (program === null) {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROGRAM);
+      this.saveSettings({ ...this.getSettings(), activeProgram: null });
+      return;
+    }
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_PROGRAM, JSON.stringify(program));
+    this.saveSettings({ ...this.getSettings(), activeProgram: program });
+  },
+
+  applyGeneratedProgram(program: ActiveProgram, templates: WorkoutTemplate[]) {
+    this.saveTemplates(templates);
+    this.saveActiveProgram(program);
   }
 };

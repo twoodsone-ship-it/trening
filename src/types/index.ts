@@ -156,6 +156,20 @@ export interface CompletedWorkout {
   }[];
 }
 
+export type ProgramGoal = 'recomp' | 'cut' | 'bulk' | 'strength';
+
+export type DaysPerWeek = 2 | 3 | 4 | 5 | 6;
+
+/** User-selected training program (goal + frequency). Workouts are generated from this. */
+export interface ActiveProgram {
+  goal: ProgramGoal;
+  daysPerWeek: DaysPerWeek;
+  title: string;
+  startedAt: string;
+  /** Template ids in weekly order */
+  templateIds: string[];
+}
+
 export interface AppSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
@@ -166,6 +180,7 @@ export interface AppSettings {
   unit: 'kg' | 'lbs';
   theme: 'light' | 'dark';
   currentWeek: 'A' | 'B';
+  activeProgram?: ActiveProgram | null;
 }
 
 export type HapticEvent =

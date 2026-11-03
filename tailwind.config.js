@@ -8,22 +8,31 @@ export default {
   theme: {
     extend: {
       colors: {
+        ink: {
+          DEFAULT: '#07080a',
+          2: '#101218',
+          3: '#181b22',
+        },
+        lime: {
+          DEFAULT: '#c8f542',
+          dim: 'rgba(200, 245, 66, 0.14)',
+        },
         gym: {
-          dark: '#0a0a0c',
-          card: '#121217',
+          dark: '#07080a',
+          card: '#101218',
           border: '#27272a',
-          accent: '#10b981',
-          accentHover: '#059669',
-          danger: '#ef4444',
-          warning: '#f59e0b',
-          info: '#3b82f6',
+          accent: '#c8f542',
+          accentHover: '#b6e235',
+          danger: '#ff5c5c',
+          warning: '#ffb020',
+          info: '#38bdf8',
           gold: '#eab308',
         }
       },
       fontFamily: {
-        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
-        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
-        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
+        sans: ['Outfit', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       }
     },
   },

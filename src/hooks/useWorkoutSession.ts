@@ -1,16 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import type {
   ActiveExerciseSession,
+  ActiveProgram,
   ActiveWorkout,
   AppSettings,
   CompletedWorkout,
+  DaysPerWeek,
+  ProgramGoal,
   ReadinessLevel,
   WorkoutTemplate
 } from '../types';
 import { storageService } from '../services/storageService';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
+import { buildProgramTemplates } from '../data/programBuilder';
 
-export type AppTab = 'templates' | 'analytics';
+export type AppTab = 'home' | 'analytics';
 
 function buildActiveExercises(
   template: WorkoutTemplate,
@@ -69,10 +73,11 @@ function buildActiveExercises(
 }
 
 export function useWorkoutSession() {
-  const [activeTab, setActiveTab] = useState<AppTab>('templates');
+  const [activeTab, setActiveTab] = useState<AppTab>('home');
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [history, setHistory] = useState<CompletedWorkout[]>([]);
   const [settings, setSettings] = useState<AppSettings>(storageService.getSettings());
+  const [activeProgram, setActiveProgram] = useState<ActiveProgram | null>(null);
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(null);
   const [isViewActiveWorkout, setIsViewActiveWorkout] = useState(false);
   const [pendingSummary, setPendingSummary] = useState<CompletedWorkout | null>(null);
@@ -84,6 +89,7 @@ export function useWorkoutSession() {
     setTemplates(storageService.getTemplates());
     setHistory(storageService.getHistory());
     setSettings(storageService.getSettings());
+    setActiveProgram(storageService.getActiveProgram());
 
     const savedActive = storageService.getActiveWorkout();
     if (savedActive) {
@@ -97,16 +103,21 @@ export function useWorkoutSession() {
   }, [loadData]);
 
   useEffect(() => {
-    if (settings.theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [settings.theme]);
+    document.documentElement.classList.add('dark');
+  }, []);
 
   useEffect(() => {
     storageService.saveActiveWorkout(activeWorkout);
   }, [activeWorkout]);
+
+  const applyProgram = useCallback((goal: ProgramGoal, days: DaysPerWeek) => {
+    const previous = storageService.getTemplates();
+    const { program, templates: generated } = buildProgramTemplates(goal, days, previous);
+    storageService.applyGeneratedProgram(program, generated);
+    setActiveProgram(program);
+    setTemplates(generated);
+    setSettings(storageService.getSettings());
+  }, []);
 
   const startWorkout = useCallback((template: WorkoutTemplate, readiness: ReadinessLevel = 'optimal') => {
     setPendingSummary(null);
@@ -131,7 +142,7 @@ export function useWorkoutSession() {
 
   const dismissSummary = useCallback(() => {
     setPendingSummary(null);
-    setActiveTab('analytics');
+    setActiveTab('home');
   }, []);
 
   const cancelWorkout = useCallback(() => {
@@ -151,30 +162,6 @@ export function useWorkoutSession() {
     setIsRestTimerOpen(true);
   }, []);
 
-  const updateTemplate = useCallback((updated: WorkoutTemplate) => {
-    setTemplates(prev => {
-      const next = prev.map(t => (t.id === updated.id ? updated : t));
-      storageService.saveTemplates(next);
-      return next;
-    });
-  }, []);
-
-  const createTemplate = useCallback((created: WorkoutTemplate) => {
-    setTemplates(prev => {
-      const next = [...prev, created];
-      storageService.saveTemplates(next);
-      return next;
-    });
-  }, []);
-
-  const changeWeek = useCallback((week: 'A' | 'B') => {
-    setSettings(prev => {
-      const updated = { ...prev, currentWeek: week };
-      storageService.saveSettings(updated);
-      return updated;
-    });
-  }, []);
-
   const updateSettings = useCallback((newSettings: AppSettings) => {
     setSettings(newSettings);
     storageService.saveSettings(newSettings);
@@ -191,6 +178,7 @@ export function useWorkoutSession() {
     templates,
     history,
     settings,
+    activeProgram,
     activeWorkout,
     isViewActiveWorkout,
     setIsViewActiveWorkout,
@@ -203,14 +191,12 @@ export function useWorkoutSession() {
     isSettingsOpen,
     setIsSettingsOpen,
     loadData,
+    applyProgram,
     startWorkout,
     finishWorkout,
     cancelWorkout,
     updateActiveExercises,
     triggerRestTimer,
-    updateTemplate,
-    createTemplate,
-    changeWeek,
     updateSettings
   };
 }

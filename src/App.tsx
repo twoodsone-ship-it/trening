@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { WorkoutTemplateList } from './components/WorkoutTemplateList';
+import { HomeView } from './components/HomeView';
 import { ActiveWorkoutView } from './components/ActiveWorkoutView';
 import { Navigation } from './components/Navigation';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
@@ -25,6 +25,7 @@ export const App: React.FC = () => {
     templates,
     history,
     settings,
+    activeProgram,
     activeWorkout,
     isViewActiveWorkout,
     setIsViewActiveWorkout,
@@ -37,14 +38,12 @@ export const App: React.FC = () => {
     isSettingsOpen,
     setIsSettingsOpen,
     loadData,
+    applyProgram,
     startWorkout,
     finishWorkout,
     cancelWorkout,
     updateActiveExercises,
     triggerRestTimer,
-    updateTemplate,
-    createTemplate,
-    changeWeek,
     updateSettings
   } = useWorkoutSession();
 
@@ -61,7 +60,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-app-atmosphere text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen min-h-[100dvh] bg-app-atmosphere text-white flex flex-col font-sans selection:bg-lime selection:text-ink">
       <PWAInstallBanner />
 
       <div className="flex-1">
@@ -80,20 +79,18 @@ export const App: React.FC = () => {
           />
         ) : (
           <>
-            {activeTab === 'templates' && (
-              <WorkoutTemplateList
+            {activeTab === 'home' && (
+              <HomeView
                 templates={templates}
                 history={history}
-                currentWeek={settings.currentWeek || 'A'}
-                onChangeWeek={changeWeek}
+                activeProgram={activeProgram}
+                onApplyProgram={applyProgram}
                 onStartWorkout={startWorkout}
-                onUpdateTemplate={updateTemplate}
-                onCreateTemplate={createTemplate}
               />
             )}
 
             {activeTab === 'analytics' && (
-              <Suspense fallback={<div className="p-8 text-center text-muted text-sm">Загрузка аналитики…</div>}>
+              <Suspense fallback={<div className="p-8 text-center text-muted text-sm">Загрузка…</div>}>
                 <AnalyticsView history={history} templates={templates} />
               </Suspense>
             )}

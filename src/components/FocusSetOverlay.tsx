@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Clock, Minus, Plus, X } from 'lucide-react';
+import { Check, Clock, Minus, Plus, X, Play } from 'lucide-react';
+import { EXERCISE_GIF_MAP } from '../data/exerciseCatalog';
 import type { ActiveExerciseSession, WorkoutSet } from '../types';
 import { muscleCategoryLabel } from '../utils/uiLabels';
-import { isWarmupSet } from '../utils/workoutHelpers';
+import { isWarmupSet, previousSetFor } from '../utils/workoutHelpers';
 import { cn } from '../utils/cn';
 
 interface FocusSetOverlayProps {
   exercise: ActiveExerciseSession;
   set: WorkoutSet;
   setIndex: number;
+  exerciseNumber: number;
+  exerciseCount: number;
+  showIntroduction: boolean;
+  onConfirmIntroduction: () => void;
   onClose: () => void;
   onWeightDelta: (delta: number) => void;
   onRepsDelta: (delta: number) => void;
@@ -39,20 +44,28 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   exercise,
   set,
   setIndex,
+  exerciseNumber,
+  exerciseCount,
+  showIntroduction,
+  onConfirmIntroduction,
   onClose,
   onWeightDelta,
   onRepsDelta,
   onDurationDelta,
   onComplete
 }) => {
-  const prev = exercise.previousPerformance?.sets[setIndex];
+  const prev = previousSetFor(set, exercise.previousPerformance?.sets);
   const isTrial = isWarmupSet(set);
   const [elapsed, setElapsed] = useState(0);
+  const [animationOpen, setAnimationOpen] = useState(false);
+  const [animationFailed, setAnimationFailed] = useState(false);
+  const [animationLoaded, setAnimationLoaded] = useState(false);
+  const animationUrl = exercise.gifUrl || EXERCISE_GIF_MAP[exercise.exerciseId];
   const setupTip = exercise.technique?.setup || tipForExercise(exercise);
   const executionTip = exercise.technique?.execution || (exercise.category === 'Cardio'
     ? 'Держи ровный темп и дыхание. При необходимости снизь скорость.'
     : 'Контролируй движение в обе стороны. Не используй рывок и не продолжай через боль.');
-  const restHint = exercise.restSeconds || 90;
+  const restHint = isTrial ? 30 : exercise.restSeconds || 90;
   const isBodyweight = exercise.weightStep === 0 || (exercise.targetWeight === 0 && exercise.category === 'Cardio');
   const isTimed = exercise.trackingMode === 'duration';
   const durationStep = (exercise.defaultDurationSeconds || 60) < 90 ? 15 : 60;
@@ -62,10 +75,16 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   };
 
   useEffect(() => {
-    setElapsed(0);
+    if (showIntroduction || animationOpen) return;
     const id = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(id);
-  }, [exercise.exerciseId, setIndex]);
+  }, [showIntroduction, animationOpen]);
+
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setAnimationOpen(false); };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, []);
 
   if (typeof document === 'undefined') return null;
 
@@ -93,6 +112,11 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
 
       <div className="flex-1 overflow-y-auto px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div className="max-w-md mx-auto flex flex-col gap-4 min-h-full justify-center py-2">
+          <div className="flex items-center justify-between text-xs text-muted border-b border-white/10 pb-3">
+            <span>Упражнение <strong className="text-white">{exerciseNumber} из {exerciseCount}</strong></span>
+            <span>{muscleCategoryLabel(exercise.category)}</span>
+          </div>
+          {showIntroduction && <p role="status" className="text-lime font-bold text-center text-lg">Следующее упражнение</p>}
           <div className="text-center space-y-1">
             <p className="text-xs font-bold uppercase tracking-wider text-lime">
               {isTrial ? 'Пробный подход' : `${muscleCategoryLabel(exercise.category)} · подход ${set.setNumber || setIndex + 1}`}
@@ -100,11 +124,14 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
             <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-[0.98]">
               {exercise.name}
             </h2>
-            {isTrial && <p className="text-sm text-muted">Лёгкий вес для знакомства с движением. Рабочие подходы будут после короткого отдыха.</p>}
+            {showIntroduction && <p className="text-sm text-muted pt-2">Подготовь оборудование и посмотри технику перед стартом.</p>}
+            {isTrial && <p className="text-sm text-muted">Лёгкий вес для знакомства с движением.</p>}
             {!isTrial && prev && (
               <p className="text-sm text-muted font-mono">Прошлый: {isTimed ? formatDuration(prev.durationSeconds || 0) : `${prev.weight} кг × ${prev.reps}`}</p>
             )}
           </div>
+
+          <button type="button" onClick={() => setAnimationOpen(true)} className="min-h-[48px] rounded-xl border border-white/15 flex items-center justify-center gap-2 text-sm font-semibold"><Play className="w-4 h-4 text-lime" /> Посмотреть анимацию</button>
 
           <div className="border-l-2 border-lime pl-3 text-sm leading-snug text-white/85">
             <p><span className="text-lime font-semibold">Старт:</span> {shortCue(setupTip)}</p>
@@ -117,7 +144,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
             </details>
           </div>
 
-          <div className="space-y-3">
+          {!showIntroduction && <div className="space-y-3">
             {!isBodyweight && (
               <FocusStepper
                 label="Вес · кг"
@@ -146,21 +173,28 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
                 onPlus={() => onRepsDelta(+1)}
               />
             )}
-          </div>
+          </div>}
 
           <button
             type="button"
-            onClick={onComplete}
+            onClick={showIntroduction ? onConfirmIntroduction : onComplete}
             className={cn(
               'w-full py-5 rounded-3xl font-black text-lg flex items-center justify-center gap-2 min-h-[64px] active:scale-95 transition',
               set.completed ? 'bg-white/10 text-muted' : 'btn-lime animate-pulse-ring'
             )}
           >
             <Check className="w-6 h-6" />
-            {set.completed ? 'Подход отмечен' : isTrial ? 'Пробный подход выполнен' : isTimed ? 'Интервал выполнен' : 'Подход выполнен'}
+            {showIntroduction ? 'Готов, начать упражнение' : set.completed ? 'Подход отмечен' : isTrial ? 'Пробный подход выполнен' : isTimed ? 'Интервал выполнен' : 'Подход выполнен'}
           </button>
         </div>
       </div>
+      {animationOpen && <div role="dialog" aria-modal="true" aria-label={`Анимация: ${exercise.name}`} className="fixed inset-0 z-[230] bg-ink p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-4">
+        <header className="flex items-center justify-between gap-3"><h3 className="font-bold text-base">{exercise.name}</h3><button autoFocus type="button" onClick={() => setAnimationOpen(false)} aria-label="Закрыть анимацию" className="w-12 h-12 shrink-0 rounded-xl bg-white/10 flex items-center justify-center"><X /></button></header>
+        <div className="flex-1 min-h-0 flex items-center justify-center rounded-2xl bg-white/[0.04] overflow-hidden relative">
+          {animationUrl && !animationFailed ? <><img src={animationUrl} alt={`Техника выполнения: ${exercise.name}`} onLoad={() => setAnimationLoaded(true)} onError={() => setAnimationFailed(true)} className="w-full h-full object-contain" />{!animationLoaded && <p className="absolute text-sm text-muted">Загрузка анимации…</p>}</> : <div className="p-5 text-sm text-muted"><p className="font-semibold text-white mb-3">{animationUrl ? 'Анимация не загрузилась. Проверь подключение к интернету.' : 'Для этого упражнения анимации пока нет.'}</p><p>{setupTip}</p><p className="mt-3">{executionTip}</p></div>}
+        </div>
+        <button type="button" onClick={() => setAnimationOpen(false)} className="btn-lime min-h-[52px] rounded-xl font-bold">Вернуться к упражнению</button>
+      </div>}
     </div>,
     document.body
   );

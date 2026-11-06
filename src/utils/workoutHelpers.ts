@@ -1,4 +1,8 @@
-import type { WorkoutSet, WorkoutSetType } from '../types';
+import type { WorkoutSet, WorkoutSetType, SetHistoryEntry } from '../types';
+
+export function previousSetFor(set: WorkoutSet, history?: SetHistoryEntry[]): SetHistoryEntry | undefined {
+  return history?.find(previous => isWarmupSet(previous) === isWarmupSet(set) && previous.setNumber === set.setNumber);
+}
 
 /** Re-number working sets; warmups stay at setNumber 0 */
 export function renumberSets(sets: WorkoutSet[]): WorkoutSet[] {

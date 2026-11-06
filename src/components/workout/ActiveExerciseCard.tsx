@@ -5,6 +5,7 @@ import { cn } from '../../utils/cn';
 import { WorkoutSetRow } from './WorkoutSetRow';
 import { ExerciseHistoryChart } from '../ExerciseHistoryChart';
 import { muscleCategoryLabel } from '../../utils/uiLabels';
+import { previousSetFor } from '../../utils/workoutHelpers';
 
 interface ActiveExerciseCardProps {
   exercise: ActiveExerciseSession;
@@ -171,7 +172,7 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted px-1">Подходы · прошлый результат</p>
             {ex.sets.map((set, setIdx) => {
-              const prevSet: SetHistoryEntry | undefined = ex.previousPerformance?.sets[setIdx];
+              const prevSet: SetHistoryEntry | undefined = previousSetFor(set, ex.previousPerformance?.sets);
               return (
                 <WorkoutSetRow
                   key={set.id}

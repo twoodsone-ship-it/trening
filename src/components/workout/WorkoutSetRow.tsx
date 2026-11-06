@@ -1,5 +1,5 @@
-import React from 'react';
-import { Check, Minus, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Minus, Plus, Play, Pencil } from 'lucide-react';
 import type { SetHistoryEntry, WorkoutSet } from '../../types';
 import { cn } from '../../utils/cn';
 import { setTypeLabel } from '../../utils/workoutHelpers';
@@ -33,6 +33,7 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
   onStartFocus,
   isFocusTarget
 }) => {
+  const [editing, setEditing] = useState(false);
   const isWarmup = set.type === 'warmup' || set.isWarmup;
   const isTimed = trackingMode === 'duration';
   const hasWeight = !isTimed && weightStep > 0;
@@ -53,77 +54,26 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
   };
 
   return (
-    <div
-      className={cn(
-        'p-2 rounded-xl border transition-colors',
-        set.completed
-          ? 'bg-lime/[0.08] border-lime/40'
-          : isFocusTarget
-            ? 'bg-lime/[0.05] border-lime/50 ring-1 ring-lime/25'
-            : 'bg-white/[0.025] border-white/10'
-      )}
-    >
+    <div className={cn('border-b border-white/10 py-1', set.completed && 'opacity-65')}>
       <div className="grid grid-cols-[48px_minmax(0,1fr)_48px] gap-2 items-center">
-        <button
-          type="button"
-          onClick={onCycleType}
-          aria-label={`Тип подхода: ${setTypeLabel(set)}. Нажми, чтобы изменить`}
-          className={cn(
-            'w-12 h-12 min-h-[48px] rounded-lg flex items-center justify-center font-mono font-bold text-[11px] border active:scale-95 transition',
-            isWarmup
-              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-              : set.type === 'failure'
-                ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                : set.type === 'dropset'
-                  ? 'bg-violet-500/15 text-violet-300 border-violet-500/30'
-                  : 'bg-white/[0.04] text-white/80 border-white/10'
-          )}
-        >
-          {setTypeLabel(set)}
+        <button type="button" onClick={onCycleType} aria-label={`Тип подхода: ${setTypeLabel(set)}. Изменить`} className={cn('w-12 h-12 rounded-lg font-mono font-bold text-sm', isWarmup ? 'text-amber-300 bg-amber-500/10' : 'text-muted bg-white/[0.03]')}>
+          {isWarmup ? 'Проба' : setTypeLabel(set)}
         </button>
-
-        <button
-          type="button"
-          onClick={previousSet ? onCopyPrevious : undefined}
-          disabled={!previousSet}
-          className={cn(
-            'min-w-0 min-h-[48px] px-2 rounded-lg flex items-center justify-between gap-2 text-left transition',
-            previousSet ? 'text-white/80 hover:bg-white/[0.04]' : 'text-white/30'
-          )}
-          title={previousSet ? 'Скопировать прошлый подход' : undefined}
-        >
-          <span className="text-[10px] text-muted">Прошлый</span>
-          <span className="font-mono text-xs font-bold truncate">{previousLabel}</span>
+        <button type="button" onClick={() => setEditing(v => !v)} aria-expanded={editing} aria-label="Изменить вес и повторения" className="min-w-0 min-h-[56px] text-left py-2">
+          <span className="flex items-center gap-2 font-mono text-base font-bold tabular-nums break-words">
+            {isTimed ? durationLabel : `${hasWeight ? `${set.weight} кг × ` : ''}${set.reps} повт.`}<Pencil className="w-3 h-3 text-muted shrink-0" />
+          </span>
+          {previousSet && <span className="block text-[11px] text-muted mt-0.5">Прошлый: {previousLabel}</span>}
         </button>
-
-        <button
-          type="button"
-          onClick={handleComplete}
-          className={cn(
-            'w-12 h-12 min-h-[48px] min-w-[48px] rounded-lg flex items-center justify-center transition active:scale-95',
-            set.completed ? 'bg-lime text-ink' : 'bg-white/[0.05] text-muted border border-white/10 hover:border-lime/40 hover:text-lime'
-          )}
-          aria-label={set.completed ? 'Снять отметку с подхода' : `Открыть подход ${set.setNumber}`}
-        >
-          <Check className={cn('w-5 h-5', set.completed && 'stroke-[3]')} />
+        <button type="button" onClick={handleComplete} className={cn('w-12 h-12 rounded-xl flex items-center justify-center', set.completed ? 'bg-lime/15 text-lime' : 'bg-white/5 text-lime')} aria-label={set.completed ? 'Снять отметку с подхода' : isWarmup ? 'Начать пробный подход' : `Начать подход ${set.setNumber}`}>
+          {set.completed ? <Check className="w-5 h-5" /> : <Play className="w-5 h-5" />}
         </button>
       </div>
-
-      <div className="grid grid-cols-2 gap-2 mt-2">
-        {hasWeight ? (
-          <InlineStepper label="Вес · кг" value={set.weight} onMinus={() => onWeightDelta(-weightStep)} onPlus={() => onWeightDelta(weightStep)} />
-        ) : (
-          <div className="min-h-[52px] rounded-lg border border-white/[0.07] bg-black/15 flex items-center justify-between px-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Вес</span>
-            <span className="text-xs text-white/50">Без веса</span>
-          </div>
-        )}
-        {isTimed ? (
-          <InlineStepper label="Время" value={durationLabel} onMinus={() => onDurationDelta(-15)} onPlus={() => onDurationDelta(15)} />
-        ) : (
-          <InlineStepper label="Повторы" value={set.reps} onMinus={() => onRepsDelta(-1)} onPlus={() => onRepsDelta(1)} />
-        )}
-      </div>
+      {editing && <div className="space-y-2 pb-3 pt-1">
+        {hasWeight && <InlineStepper label="Вес · кг" value={set.weight} onMinus={() => onWeightDelta(-weightStep)} onPlus={() => onWeightDelta(weightStep)} />}
+        {isTimed ? <InlineStepper label="Время" value={durationLabel} onMinus={() => onDurationDelta(-15)} onPlus={() => onDurationDelta(15)} /> : <InlineStepper label="Повторы" value={set.reps} onMinus={() => onRepsDelta(-1)} onPlus={() => onRepsDelta(1)} />}
+        {previousSet && <button type="button" onClick={onCopyPrevious} className="min-h-[44px] w-full text-xs text-muted">Повторить прошлый результат</button>}
+      </div>}
     </div>
   );
 };

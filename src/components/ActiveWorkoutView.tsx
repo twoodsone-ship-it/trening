@@ -15,7 +15,7 @@ import { ActiveExerciseCard } from './workout/ActiveExerciseCard';
 import { WorkoutProgressRing } from './workout/WorkoutProgressRing';
 import { RpePickerModal } from './RpePickerModal';
 import { FocusSetOverlay } from './FocusSetOverlay';
-import { isWarmupSet, nextSetType, renumberSets, workoutProgress } from '../utils/workoutHelpers';
+import { isWarmupSet, nextSetType, renumberSets, workoutProgress, previousSetFor } from '../utils/workoutHelpers';
 import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/superset';
 import { restTimerStorage } from '../utils/restTimerStorage';
 import { cn } from '../utils/cn';
@@ -92,6 +92,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const [focusMode, setFocusMode] = useState(settings.focusModeDefault !== false);
   const [forcedFocus, setForcedFocus] = useState<{ exIdx: number; setIdx: number } | null>(null);
   const [expandedExIdx, setExpandedExIdx] = useState(-1);
+  const [introducedExercises, setIntroducedExercises] = useState<Set<string>>(() => new Set());
   const [rpeTarget, setRpeTarget] = useState<{ exIdx: number; setIdx: number } | null>(null);
   const [elapsedMinutes, setElapsedMinutes] = useState(
     Math.max(1, Math.round((Date.now() - startTime) / 60000))
@@ -171,7 +172,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   };
 
   const copyPreviousSet = (exIdx: number, setIdx: number) => {
-    const prev = exercises[exIdx].previousPerformance?.sets[setIdx];
+    const prev = previousSetFor(exercises[exIdx].sets[setIdx], exercises[exIdx].previousPerformance?.sets);
     if (!prev) return;
     onUpdateExercises(
       patchSet(exercises, exIdx, setIdx, s => ({
@@ -690,6 +691,11 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
 
       {focusMode && focusTarget && (
         <FocusSetOverlay
+          key={`${focusTarget.exIdx}:${exercises[focusTarget.exIdx].sets[focusTarget.setIdx].id}`}
+          exerciseNumber={focusTarget.exIdx + 1}
+          exerciseCount={exercises.length}
+          showIntroduction={focusTarget.exIdx > 0 && !introducedExercises.has(`${focusTarget.exIdx}:${exercises[focusTarget.exIdx].exerciseId}`)}
+          onConfirmIntroduction={() => setIntroducedExercises(previous => new Set(previous).add(`${focusTarget.exIdx}:${exercises[focusTarget.exIdx].exerciseId}`))}
           exercise={exercises[focusTarget.exIdx]}
           set={exercises[focusTarget.exIdx].sets[focusTarget.setIdx]}
           setIndex={focusTarget.setIdx}

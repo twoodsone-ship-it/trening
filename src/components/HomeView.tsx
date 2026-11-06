@@ -15,7 +15,7 @@ import {
   getProgramCycle,
   pickTodaysTemplate
 } from '../data/programBuilder';
-import { calculateStreak, workoutsThisWeek, WEEKDAY_LABELS_RU } from '../utils/streak';
+import { calculateStreak, workoutsThisWeek } from '../utils/streak';
 import { analyzeProgramHealth } from '../utils/programAdaptation';
 import { ReadinessCheckinModal } from './ReadinessCheckinModal';
 import { WorkoutBriefingModal } from './WorkoutBriefingModal';
@@ -56,7 +56,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     onSetupVisibilityChange?.(overlayOpen);
   }, [overlayOpen, onSetupVisibilityChange]);
 
-  const todayTemplate = useMemo(
+  const nextTemplate = useMemo(
     () => pickTodaysTemplate(templates, activeProgram, history),
     [templates, activeProgram, history]
   );
@@ -70,24 +70,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const weekCount = workoutsThisWeek(history);
   const goalMeta = PROGRAM_GOALS.find(g => g.id === activeProgram?.goal);
   const cycle = activeProgram ? getProgramCycle(activeProgram.startedAt) : null;
-  const today = new Date().getDay();
-
-  const weekDays = useMemo(() => {
-    const ordered = activeProgram?.templateIds
-      .map(id => templates.find(t => t.id === id))
-      .filter(Boolean) as WorkoutTemplate[] | undefined;
-    return [1, 2, 3, 4, 5, 6, 0].map(dow => {
-      const match = ordered?.find(t => t.scheduledDays?.includes(dow));
-      const trained = history.some(h => {
-        const d = new Date(h.endTime);
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-        start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
-        return h.endTime >= start.getTime() && d.getDay() === dow;
-      });
-      return { dow, match, trained, isToday: dow === today };
-    });
-  }, [activeProgram, templates, history, today]);
+  const programHistory = useMemo(() => {
+    if (!activeProgram) return [];
+    const startedAt = new Date(activeProgram.startedAt).getTime();
+    return history
+      .filter(h => activeProgram.templateIds.includes(h.templateId) && (!Number.isFinite(startedAt) || h.endTime >= startedAt))
+      .sort((a, b) => b.endTime - a.endTime);
+  }, [activeProgram, history]);
 
   const beginFlow = (t: WorkoutTemplate) => {
     // Hide nav immediately (don't wait for useEffect) so briefing CTA isn't covered
@@ -108,7 +97,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     );
   }
 
-  const mins = todayTemplate ? estimateWorkoutMinutes(todayTemplate) : 0;
+  const mins = nextTemplate ? estimateWorkoutMinutes(nextTemplate) : 0;
   const showAdvice = advice && advice.id !== dismissedAdviceId && advice.severity !== 'info'
     ? advice
     : advice?.severity === 'info' && advice.id !== dismissedAdviceId
@@ -123,7 +112,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <span className="inline-block w-5 h-[3px] bg-lime rounded-full" /> IronForge · журнал
           </p>
           <h1 className="font-display text-[2.75rem] leading-[0.9] font-bold mt-2 tracking-tight">
-            Тренировка<br />сегодня
+            Следующая<br />тренировка
           </h1>
         </div>
         <span className="font-mono text-[11px] text-muted text-right pb-1">
@@ -232,18 +221,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
       <section className="relative overflow-hidden rounded-2xl border border-lime/25 bg-[#151b13] p-5 pl-6 mb-5 shadow-[inset_3px_0_0_var(--lime)]">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> НА СЕГОДНЯ
+          <Sparkles className="w-3.5 h-3.5" /> СЛЕДУЮЩАЯ ПО ПЛАНУ
         </p>
         <h2 className="font-display text-3xl font-bold mt-2 tracking-tight leading-none">
-          {todayTemplate?.name || 'День отдыха'}
+          {nextTemplate?.name || 'План пока пуст'}
         </h2>
         <p className="text-[13px] text-muted mt-2 leading-snug">
-          {todayTemplate ? todayTemplate.description : 'Можно восстановиться.'}
+          {nextTemplate ? nextTemplate.description : 'Добавьте тренировку в настройках программы.'}
         </p>
-        {todayTemplate && (
+        {nextTemplate && (
           <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted">
             <span className="inline-flex items-center gap-1.5 font-mono">
-              <Dumbbell className="w-3.5 h-3.5 text-lime" /> {todayTemplate.exercises.length} упр.
+              <Dumbbell className="w-3.5 h-3.5 text-lime" /> {nextTemplate.exercises.length} упр.
             </span>
             <span className="inline-flex items-center gap-1.5 font-mono">
               <Clock className="w-3.5 h-3.5 text-lime" /> ~{mins} мин
@@ -253,26 +242,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </section>
 
       <section className="mb-2">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-3">Неделя</p>
-        <div className="grid grid-cols-7 gap-1">
-          {weekDays.map(({ dow, match, trained, isToday }) => (
-            <div
-              key={dow}
-              className={cn(
-                'rounded-lg py-2 text-center border min-w-0',
-                isToday && 'border-lime/60 bg-lime/[0.08]',
-                !isToday && trained && 'border-white/10 bg-white/[0.06]',
-                !isToday && !trained && 'border-white/5'
-              )}
-            >
-              <p className="text-[10px] font-bold text-muted">{WEEKDAY_LABELS_RU[dow]}</p>
-              <p className={cn('text-[9px] mt-1 font-semibold truncate px-0.5', match ? 'text-white' : 'text-white/25')} title={match?.name}>
-                {match ? match.name.split(' ')[0] : '—'}
-              </p>
-              {trained && <span className="inline-block mt-1 w-1.5 h-1.5 rounded-full bg-lime" />}
-            </div>
-          ))}
-        </div>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-3">Когда тренировался</p>
+        {programHistory.length === 0 ? (
+          <p className="text-xs text-muted border-y border-white/10 py-3">Пока нет завершённых тренировок этой программы. Начните с первого дня.</p>
+        ) : (
+          <div className="divide-y divide-white/10 border-y border-white/10">
+            {programHistory.slice(0, 5).map(workout => (
+              <div key={workout.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="font-semibold text-sm min-w-0 truncate">{workout.templateName}</span>
+                <time dateTime={new Date(workout.endTime).toISOString()} className="font-mono text-[11px] text-muted shrink-0">
+                  {new Date(workout.endTime).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                </time>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {activeProgram && (
@@ -283,22 +267,23 @@ export const HomeView: React.FC<HomeViewProps> = ({
             const t = templates.find(x => x.id === id);
             if (!t) return null;
             return (
-              <button
+              <div
                 key={id}
-                type="button"
-                onClick={() => beginFlow(t)}
                 className={cn(
                   'w-full text-left py-3.5 flex items-center justify-between gap-3 interactive-row',
-                  todayTemplate?.id === t.id && 'text-lime'
+                  nextTemplate?.id === t.id && 'text-lime'
                 )}
               >
                 <div className="min-w-0">
                   <p className="text-[10px] font-mono text-muted">ТРЕНИРОВКА {i + 1}</p>
                   <p className="font-bold truncate mt-0.5">{t.name}</p>
                   <p className="text-xs text-muted truncate mt-0.5">{t.description}</p>
+                  {programHistory.find(h => h.templateId === t.id) && (
+                    <p className="text-[11px] text-muted mt-1">Последний раз: {new Date(programHistory.find(h => h.templateId === t.id)!.endTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  )}
                 </div>
-                <Play className="w-4 h-4 text-lime shrink-0" />
-              </button>
+                {nextTemplate?.id === t.id && <span className="text-[10px] font-bold uppercase tracking-wider text-lime shrink-0">Следующая</span>}
+              </div>
             );
           })}
           </div>
@@ -352,8 +337,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="max-w-lg mx-auto pointer-events-auto">
             <button
               type="button"
-              disabled={!todayTemplate}
-              onClick={() => todayTemplate && beginFlow(todayTemplate)}
+              disabled={!nextTemplate}
+              onClick={() => nextTemplate && beginFlow(nextTemplate)}
               className="w-full btn-lime py-4 rounded-2xl text-base flex items-center justify-center gap-2 min-h-[56px] disabled:opacity-40 shadow-xl shadow-black/50"
             >
               <Play className="w-5 h-5 fill-current" /> Начать тренировку

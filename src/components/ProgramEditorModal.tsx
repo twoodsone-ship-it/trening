@@ -14,8 +14,6 @@ interface ProgramEditorModalProps {
   onSave: (templates: WorkoutTemplate[], program: ActiveProgram) => void;
 }
 
-const DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
 function toExercise(item: CatalogExerciseItem, previous?: Exercise): Exercise {
   if (previous?.id === item.id) return { ...previous };
   return {
@@ -129,14 +127,7 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
             ))}
           </div>
 
-          <section className="surface-panel p-3 space-y-2">
-            <label className="text-xs font-bold text-muted" htmlFor="program-day">День недели</label>
-            <select id="program-day" value={selected.scheduledDays?.[0] ?? 1}
-              onChange={e => updateSelected(t => ({ ...t, scheduledDays: [Number(e.target.value)] }))}
-              className="w-full min-h-[48px] bg-white/[0.04] border border-white/10 rounded-xl px-3 text-white">
-              {DAYS.map((day, index) => <option key={day} value={index} className="bg-ink">{day}</option>)}
-            </select>
-          </section>
+          <p className="text-xs text-muted">Тренировки запускаются по очереди. Следующий день откроется после завершения текущего, независимо от дня недели.</p>
 
           <section className="surface-panel p-3 space-y-3">
             <div className="flex items-center justify-between gap-2">

@@ -421,17 +421,17 @@ export function pickTodaysTemplate(
     .map(id => templates.find(t => t.id === id))
     .filter(Boolean) as WorkoutTemplate[];
 
-  if (!ordered.length) return templates[0] || null;
+  if (!ordered.length) return null;
 
-  const today = new Date().getDay();
-  const bySchedule = ordered.find(t => t.scheduledDays?.includes(today));
-  if (bySchedule) return bySchedule;
-
-  // Round-robin: next unused since last workout
-  const last = history.find(h => program.templateIds.includes(h.templateId));
+  // Advance only when a workout from this program has been completed.
+  // Saved history may be imported in any order, and an older program may reuse template ids.
+  const startedAt = new Date(program.startedAt).getTime();
+  const last = history
+    .filter(h => program.templateIds.includes(h.templateId) && (!Number.isFinite(startedAt) || h.endTime >= startedAt))
+    .sort((a, b) => b.endTime - a.endTime)[0];
   if (!last) return ordered[0];
   const lastIdx = ordered.findIndex(t => t.id === last.templateId);
-  return ordered[(lastIdx + 1) % ordered.length];
+  return ordered[lastIdx < 0 ? 0 : (lastIdx + 1) % ordered.length];
 }
 
 export function estimateWorkoutMinutes(template: WorkoutTemplate): number {

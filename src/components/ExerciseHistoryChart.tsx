@@ -4,12 +4,14 @@ import type { ExerciseSession } from '../types';
 interface ExerciseHistoryChartProps {
   history: ExerciseSession[];
   weeks?: number;
+  trackingMode?: 'reps' | 'duration' | 'distance';
 }
 
 /** Compact SVG sparkline of working weight + volume over recent sessions */
 export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
   history,
-  weeks = 8
+  weeks = 8,
+  trackingMode = 'reps'
 }) => {
   const points = useMemo(() => {
     const cutoff = Date.now() - weeks * 7 * 86400000;
@@ -17,11 +19,11 @@ export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
       .filter(h => new Date(h.date).getTime() >= cutoff)
       .slice(-weeks)
       .map(h => ({
-        weight: h.weight,
+        value: trackingMode === 'duration' ? (h.totalDurationSeconds || 0) : h.weight,
         volume: h.totalVolume,
         label: new Date(h.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
       }));
-  }, [history, weeks]);
+  }, [history, weeks, trackingMode]);
 
   if (points.length < 2) {
     return (
@@ -32,13 +34,13 @@ export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
   const w = 280;
   const h = 72;
   const pad = 8;
-  const maxW = Math.max(...points.map(p => p.weight), 1);
-  const minW = Math.min(...points.map(p => p.weight));
+  const maxW = Math.max(...points.map(p => p.value), 1);
+  const minW = Math.min(...points.map(p => p.value));
   const span = Math.max(maxW - minW, 1);
 
   const coords = points.map((p, i) => {
     const x = pad + (i / (points.length - 1)) * (w - pad * 2);
-    const y = h - pad - ((p.weight - minW) / span) * (h - pad * 2);
+    const y = h - pad - ((p.value - minW) / span) * (h - pad * 2);
     return { x, y, ...p };
   });
 
@@ -46,14 +48,17 @@ export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
   const area = `${line} L${coords[coords.length - 1].x},${h - pad} L${coords[0].x},${h - pad} Z`;
   const last = coords[coords.length - 1];
   const first = coords[0];
-  const delta = last.weight - first.weight;
+  const delta = last.value - first.value;
+  const valueLabel = (value: number) => trackingMode === 'duration'
+    ? `${Math.round(value / 60)} мин`
+    : `${value.toFixed(1)} кг`;
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Вес · {weeks} нед.</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{trackingMode === 'duration' ? 'Кардио · время' : 'Вес'} · {weeks} нед.</p>
         <p className={`text-xs font-mono font-bold ${delta >= 0 ? 'text-lime' : 'text-amber-400'}`}>
-          {delta >= 0 ? '+' : ''}{delta.toFixed(1)} кг
+          {delta >= 0 ? '+' : '−'}{valueLabel(Math.abs(delta))}
         </p>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-20 overflow-visible" role="img" aria-label="График веса">
@@ -65,7 +70,7 @@ export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
       </svg>
       <div className="flex justify-between text-[10px] text-muted font-mono">
         <span>{first.label}</span>
-        <span>{last.weight} кг · объём {last.volume}</span>
+        <span>{valueLabel(last.value)}{trackingMode === 'duration' ? '' : ` · объём ${last.volume}`}</span>
         <span>{last.label}</span>
       </div>
     </div>

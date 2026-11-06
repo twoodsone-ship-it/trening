@@ -29,7 +29,7 @@ const STORAGE_KEYS = {
   ACTIVE_PROGRAM: 'ironforge_active_program_v1'
 };
 
-const TEMPLATES_VERSION = 'v3.0';
+const TEMPLATES_VERSION = 'v4.0';
 
 const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
@@ -90,6 +90,9 @@ export function migrateExercise(rawEx: any): Exercise {
       ? Number(rawEx.currentWeight)
       : (catalogItem?.defaultWeight ?? 50),
     restSeconds: Number(rawEx.restSeconds) || catalogItem?.restSeconds || 90,
+    trackingMode: rawEx.trackingMode || catalogItem?.trackingMode || 'reps',
+    defaultDurationSeconds: Number(rawEx.defaultDurationSeconds) || catalogItem?.defaultDurationSeconds,
+    cardioIntensity: rawEx.cardioIntensity || catalogItem?.cardioIntensity,
     notes: rawEx.notes,
     history: Array.isArray(rawEx.history) ? rawEx.history : []
   };
@@ -105,6 +108,7 @@ export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
     description: t.description || '',
     icon: t.icon || 'Flame',
     weekVariant: t.weekVariant || 'all',
+    scheduledDays: Array.isArray(t.scheduledDays) ? t.scheduledDays : undefined,
     exercises: Array.isArray(t.exercises) ? t.exercises.map(migrateExercise) : []
   }));
 }
@@ -134,6 +138,9 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
       weightStep: Number(rawEx.weightStep) || catalogItem?.weightStep || 2.5,
       targetWeight: Number(rawEx.targetWeight) || catalogItem?.defaultWeight || 50,
       restSeconds: Number(rawEx.restSeconds) || catalogItem?.restSeconds || 90,
+      trackingMode: rawEx.trackingMode || catalogItem?.trackingMode || 'reps',
+      defaultDurationSeconds: Number(rawEx.defaultDurationSeconds) || catalogItem?.defaultDurationSeconds,
+      cardioIntensity: rawEx.cardioIntensity || catalogItem?.cardioIntensity,
       sets: Array.isArray(rawEx.sets) ? rawEx.sets : [],
       recommendation: rawEx.recommendation || {
         decision: 'FIRST_SESSION',
@@ -154,6 +161,8 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
     templateName: workout.templateName || 'Тренировка',
     readiness: (workout.readiness as ReadinessLevel) || 'optimal',
     startTime: Number(workout.startTime) || Date.now(),
+    cycleWeek: workout.cycleWeek,
+    cyclePhase: workout.cyclePhase,
     exercises: migratedExercises
   };
 }
@@ -198,41 +207,81 @@ export const storageService = {
 
   saveCompletedWorkout(workout: CompletedWorkout) {
     const history = this.getHistory();
+    if (history.some(existing => existing.id === workout.id)) return;
+    this.createEmergencySnapshot();
     history.unshift(workout);
-    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
-
     const templates = this.getTemplates();
     const template = templates.find(t => t.id === workout.templateId);
     if (template) {
       workout.exercises.forEach(completedEx => {
-        const exercise = template.exercises.find(e => e.id === completedEx.exerciseId);
-        if (exercise) {
-          if (completedEx.progression.decision === 'INCREASE_WEIGHT') {
-            exercise.currentWeight = completedEx.progression.nextWeight;
+        let exercise = template.exercises.find(e => e.id === completedEx.exerciseId);
+        if (!exercise) {
+          const prior = templates.flatMap(t => t.exercises).find(e => e.id === completedEx.exerciseId);
+          if (prior) {
+            exercise = { ...prior, history: [...prior.history] };
+            template.exercises.push(exercise);
           }
-
-          const totalVol = completedEx.sets.reduce((sum, s) => sum + (s.weight * s.reps), 0);
-          const maxSet1RM = Math.max(...completedEx.sets.map(s => {
-            if (s.reps <= 0) return 0;
-            return s.weight * (1 + s.reps / 30);
-          }), 0);
-
-          exercise.history.push({
-            id: 'h-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-            workoutId: workout.id,
-            date: new Date(workout.endTime).toISOString(),
+        }
+        if (!exercise) {
+          const catalog = EXERCISE_CATALOG[completedEx.exerciseId];
+          exercise = {
+            id: completedEx.exerciseId,
+            name: completedEx.name,
+            category: completedEx.category,
+            equipment: catalog?.equipment,
+            animationType: catalog?.animationType,
+            gifUrl: catalog?.gifUrl,
+            technique: catalog?.technique,
+            alternatives: catalog?.alternatives,
             targetSets: completedEx.targetSets,
             minReps: completedEx.minReps,
             maxReps: completedEx.maxReps,
-            weight: completedEx.workingWeight,
-            sets: completedEx.sets,
-            totalVolume: Math.round(totalVol),
-            estimated1RM: Math.round(maxSet1RM * 10) / 10,
-            progressionNote: completedEx.progression.badgeText
-          });
+            weightStep: catalog?.weightStep || 0,
+            currentWeight: completedEx.workingWeight,
+            restSeconds: catalog?.restSeconds || 60,
+            trackingMode: completedEx.trackingMode || catalog?.trackingMode || 'reps',
+            defaultDurationSeconds: catalog?.defaultDurationSeconds,
+            cardioIntensity: catalog?.cardioIntensity,
+            history: []
+          };
+          template.exercises.push(exercise);
         }
+        if (workout.cyclePhase !== 'deload' && completedEx.progression.decision === 'INCREASE_WEIGHT') {
+          exercise.currentWeight = completedEx.progression.nextWeight;
+        }
+
+        const workingSets = completedEx.sets.filter(s => s.type !== 'warmup' && !s.isWarmup);
+        const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+        const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+        const maxSet1RM = Math.max(...workingSets.map(s => {
+          if (s.reps <= 0 || s.weight <= 0) return 0;
+          return s.weight * (1 + s.reps / 30);
+        }), 0);
+
+        exercise.history.push({
+          id: 'h-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+          workoutId: workout.id,
+          date: new Date(workout.endTime).toISOString(),
+          targetSets: completedEx.targetSets,
+          minReps: completedEx.minReps,
+          maxReps: completedEx.maxReps,
+          weight: completedEx.workingWeight,
+          sets: completedEx.sets,
+          totalVolume: Math.round(totalVol),
+          totalDurationSeconds: totalDuration || undefined,
+          estimated1RM: Math.round(maxSet1RM * 10) / 10,
+          progressionNote: completedEx.progression.badgeText
+        });
       });
-      this.saveTemplates(templates);
+    }
+    try {
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+      this.clearEmergencySnapshot();
+    } catch (error) {
+      this.restoreEmergencySnapshot();
+      throw error;
     }
   },
 
@@ -302,12 +351,13 @@ export const storageService = {
 
   exportBackupJson(): string {
     const backup = {
-      version: '1.1',
+      version: '1.2',
       exportDate: new Date().toISOString(),
       templates: this.getTemplates(),
       history: this.getHistory(),
       settings: this.getSettings(),
-      customExercises: this.getCustomExercises()
+      customExercises: this.getCustomExercises(),
+      activeWorkout: this.getActiveWorkout()
     };
     return JSON.stringify(backup, null, 2);
   },
@@ -365,22 +415,30 @@ export const storageService = {
   importBackupJson(jsonString: string): boolean {
     try {
       const data = JSON.parse(jsonString);
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+      if (data.templates !== undefined && !Array.isArray(data.templates)) return false;
+      if (data.history !== undefined && !Array.isArray(data.history)) return false;
+      if (data.customExercises !== undefined && !Array.isArray(data.customExercises)) return false;
+      if (data.settings !== undefined && (!data.settings || typeof data.settings !== 'object' || Array.isArray(data.settings))) return false;
+      const nextTemplates = data.templates ? migrateTemplatesList(data.templates) : null;
+      const nextHistory = data.history ?? null;
+      const nextActiveWorkout = data.activeWorkout === undefined ? undefined : migrateActiveSession(data.activeWorkout);
       this.createEmergencySnapshot();
-
-      if (data.templates && Array.isArray(data.templates)) {
-        localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(migrateTemplatesList(data.templates)));
+      if (nextTemplates) {
+        localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(nextTemplates));
+        localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
       }
-      if (data.history && Array.isArray(data.history)) {
-        localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(data.history));
+      if (nextHistory) localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+      if (data.settings) localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
+      if (data.customExercises) localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(data.customExercises));
+      if (nextActiveWorkout !== undefined) {
+        if (nextActiveWorkout) localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT, JSON.stringify(nextActiveWorkout));
+        else localStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKOUT);
       }
-      if (data.settings) {
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
-      }
-      if (data.customExercises && Array.isArray(data.customExercises)) {
-        localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(data.customExercises));
-      }
+      this.clearEmergencySnapshot();
       return true;
     } catch (e) {
+      this.restoreEmergencySnapshot();
       console.error('Import failed', e);
       return false;
     }
@@ -407,7 +465,9 @@ export const storageService = {
     try {
       const normalize = (p: ActiveProgram): ActiveProgram => ({
         ...p,
-        gymProfile: p.gymProfile || this.getSettings().gymProfile || 'full'
+        gymProfile: p.gymProfile || this.getSettings().gymProfile || 'full',
+        coreSessionsPerWeek: p.coreSessionsPerWeek ?? 2,
+        cardioSessionsPerWeek: p.cardioSessionsPerWeek ?? (p.goal === 'cut' ? Math.min(3, p.daysPerWeek) : p.goal === 'recomp' ? Math.min(2, p.daysPerWeek) : 0)
       });
       const fromSettings = this.getSettings().activeProgram;
       if (fromSettings) return normalize(fromSettings);

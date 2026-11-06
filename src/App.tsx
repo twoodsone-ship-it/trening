@@ -47,6 +47,7 @@ export const App: React.FC = () => {
     setIsSettingsOpen,
     loadData,
     applyProgram,
+    saveProgramEdits,
     startWorkout,
     finishWorkout,
     cancelWorkout,
@@ -88,6 +89,8 @@ export const App: React.FC = () => {
             workoutName={activeWorkout.templateName}
             templateId={activeWorkout.templateId}
             readiness={activeWorkout.readiness}
+            cycleWeek={activeWorkout.cycleWeek}
+            cyclePhase={activeWorkout.cyclePhase}
             startTime={activeWorkout.startTime}
             exercises={activeWorkout.exercises}
             settings={settings}
@@ -105,8 +108,8 @@ export const App: React.FC = () => {
                 templates={templates}
                 history={history}
                 activeProgram={activeProgram}
-                hasActiveWorkout={!!activeWorkout}
                 onApplyProgram={applyProgram}
+                onSaveProgram={saveProgramEdits}
                 onStartWorkout={startWorkout}
                 onSetupVisibilityChange={setProgramSetupOpen}
               />

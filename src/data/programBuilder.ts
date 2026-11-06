@@ -99,12 +99,15 @@ function createExercise(
     gifUrl: item.gifUrl,
     technique: item.technique,
     alternatives: item.alternatives,
-    targetSets: sets,
-    minReps: goal === 'strength' && isCompound ? 5 : (item.minReps || minReps),
-    maxReps: goal === 'strength' && isCompound ? 8 : (item.maxReps || maxReps),
+    targetSets: item.category === 'Cardio' ? item.defaultSets : sets,
+    minReps: item.trackingMode === 'duration' ? 0 : goal === 'strength' && isCompound ? 5 : (item.minReps || minReps),
+    maxReps: item.trackingMode === 'duration' ? 0 : goal === 'strength' && isCompound ? 8 : (item.maxReps || maxReps),
     weightStep: item.weightStep,
     currentWeight: item.defaultWeight,
-    restSeconds: isCompound ? Math.max(g.restSeconds, item.restSeconds) : g.restSeconds,
+    restSeconds: item.category === 'Cardio' ? item.restSeconds : isCompound ? Math.max(g.restSeconds, item.restSeconds) : g.restSeconds,
+    trackingMode: item.trackingMode || 'reps',
+    defaultDurationSeconds: item.defaultDurationSeconds,
+    cardioIntensity: item.cardioIntensity,
     history: historyMap.get(id) || []
   };
 }
@@ -121,31 +124,50 @@ const CORE_ROTATION = [
 
 const CORE_IDS = new Set<string>(CORE_ROTATION);
 
-/** Short direct core — fine every session as a finisher (1 movement). */
-function withDailyCore(slot: SlotDef, dayIndex: number): SlotDef {
-  if (slot.exerciseIds.some(id => CORE_IDS.has(id))) return slot;
-  const coreId = CORE_ROTATION[dayIndex % CORE_ROTATION.length];
-  return {
-    ...slot,
-    focus: slot.focus.includes('Кор') ? slot.focus : `${slot.focus} · Кор`,
-    exerciseIds: [...slot.exerciseIds, coreId]
-  };
+function spacedDays(days: number, count: number): Set<number> {
+  const bounded = Math.max(0, Math.min(days, count));
+  return new Set(Array.from({ length: bounded }, (_, i) => Math.floor(i * days / bounded)));
 }
 
-/** Cardio finisher for cut + recomp (density / calorie burn without killing strength days). */
-function withGoalCardio(slot: SlotDef, dayIndex: number, goal: ProgramGoal): SlotDef {
-  if (goal !== 'cut' && goal !== 'recomp') return slot;
-  const cardioId = FINISHER_CARDIO[dayIndex % FINISHER_CARDIO.length];
-  if (slot.exerciseIds.includes(cardioId)) return slot;
-  return {
-    ...slot,
-    focus: `${slot.focus} · Кардио`,
-    exerciseIds: [...slot.exerciseIds, cardioId]
-  };
+/** Add direct core on selected days; it is never forced onto every workout. */
+function decorateSlots(
+  source: SlotDef[],
+  goal: ProgramGoal,
+  coreSessionsPerWeek: number,
+  cardioSessionsPerWeek: number
+): SlotDef[] {
+  const coreDays = spacedDays(source.length, coreSessionsPerWeek);
+  const cardioDays = spacedDays(source.length, cardioSessionsPerWeek);
+  let coreIndex = 0;
+  return source.map((sourceSlot, dayIndex) => {
+    const baseIds = sourceSlot.exerciseIds.filter(id => !CORE_IDS.has(id));
+    const slot: SlotDef = { ...sourceSlot, exerciseIds: baseIds };
+    const additions: string[] = [];
+    const tags: string[] = [];
+    if (coreDays.has(dayIndex)) {
+      additions.push(CORE_ROTATION[coreIndex % CORE_ROTATION.length]);
+      coreIndex += 1;
+      tags.push('Кор');
+    }
+    if (cardioDays.has(dayIndex)) {
+      additions.push(FINISHER_CARDIO[dayIndex % FINISHER_CARDIO.length]);
+      tags.push('Кардио');
+    }
+    return {
+      ...slot,
+      focus: tags.length ? `${slot.focus} · ${tags.join(' + ')}` : slot.focus,
+      exerciseIds: [...slot.exerciseIds, ...additions]
+    };
+  });
 }
 
 /** Day blueprints keyed by frequency */
-function slotsForDays(days: DaysPerWeek, goal: ProgramGoal = 'recomp'): SlotDef[] {
+function slotsForDays(
+  days: DaysPerWeek,
+  goal: ProgramGoal = 'recomp',
+  coreSessionsPerWeek = 2,
+  cardioSessionsPerWeek = goal === 'cut' ? Math.min(3, days) : goal === 'recomp' ? Math.min(2, days) : 0
+): SlotDef[] {
   const fullA: SlotDef = {
     id: 'fb-a',
     dayLabel: 'Full Body A',
@@ -224,7 +246,30 @@ function slotsForDays(days: DaysPerWeek, goal: ProgramGoal = 'recomp'): SlotDef[
     }
   })();
 
-  return raw.map((slot, i) => withGoalCardio(withDailyCore(slot, i), i, goal));
+  return decorateSlots(raw, goal, coreSessionsPerWeek, cardioSessionsPerWeek);
+}
+
+export type ProgramCyclePhase = 'base' | 'progress' | 'overload' | 'deload';
+export interface ProgramCycleState {
+  week: 1 | 2 | 3 | 4;
+  block: number;
+  phase: ProgramCyclePhase;
+  title: string;
+  description: string;
+}
+
+const CYCLE_WEEKS: Array<Pick<ProgramCycleState, 'phase' | 'title' | 'description'>> = [
+  { phase: 'base', title: 'Освоение нагрузки', description: 'Работай с запасом, закрепи технику и исходный объём.' },
+  { phase: 'progress', title: 'Прогрессия', description: 'Постепенно добавляй повторы или вес при чистой технике.' },
+  { phase: 'overload', title: 'Нагрузка', description: 'Сохраняй качество подходов и используй рекомендации по прогрессии.' },
+  { phase: 'deload', title: 'Разгрузка', description: 'Меньше рабочих подходов и около 90% обычного веса.' }
+];
+
+export function getProgramCycle(startedAt: string, now = Date.now()): ProgramCycleState {
+  const start = new Date(startedAt).getTime();
+  const elapsedWeeks = Number.isFinite(start) ? Math.max(0, Math.floor((now - start) / (7 * 86400000))) : 0;
+  const week = (elapsedWeeks % 4 + 1) as 1 | 2 | 3 | 4;
+  return { week, block: Math.floor(elapsedWeeks / 4) + 1, ...CYCLE_WEEKS[week - 1] };
 }
 
 function goalTitle(goal: ProgramGoal): string {
@@ -253,7 +298,9 @@ export function buildProgramTemplates(
   goal: ProgramGoal,
   daysPerWeek: DaysPerWeek,
   previousTemplates: WorkoutTemplate[] = [],
-  gymProfile: GymProfile = 'full'
+  gymProfile: GymProfile = 'full',
+  coreSessionsPerWeek = 2,
+  cardioSessionsPerWeek = goal === 'cut' ? Math.min(3, daysPerWeek) : goal === 'recomp' ? Math.min(2, daysPerWeek) : 0
 ): { program: ActiveProgram; templates: WorkoutTemplate[] } {
   const historyMap = new Map<string, ExerciseSession[]>();
   const weightMap = new Map<string, number>();
@@ -264,7 +311,7 @@ export function buildProgramTemplates(
     });
   });
 
-  const slots = slotsForDays(daysPerWeek, goal);
+  const slots = slotsForDays(daysPerWeek, goal, coreSessionsPerWeek, cardioSessionsPerWeek);
   const weekdays = preferredWeekdays(daysPerWeek);
   const gymLabel = gymProfile === 'full' ? 'зал' : gymProfile === 'dumbbells' ? 'гантели' : 'дом';
   const title = `${goalTitle(goal)} · ${daysPerWeek}×/нед · ${gymLabel}`;
@@ -294,10 +341,53 @@ export function buildProgramTemplates(
     gymProfile,
     title,
     startedAt: new Date().toISOString(),
-    templateIds: templates.map(t => t.id)
+    templateIds: templates.map(t => t.id),
+    coreSessionsPerWeek: Math.min(coreSessionsPerWeek, daysPerWeek) as 0 | 1 | 2 | 3 | 4,
+    cardioSessionsPerWeek: Math.max(0, Math.min(cardioSessionsPerWeek, daysPerWeek))
   };
 
   return { program, templates };
+}
+
+/** Reassign existing core/cardio accessories across the weekly split without losing exercise history. */
+export function applyAccessorySchedule(
+  templates: WorkoutTemplate[],
+  goal: ProgramGoal,
+  gymProfile: GymProfile,
+  coreSessionsPerWeek: number,
+  cardioSessionsPerWeek: number
+): WorkoutTemplate[] {
+  const coreDays = spacedDays(templates.length, coreSessionsPerWeek);
+  const cardioDays = spacedDays(templates.length, cardioSessionsPerWeek);
+  const historyMap = new Map<string, ExerciseSession[]>();
+  const weightMap = new Map<string, number>();
+  templates.forEach(t => t.exercises.forEach(ex => {
+    if (ex.history?.length) historyMap.set(ex.id, ex.history);
+    if (ex.currentWeight > 0) weightMap.set(ex.id, ex.currentWeight);
+  }));
+  let coreIndex = 0;
+
+  return templates.map((template, index) => {
+    const exercises = template.exercises.filter(ex => ex.category !== 'Core' && ex.category !== 'Cardio');
+    const ids: string[] = [];
+    if (coreDays.has(index)) {
+      ids.push(CORE_ROTATION[coreIndex % CORE_ROTATION.length]);
+      coreIndex += 1;
+    }
+    if (cardioDays.has(index)) ids.push(FINISHER_CARDIO[index % FINISHER_CARDIO.length]);
+    const accessories = adaptExerciseIds(ids, gymProfile).map(id => {
+      const exercise = createExercise(id, goal, historyMap);
+      if (weightMap.has(id)) exercise.currentWeight = weightMap.get(id)!;
+      return exercise;
+    });
+    const cleanFocus = template.description.replace(/ · (?:Кор|Кардио)(?: \+ (?:Кор|Кардио))*$/, '');
+    const tags = [coreDays.has(index) ? 'Кор' : '', cardioDays.has(index) ? 'Кардио' : ''].filter(Boolean);
+    return {
+      ...template,
+      description: tags.length ? `${cleanFocus} · ${tags.join(' + ')}` : cleanFocus,
+      exercises: [...exercises, ...accessories]
+    };
+  });
 }
 
 export function buildWorkoutBriefing(template: WorkoutTemplate, goal?: ProgramGoal): {
@@ -345,7 +435,11 @@ export function pickTodaysTemplate(
 }
 
 export function estimateWorkoutMinutes(template: WorkoutTemplate): number {
-  const sets = template.exercises.reduce((s, e) => s + e.targetSets, 0);
-  const avgRest = template.exercises.reduce((s, e) => s + e.restSeconds, 0) / Math.max(template.exercises.length, 1);
-  return Math.round((sets * (45 + avgRest)) / 60);
+  const minutes = template.exercises.reduce((sum, ex) => {
+    if (ex.trackingMode === 'duration' && ex.defaultDurationSeconds) {
+      return sum + (ex.targetSets * ex.defaultDurationSeconds + Math.max(0, ex.targetSets - 1) * ex.restSeconds) / 60;
+    }
+    return sum + (ex.targetSets * 45 + Math.max(0, ex.targetSets - 1) * ex.restSeconds) / 60;
+  }, 0);
+  return Math.round(minutes + Math.max(0, template.exercises.length - 1) * 1.5);
 }

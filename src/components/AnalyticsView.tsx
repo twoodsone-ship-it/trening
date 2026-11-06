@@ -9,6 +9,7 @@ import {
 import { CompletedWorkout, WorkoutTemplate } from '../types';
 import { calculate1RM } from '../services/progressionEngine';
 import { calculateStreak, workoutsThisWeek } from '../utils/streak';
+import { WorkoutTrendChart } from './WorkoutTrendChart';
 
 interface AnalyticsViewProps {
   history: CompletedWorkout[];
@@ -17,11 +18,17 @@ interface AnalyticsViewProps {
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates }) => {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
+  const [periodWeeks, setPeriodWeeks] = useState<4 | 8 | 12>(8);
+  const cutoff = Date.now() - periodWeeks * 7 * 86400000;
+  const periodHistory = history.filter(w => w.endTime >= cutoff);
 
   // Compute aggregated stats
-  const totalWorkouts = history.length;
-  const totalVolumeKg = history.reduce((sum, w) => sum + w.totalVolumeKg, 0);
-  const totalSets = history.reduce((sum, w) => sum + w.totalSets, 0);
+  const totalWorkouts = periodHistory.length;
+  const totalVolumeKg = periodHistory.reduce((sum, w) => sum + w.totalVolumeKg, 0);
+  const totalSets = periodHistory.reduce((sum, w) => sum + w.exercises.reduce(
+    (exerciseSum, exercise) => exerciseSum + exercise.sets.filter(s => !s.isWarmup && s.type !== 'warmup').length,
+    0
+  ), 0);
   const totalVolumeTons = (totalVolumeKg / 1000).toFixed(1);
   const streak = calculateStreak(history);
   const weekCount = workoutsThisWeek(history);
@@ -30,10 +37,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
   const prMap = new Map<string, { exerciseName: string; category: string; maxWeight: number; max1RM: number; date: string }>();
 
   // Check history records
-  history.forEach(workout => {
+  periodHistory.forEach(workout => {
     workout.exercises.forEach(ex => {
       ex.sets.forEach(set => {
-        if (set.reps <= 0 || set.weight <= 0) return;
+        if (set.reps <= 0 || set.weight <= 0 || set.isWarmup || set.type === 'warmup' || ex.category === 'Cardio') return;
         const est1RM = calculate1RM(set.weight, set.reps);
         const existing = prMap.get(ex.name);
 
@@ -51,7 +58,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
   });
 
   // Also seed with template current weights if history empty
-  if (prMap.size === 0) {
+  if (prMap.size === 0 && history.length === 0) {
     templates.forEach(t => {
       t.exercises.forEach(e => {
         if (!prMap.has(e.name)) {
@@ -89,6 +96,24 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
           </span>
         </div>
       </div>
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-bold text-sm">Обзор нагрузки</h2>
+            <p className="text-[11px] text-muted">Силовой объём, занятия и кардио</p>
+          </div>
+          <div className="flex gap-1 rounded-xl bg-white/[0.04] border border-white/10 p-1">
+            {([4, 8, 12] as const).map(weeks => (
+              <button key={weeks} type="button" onClick={() => setPeriodWeeks(weeks)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold ${periodWeeks === weeks ? 'bg-lime text-ink' : 'text-muted'}`}>
+                {weeks} нед.
+              </button>
+            ))}
+          </div>
+        </div>
+        <WorkoutTrendChart history={history} weeks={periodWeeks} />
+      </section>
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -173,12 +198,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
           <h2 className="font-bold text-base text-white">История тренировок</h2>
         </div>
 
-        {history.length === 0 ? (
+        {periodHistory.length === 0 ? (
           <div className="surface-panel p-8 text-center text-muted text-sm">
             Журнал пуст. Завершите тренировку во вкладке «Программы», чтобы сохранить историю.
           </div>
         ) : (
-          history.map(workout => {
+          periodHistory.map(workout => {
             const isExpanded = expandedWorkoutId === workout.id;
 
             return (

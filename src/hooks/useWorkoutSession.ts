@@ -13,13 +13,14 @@ import type {
 } from '../types';
 import { storageService } from '../services/storageService';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
-import { buildProgramTemplates } from '../data/programBuilder';
+import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
 
 export type AppTab = 'home' | 'analytics';
 
 function buildActiveExercises(
   template: WorkoutTemplate,
-  readiness: ReadinessLevel
+  readiness: ReadinessLevel,
+  cyclePhase: 'base' | 'progress' | 'overload' | 'deload'
 ): ActiveExerciseSession[] {
   return template.exercises.map(ex => {
     const recommendation = evaluateDoubleProgression(
@@ -34,11 +35,17 @@ function buildActiveExercises(
 
     const lastSession = ex.history.length > 0 ? ex.history[ex.history.length - 1] : undefined;
 
-    const initialSets = Array.from({ length: ex.targetSets }).map((_, i) => ({
+    const targetSets = cyclePhase === 'deload' ? Math.max(1, Math.ceil(ex.targetSets * 0.6)) : ex.targetSets;
+    const deloadWeight = ex.weightStep > 0
+      ? Math.max(ex.weightStep, Math.round((ex.currentWeight * 0.9) / ex.weightStep) * ex.weightStep)
+      : 0;
+    const nextWeight = cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight;
+    const initialSets = Array.from({ length: targetSets }).map((_, i) => ({
       id: 's-' + Date.now() + '-' + i,
       setNumber: i + 1,
-      weight: recommendation.nextWeight,
+      weight: nextWeight,
       reps: ex.minReps,
+      durationSeconds: ex.trackingMode === 'duration' ? (ex.defaultDurationSeconds || 0) : undefined,
       rpe: 8,
       completed: false,
       type: 'working' as const
@@ -54,14 +61,22 @@ function buildActiveExercises(
       technique: ex.technique,
       alternatives: ex.alternatives,
       supersetGroupId: ex.supersetGroupId,
-      targetSets: ex.targetSets,
+      targetSets,
       minReps: ex.minReps,
       maxReps: ex.maxReps,
       weightStep: ex.weightStep,
-      targetWeight: recommendation.nextWeight,
+      targetWeight: nextWeight,
       restSeconds: ex.restSeconds || 90,
       sets: initialSets,
-      recommendation,
+      recommendation: cyclePhase === 'deload'
+        ? {
+            ...recommendation,
+            decision: 'CONSOLIDATE_WEIGHT',
+            nextWeight,
+            badgeText: 'Разгрузочная неделя',
+            suggestedAction: `Выполни ${targetSets} подхода примерно с 90% обычного веса. Оставь запас и сосредоточься на восстановлении.`
+          }
+        : recommendation,
       previousPerformance: lastSession
         ? {
             date: lastSession.date,
@@ -72,8 +87,12 @@ function buildActiveExercises(
       historySessions: ex.history.map(h => ({
         date: h.date,
         weight: h.weight,
-        totalVolume: h.totalVolume
-      }))
+        totalVolume: h.totalVolume,
+        totalDurationSeconds: h.totalDurationSeconds
+      })),
+      trackingMode: ex.trackingMode || 'reps',
+      defaultDurationSeconds: ex.defaultDurationSeconds,
+      cardioIntensity: ex.cardioIntensity
     };
   });
 }
@@ -116,9 +135,15 @@ export function useWorkoutSession() {
     storageService.saveActiveWorkout(activeWorkout);
   }, [activeWorkout]);
 
-  const applyProgram = useCallback((goal: ProgramGoal, days: DaysPerWeek, gym: GymProfile = 'full') => {
+  const applyProgram = useCallback((
+    goal: ProgramGoal,
+    days: DaysPerWeek,
+    gym: GymProfile = 'full',
+    coreSessions: 0 | 1 | 2 | 3 | 4 = 2,
+    cardioSessions = goal === 'cut' ? Math.min(3, days) : goal === 'recomp' ? Math.min(2, days) : 0
+  ) => {
     const previous = storageService.getTemplates();
-    const { program, templates: generated } = buildProgramTemplates(goal, days, previous, gym);
+    const { program, templates: generated } = buildProgramTemplates(goal, days, previous, gym, coreSessions, cardioSessions);
     storageService.applyGeneratedProgram(program, generated);
     const nextSettings = {
       ...storageService.getSettings(),
@@ -133,17 +158,28 @@ export function useWorkoutSession() {
     setSettings(nextSettings);
   }, []);
 
+  const saveProgramEdits = useCallback((nextTemplates: WorkoutTemplate[], nextProgram: ActiveProgram) => {
+    storageService.saveTemplates(nextTemplates);
+    storageService.saveActiveProgram(nextProgram);
+    setTemplates(nextTemplates);
+    setActiveProgram(nextProgram);
+    setSettings(storageService.getSettings());
+  }, []);
+
   const startWorkout = useCallback((template: WorkoutTemplate, readiness: ReadinessLevel = 'optimal') => {
     setPendingSummary(null);
+    const cycle = activeProgram ? getProgramCycle(activeProgram.startedAt) : null;
     setActiveWorkout({
       templateId: template.id,
       templateName: template.name,
       readiness,
       startTime: Date.now(),
-      exercises: buildActiveExercises(template, readiness)
+      cycleWeek: cycle?.week,
+      cyclePhase: cycle?.phase,
+      exercises: buildActiveExercises(template, readiness, cycle?.phase || 'base')
     });
     setIsViewActiveWorkout(true);
-  }, []);
+  }, [activeProgram]);
 
   const finishWorkout = useCallback((completed: CompletedWorkout) => {
     storageService.saveCompletedWorkout(completed);
@@ -206,6 +242,7 @@ export function useWorkoutSession() {
     setIsSettingsOpen,
     loadData,
     applyProgram,
+    saveProgramEdits,
     startWorkout,
     finishWorkout,
     cancelWorkout,

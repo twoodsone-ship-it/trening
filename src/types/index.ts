@@ -19,6 +19,8 @@ export interface WorkoutSet {
   setNumber: number;
   weight: number;
   reps: number;
+  durationSeconds?: number;
+  distanceMeters?: number;
   rpe?: number;
   completed: boolean;
   isWarmup?: boolean;
@@ -29,6 +31,8 @@ export interface SetHistoryEntry {
   setNumber: number;
   weight: number;
   reps: number;
+  durationSeconds?: number;
+  distanceMeters?: number;
   rpe?: number;
   type?: WorkoutSetType;
   isWarmup?: boolean;
@@ -45,6 +49,7 @@ export interface ExerciseSession {
   sets: SetHistoryEntry[];
   progressionNote?: string;
   totalVolume: number;
+  totalDurationSeconds?: number;
   estimated1RM: number;
 }
 
@@ -67,6 +72,9 @@ export interface Exercise {
   currentWeight: number;
   restSeconds: number;
   notes?: string;
+  trackingMode?: 'reps' | 'duration' | 'distance';
+  defaultDurationSeconds?: number;
+  cardioIntensity?: 'easy' | 'moderate' | 'intervals';
   history: ExerciseSession[];
 }
 
@@ -124,7 +132,10 @@ export interface ActiveExerciseSession {
     sets: SetHistoryEntry[];
   };
   /** Compact history for in-workout progress chart */
-  historySessions?: { date: string; weight: number; totalVolume: number }[];
+  historySessions?: { date: string; weight: number; totalVolume: number; totalDurationSeconds?: number }[];
+  trackingMode?: 'reps' | 'duration' | 'distance';
+  defaultDurationSeconds?: number;
+  cardioIntensity?: 'easy' | 'moderate' | 'intervals';
 }
 
 export interface ActiveWorkout {
@@ -132,6 +143,8 @@ export interface ActiveWorkout {
   templateName: string;
   readiness?: ReadinessLevel;
   startTime: number;
+  cycleWeek?: number;
+  cyclePhase?: 'base' | 'progress' | 'overload' | 'deload';
   exercises: ActiveExerciseSession[];
 }
 
@@ -145,6 +158,9 @@ export interface CompletedWorkout {
   durationMinutes: number;
   totalVolumeKg: number;
   totalSets: number;
+  totalCardioSeconds?: number;
+  cycleWeek?: number;
+  cyclePhase?: 'base' | 'progress' | 'overload' | 'deload';
   exercises: {
     exerciseId: string;
     name: string;
@@ -153,6 +169,7 @@ export interface CompletedWorkout {
     minReps: number;
     maxReps: number;
     workingWeight: number;
+    trackingMode?: 'reps' | 'duration' | 'distance';
     sets: SetHistoryEntry[];
     progression: ProgressionRecommendation;
   }[];
@@ -174,6 +191,10 @@ export interface ActiveProgram {
   startedAt: string;
   /** Template ids in weekly order */
   templateIds: string[];
+  /** Planned direct core sessions in each weekly split. */
+  coreSessionsPerWeek?: 0 | 1 | 2 | 3 | 4;
+  /** Planned cardio finishers; zero disables generated cardio. */
+  cardioSessionsPerWeek?: number;
 }
 
 export interface ProgramAdaptationAdvice {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { Home, BarChart2, Settings } from 'lucide-react';
 import { cn } from '../utils/cn';
 
@@ -17,8 +17,27 @@ export const Navigation: React.FC<NavigationProps> = ({
   hasActiveWorkout,
   onReturnToActiveWorkout
 }) => {
+  const navRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const element = navRef.current;
+    if (!element) return;
+    const updateHeight = () => {
+      document.documentElement.style.setProperty('--bottom-nav-height', `${Math.ceil(element.getBoundingClientRect().height)}px`);
+    };
+    updateHeight();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateHeight) : null;
+    observer?.observe(element);
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateHeight);
+      document.documentElement.style.removeProperty('--bottom-nav-height');
+    };
+  }, [hasActiveWorkout]);
+
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 bg-ink/95 backdrop-blur-xl border-t border-white/10 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+    <div ref={navRef} className="fixed bottom-0 inset-x-0 z-40 bg-ink/95 backdrop-blur-xl border-t border-white/10 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
       {hasActiveWorkout && (
         <div className="max-w-md mx-auto mb-2 px-1">
           <button

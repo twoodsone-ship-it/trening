@@ -13,6 +13,9 @@ export interface CatalogExerciseItem {
   weightStep: number;
   defaultWeight: number;
   restSeconds: number;
+  trackingMode?: 'reps' | 'duration' | 'distance';
+  defaultDurationSeconds?: number;
+  cardioIntensity?: 'easy' | 'moderate' | 'intervals';
   alternatives: string[]; // Guaranteed to exist in EXERCISE_CATALOG
   technique: ExerciseTechniqueGuide;
 }
@@ -2140,12 +2143,15 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     category: 'Cardio',
     equipment: 'bodyweight',
     animationType: 'cardio',
-    defaultSets: 3,
-    minReps: 40,
-    maxReps: 90,
+    defaultSets: 4,
+    minReps: 0,
+    maxReps: 0,
     weightStep: 0,
     defaultWeight: 0,
     restSeconds: 45,
+    trackingMode: 'duration',
+    defaultDurationSeconds: 45,
+    cardioIntensity: 'intervals',
     alternatives: ['burpees', 'mountain-climbers', 'stationary-bike'],
     technique: {
       primaryMuscles: 'Икры, сердечно-сосудистая система',
@@ -2167,6 +2173,8 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     weightStep: 0,
     defaultWeight: 0,
     restSeconds: 60,
+    trackingMode: 'reps',
+    cardioIntensity: 'intervals',
     alternatives: ['mountain-climbers', 'jump-rope', 'push-ups'],
     technique: {
       primaryMuscles: 'Всё тело, кардио',
@@ -2183,11 +2191,14 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     equipment: 'bodyweight',
     animationType: 'cardio',
     defaultSets: 3,
-    minReps: 20,
-    maxReps: 40,
+    minReps: 0,
+    maxReps: 0,
     weightStep: 0,
     defaultWeight: 0,
     restSeconds: 45,
+    trackingMode: 'duration',
+    defaultDurationSeconds: 40,
+    cardioIntensity: 'intervals',
     alternatives: ['burpees', 'jump-rope', 'plank'],
     technique: {
       primaryMuscles: 'Кор, сгибатели бедра, кардио',
@@ -2204,11 +2215,14 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     equipment: 'machine',
     animationType: 'cardio',
     defaultSets: 1,
-    minReps: 8,
-    maxReps: 15,
+    minReps: 0,
+    maxReps: 0,
     weightStep: 0,
     defaultWeight: 0,
     restSeconds: 30,
+    trackingMode: 'duration',
+    defaultDurationSeconds: 600,
+    cardioIntensity: 'moderate',
     alternatives: ['rowing-machine', 'jump-rope', 'burpees'],
     technique: {
       primaryMuscles: 'Квадрицепсы, ягодицы, кардио',
@@ -2225,11 +2239,14 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     equipment: 'machine',
     animationType: 'cardio',
     defaultSets: 1,
-    minReps: 6,
-    maxReps: 12,
+    minReps: 0,
+    maxReps: 0,
     weightStep: 0,
     defaultWeight: 0,
     restSeconds: 45,
+    trackingMode: 'duration',
+    defaultDurationSeconds: 480,
+    cardioIntensity: 'moderate',
     alternatives: ['stationary-bike', 'burpees', 'jump-rope'],
     technique: {
       primaryMuscles: 'Спина, ноги, кардио',

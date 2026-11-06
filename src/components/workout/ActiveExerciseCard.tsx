@@ -16,13 +16,14 @@ interface ActiveExerciseCardProps {
   onCopyPrevious: (setIdx: number) => void;
   onWeightDelta: (setIdx: number, delta: number) => void;
   onRepsDelta: (setIdx: number, delta: number) => void;
+  onDurationDelta: (setIdx: number, deltaSeconds: number) => void;
   onToggleComplete: (setIdx: number) => void;
   onStartFocus?: (setIdx: number) => void;
   focusSetIdx?: number | null;
   onAddSet: () => void;
   onAddWarmup: () => void;
   onRemoveLastSet: () => void;
-  historySessions?: { date: string; weight: number; totalVolume: number }[];
+  historySessions?: { date: string; weight: number; totalVolume: number; totalDurationSeconds?: number }[];
 }
 
 const badgeStyles: Record<string, string> = {
@@ -44,6 +45,7 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
   onCopyPrevious,
   onWeightDelta,
   onRepsDelta,
+  onDurationDelta,
   onToggleComplete,
   onStartFocus,
   focusSetIdx,
@@ -135,8 +137,10 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
                   weight: h.weight,
                   sets: [],
                   totalVolume: h.totalVolume,
-                  estimated1RM: 0
+                  estimated1RM: 0,
+                  totalDurationSeconds: h.totalDurationSeconds
                 }))}
+                trackingMode={ex.trackingMode || 'reps'}
               />
             </div>
           )}
@@ -157,8 +161,8 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
             <div className="grid grid-cols-[36px_64px_1fr_1fr_48px] gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted px-1 text-center">
               <span>Сет</span>
               <span>Пред.</span>
-              <span>Вес</span>
-              <span>Повт.</span>
+              <span>{ex.trackingMode === 'duration' ? '—' : 'Вес'}</span>
+              <span>{ex.trackingMode === 'duration' ? 'Время' : 'Повт.'}</span>
               <span>✓</span>
             </div>
             {ex.sets.map((set, setIdx) => {
@@ -169,10 +173,12 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
                   set={set}
                   previousSet={prevSet}
                   weightStep={ex.weightStep}
+                  trackingMode={ex.trackingMode || 'reps'}
                   onCycleType={() => onCycleSetType(setIdx)}
                   onCopyPrevious={() => onCopyPrevious(setIdx)}
                   onWeightDelta={(delta) => onWeightDelta(setIdx, delta)}
                   onRepsDelta={(delta) => onRepsDelta(setIdx, delta)}
+                  onDurationDelta={(delta) => onDurationDelta(setIdx, delta)}
                   onToggleComplete={() => onToggleComplete(setIdx)}
                   onStartFocus={onStartFocus ? () => onStartFocus(setIdx) : undefined}
                   isFocusTarget={focusSetIdx === setIdx}

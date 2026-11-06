@@ -34,6 +34,8 @@ interface ActiveWorkoutViewProps {
   workoutName: string;
   templateId: string;
   readiness?: ReadinessLevel;
+  cycleWeek?: number;
+  cyclePhase?: 'base' | 'progress' | 'overload' | 'deload';
   startTime: number;
   exercises: ActiveExerciseSession[];
   settings: AppSettings;
@@ -71,6 +73,8 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   workoutName,
   templateId,
   readiness = 'optimal',
+  cycleWeek,
+  cyclePhase,
   startTime,
   exercises,
   settings,
@@ -151,6 +155,16 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     );
   };
 
+  const updateSetDuration = (exIdx: number, setIdx: number, deltaSeconds: number) => {
+    onUpdateExercises(
+      patchSet(exercises, exIdx, setIdx, s => ({
+        ...s,
+        durationSeconds: Math.max(0, (s.durationSeconds ?? exercises[exIdx].defaultDurationSeconds ?? 60) + deltaSeconds),
+        reps: 0
+      }))
+    );
+  };
+
   const copyPreviousSet = (exIdx: number, setIdx: number) => {
     const prev = exercises[exIdx].previousPerformance?.sets[setIdx];
     if (!prev) return;
@@ -159,6 +173,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         ...s,
         weight: prev.weight,
         reps: prev.reps,
+        durationSeconds: prev.durationSeconds,
         rpe: prev.rpe ?? s.rpe
       }))
     );
@@ -268,6 +283,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           setNumber: i + 1,
           weight: existing.completed ? existing.weight : newCatalogEx.defaultWeight,
           reps: existing.completed ? existing.reps : newCatalogEx.minReps,
+          durationSeconds: existing.completed ? existing.durationSeconds : newCatalogEx.defaultDurationSeconds,
           rpe: existing.rpe || 8,
           completed: existing.completed,
           type: existing.type || 'working',
@@ -302,6 +318,9 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         weightStep: newCatalogEx.weightStep,
         targetWeight: newCatalogEx.defaultWeight,
         restSeconds: newCatalogEx.restSeconds,
+        trackingMode: newCatalogEx.trackingMode || 'reps',
+        defaultDurationSeconds: newCatalogEx.defaultDurationSeconds,
+        cardioIntensity: newCatalogEx.cardioIntensity,
         sets: renumberSets(newSets),
         recommendation
       }))
@@ -334,11 +353,15 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       weightStep: newCatalogEx.weightStep,
       targetWeight: newCatalogEx.defaultWeight,
       restSeconds: newCatalogEx.restSeconds,
+      trackingMode: newCatalogEx.trackingMode || 'reps',
+      defaultDurationSeconds: newCatalogEx.defaultDurationSeconds,
+      cardioIntensity: newCatalogEx.cardioIntensity,
       sets: Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
         id: 's-' + Date.now() + '-' + i,
         setNumber: i + 1,
         weight: newCatalogEx.defaultWeight,
         reps: newCatalogEx.minReps,
+        durationSeconds: newCatalogEx.trackingMode === 'duration' ? newCatalogEx.defaultDurationSeconds : undefined,
         rpe: 8,
         completed: false,
         type: 'working' as const
@@ -355,11 +378,16 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     const duration = Math.max(1, Math.round((endTime - startTime) / 60000));
     let totalVolume = 0;
     let totalSetsCount = 0;
+    let totalCardioSeconds = 0;
 
     const completedExercises = exercises.map(ex => {
       const completedSets = ex.sets.filter(s => s.completed);
-      totalVolume += calculateVolume(completedSets);
-      totalSetsCount += completedSets.length;
+      const workingSets = completedSets.filter(s => !isWarmupSet(s));
+      totalVolume += calculateVolume(workingSets);
+      totalSetsCount += workingSets.length;
+      if (ex.trackingMode === 'duration') {
+        totalCardioSeconds += workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+      }
       return {
         exerciseId: ex.exerciseId,
         name: ex.name,
@@ -368,10 +396,13 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         minReps: ex.minReps,
         maxReps: ex.maxReps,
         workingWeight: ex.targetWeight,
+        trackingMode: ex.trackingMode || 'reps',
         sets: completedSets.map(s => ({
           setNumber: s.setNumber,
           weight: s.weight,
           reps: s.reps,
+          durationSeconds: s.durationSeconds,
+          distanceMeters: s.distanceMeters,
           rpe: s.rpe,
           type: s.type || (s.isWarmup ? 'warmup' as const : 'working' as const),
           isWarmup: isWarmupSet(s)
@@ -393,11 +424,14 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       templateId,
       templateName: workoutName,
       readiness,
+      cycleWeek,
+      cyclePhase,
       startTime,
       endTime,
       durationMinutes: duration,
       totalVolumeKg: Math.round(totalVolume),
       totalSets: totalSetsCount,
+      totalCardioSeconds,
       exercises: completedExercises
     });
   };
@@ -518,6 +552,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       onCopyPrevious={(setIdx) => copyPreviousSet(exIdx, setIdx)}
       onWeightDelta={(setIdx, delta) => updateSetWeight(exIdx, setIdx, delta)}
       onRepsDelta={(setIdx, delta) => updateSetReps(exIdx, setIdx, delta)}
+      onDurationDelta={(setIdx, delta) => updateSetDuration(exIdx, setIdx, delta)}
       onToggleComplete={(setIdx) => toggleSetComplete(exIdx, setIdx)}
       onStartFocus={(setIdx) => openFocusForSet(exIdx, setIdx)}
       focusSetIdx={focusMode && focusTarget?.exIdx === exIdx ? focusTarget.setIdx : null}
@@ -664,6 +699,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           onClose={() => setFocusMode(false)}
           onWeightDelta={(delta) => updateSetWeight(focusTarget.exIdx, focusTarget.setIdx, delta)}
           onRepsDelta={(delta) => updateSetReps(focusTarget.exIdx, focusTarget.setIdx, delta)}
+          onDurationDelta={(delta) => updateSetDuration(focusTarget.exIdx, focusTarget.setIdx, delta)}
           onComplete={() => {
             toggleSetComplete(focusTarget.exIdx, focusTarget.setIdx);
             setFocusMode(false);

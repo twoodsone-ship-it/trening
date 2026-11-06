@@ -12,6 +12,7 @@ interface FocusSetOverlayProps {
   onClose: () => void;
   onWeightDelta: (delta: number) => void;
   onRepsDelta: (delta: number) => void;
+  onDurationDelta: (deltaSeconds: number) => void;
   onComplete: () => void;
 }
 
@@ -36,6 +37,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   onClose,
   onWeightDelta,
   onRepsDelta,
+  onDurationDelta,
   onComplete
 }) => {
   const prev = exercise.previousPerformance?.sets[setIndex];
@@ -50,6 +52,12 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   const tip = useMemo(() => tipForExercise(exercise), [exercise]);
   const restHint = exercise.restSeconds || 90;
   const isBodyweight = exercise.weightStep === 0 || (exercise.targetWeight === 0 && exercise.category === 'Cardio');
+  const isTimed = exercise.trackingMode === 'duration';
+  const durationStep = (exercise.defaultDurationSeconds || 60) < 90 ? 15 : 60;
+  const formatDuration = (value: number) => {
+    const safe = Math.max(0, value);
+    return `${Math.floor(safe / 60).toString().padStart(2, '0')}:${(safe % 60).toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     setElapsed(0);
@@ -136,12 +144,26 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
                 onPlus={() => onWeightDelta(+(exercise.weightStep || 2.5))}
               />
             )}
-            <FocusStepper
-              label={exercise.category === 'Cardio' && (exercise.minReps ?? 0) >= 20 ? 'Сек / повт.' : 'Повторения'}
-              value={set.reps}
-              onMinus={() => onRepsDelta(-1)}
-              onPlus={() => onRepsDelta(+1)}
-            />
+            {exercise.cardioIntensity && (
+              <p className="text-[10px] text-sky-300 font-semibold uppercase tracking-wider">
+                {exercise.cardioIntensity === 'intervals' ? 'Интервалы' : exercise.cardioIntensity === 'easy' ? 'Лёгкий темп' : 'Умеренный темп'}
+              </p>
+            )}
+            {isTimed ? (
+              <FocusStepper
+                label="Длительность"
+                displayValue={formatDuration(set.durationSeconds ?? exercise.defaultDurationSeconds ?? 60)}
+                onMinus={() => onDurationDelta(-durationStep)}
+                onPlus={() => onDurationDelta(durationStep)}
+              />
+            ) : (
+              <FocusStepper
+                label="Повторения"
+                value={set.reps}
+                onMinus={() => onRepsDelta(-1)}
+                onPlus={() => onRepsDelta(+1)}
+              />
+            )}
           </div>
 
           <button
@@ -153,7 +175,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
             )}
           >
             <Check className="w-6 h-6" />
-            {set.completed ? 'Сет отмечен' : 'Готово'}
+            {set.completed ? 'Сет отмечен' : isTimed ? 'Интервал выполнен' : 'Подход выполнен'}
           </button>
         </div>
       </div>
@@ -165,11 +187,13 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
 function FocusStepper({
   label,
   value,
+  displayValue,
   onMinus,
   onPlus
 }: {
   label: string;
-  value: number;
+  value?: number;
+  displayValue?: string;
   onMinus: () => void;
   onPlus: () => void;
 }) {
@@ -185,7 +209,7 @@ function FocusStepper({
       </button>
       <div className="text-center">
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{label}</p>
-        <p className="font-mono text-4xl font-black text-white tabular-nums">{value}</p>
+        <p className="font-mono text-4xl font-black text-white tabular-nums">{displayValue ?? value}</p>
       </div>
       <button
         type="button"

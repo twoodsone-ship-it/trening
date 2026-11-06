@@ -8,10 +8,12 @@ interface WorkoutSetRowProps {
   set: WorkoutSet;
   previousSet?: SetHistoryEntry;
   weightStep: number;
+  trackingMode: 'reps' | 'duration' | 'distance';
   onCycleType: () => void;
   onCopyPrevious: () => void;
   onWeightDelta: (delta: number) => void;
   onRepsDelta: (delta: number) => void;
+  onDurationDelta: (deltaSeconds: number) => void;
   onToggleComplete: () => void;
   onStartFocus?: () => void;
   isFocusTarget?: boolean;
@@ -21,15 +23,21 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
   set,
   previousSet,
   weightStep,
+  trackingMode,
   onCycleType,
   onCopyPrevious,
   onWeightDelta,
   onRepsDelta,
+  onDurationDelta,
   onToggleComplete,
   onStartFocus,
   isFocusTarget
 }) => {
   const isWarmup = set.type === 'warmup' || set.isWarmup;
+  const isTimed = trackingMode === 'duration';
+  const hasWeight = !isTimed && weightStep > 0;
+  const duration = set.durationSeconds || 0;
+  const durationLabel = `${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`;
 
   return (
     <div
@@ -71,10 +79,10 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
         )}
         title={previousSet ? 'Скопировать прошлый сет' : undefined}
       >
-        {previousSet ? `${previousSet.weight}×${previousSet.reps}` : '—'}
+        {previousSet ? isTimed ? `${Math.floor((previousSet.durationSeconds || 0) / 60).toString().padStart(2, '0')}:${((previousSet.durationSeconds || 0) % 60).toString().padStart(2, '0')}` : `${previousSet.weight}×${previousSet.reps}` : '—'}
       </button>
 
-      <div className="flex items-center justify-between bg-ink border border-white/10 rounded-xl p-0.5">
+      {hasWeight ? <div className="flex items-center justify-between bg-ink border border-white/10 rounded-xl p-0.5">
         <button
           type="button"
           onClick={() => onWeightDelta(-weightStep)}
@@ -92,9 +100,9 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
         >
           <Plus className="w-4 h-4" />
         </button>
-      </div>
+      </div> : <div className="text-center text-muted">—</div>}
 
-      <div className="flex items-center justify-between bg-ink border border-white/10 rounded-xl p-0.5">
+      {!isTimed ? <div className="flex items-center justify-between bg-ink border border-white/10 rounded-xl p-0.5">
         <button
           type="button"
           onClick={() => onRepsDelta(-1)}
@@ -112,7 +120,11 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
         >
           <Plus className="w-4 h-4" />
         </button>
-      </div>
+      </div> : <div className="flex items-center justify-between bg-ink border border-white/10 rounded-xl p-0.5">
+        <button type="button" onClick={() => onDurationDelta(-15)} className="w-10 h-10 min-h-[40px] flex items-center justify-center bg-white/5 rounded-lg" aria-label="Уменьшить время"><Minus className="w-4 h-4" /></button>
+        <span className="font-mono font-bold text-sm text-white px-0.5">{durationLabel}</span>
+        <button type="button" onClick={() => onDurationDelta(15)} className="w-10 h-10 min-h-[40px] flex items-center justify-center bg-white/5 rounded-lg" aria-label="Увеличить время"><Plus className="w-4 h-4" /></button>
+      </div>}
 
       <div className="flex justify-center">
         <button

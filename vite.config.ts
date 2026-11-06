@@ -35,7 +35,36 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.hostname === 'raw.githubusercontent.com' && url.pathname.includes('/media/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ironforge-exercise-media',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 140, maxAgeSeconds: 60 * 60 * 24 * 180 }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'ironforge-font-styles',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 180 }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ironforge-font-files',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 180 }
+            }
+          }
+        ]
       }
     })
   ]

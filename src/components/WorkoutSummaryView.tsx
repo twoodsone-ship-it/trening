@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Award, Clock, Dumbbell, Share2, TrendingUp, Zap } from 'lucide-react';
+import { Activity, Award, Clock, Dumbbell, Share2, TrendingUp, Zap } from 'lucide-react';
 import type { CompletedWorkout } from '../types';
 import { calculate1RM } from '../services/progressionEngine';
 import { shareWorkoutSummary } from '../utils/healthExport';
@@ -55,10 +55,13 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
           <p className="text-sm text-muted">{workout.templateName}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        {workout.cycleWeek && <p className="text-center text-xs text-muted">Месячный цикл · неделя {workout.cycleWeek} из 4</p>}
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Stat icon={<Clock className="w-4 h-4" />} label="Время" value={`${workout.durationMinutes}`} unit="мин" />
           <Stat icon={<Dumbbell className="w-4 h-4" />} label="Объём" value={`${workout.totalVolumeKg}`} unit="кг" />
           <Stat icon={<Zap className="w-4 h-4" />} label="Сеты" value={`${workout.totalSets}`} unit="" />
+          <Stat icon={<Activity className="w-4 h-4" />} label="Кардио" value={`${Math.round((workout.totalCardioSeconds || 0) / 60)}`} unit="мин" />
         </div>
 
         {volumeDelta != null && (

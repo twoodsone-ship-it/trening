@@ -11,6 +11,8 @@ export function workoutsToCsv(history: CompletedWorkout[]): string {
     'Exercise',
     'Weight_kg',
     'Reps',
+    'Duration_sec',
+    'Distance_m',
     'RPE',
     'Set_Type'
   ].join(',');
@@ -30,6 +32,8 @@ export function workoutsToCsv(history: CompletedWorkout[]): string {
           csvEscape(ex.name),
           s.weight,
           s.reps,
+          s.durationSeconds ?? '',
+          s.distanceMeters ?? '',
           s.rpe ?? '',
           s.type || (s.isWarmup ? 'warmup' : 'working')
         ].join(','));
@@ -63,6 +67,7 @@ export async function shareWorkoutSummary(workout: CompletedWorkout): Promise<bo
   const text = [
     `IronForge: ${workout.templateName}`,
     `⏱ ${workout.durationMinutes} мин · 🏋️ ${workout.totalVolumeKg} кг · ${workout.totalSets} сетов`,
+    ...(workout.totalCardioSeconds ? [`🚴 Кардио: ${Math.round(workout.totalCardioSeconds / 60)} мин`] : []),
     ...workout.exercises.map(ex => {
       const best = ex.sets.reduce((m, s) => Math.max(m, s.weight * s.reps), 0);
       return `• ${ex.name}: ${ex.workingWeight} кг (объём ${best})`;

@@ -23,6 +23,7 @@ export function analyzeProgramHealth(
 
   const now = Date.now();
   const last = relevant[0];
+  if (!last) return null;
   const daysSince = last ? (now - last.endTime) / 86400000 : Infinity;
 
   if (daysSince >= 14) {

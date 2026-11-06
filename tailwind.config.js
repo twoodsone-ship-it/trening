@@ -9,9 +9,9 @@ export default {
     extend: {
       colors: {
         ink: {
-          DEFAULT: '#07080a',
-          2: '#101218',
-          3: '#181b22',
+          DEFAULT: '#090b0a',
+          2: '#121614',
+          3: '#1b211e',
         },
         lime: {
           DEFAULT: '#c8f542',
@@ -30,8 +30,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Outfit', 'system-ui', 'sans-serif'],
-        display: ['Outfit', 'system-ui', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        display: ['Barlow Condensed', 'DM Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       }
     },

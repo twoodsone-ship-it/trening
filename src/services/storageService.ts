@@ -9,6 +9,7 @@ import type {
 } from '../types/index.ts';
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
+import { workoutNameLabel } from '../utils/uiLabels';
 import {
   normalizeMuscleCategory,
   normalizeEquipment,
@@ -104,7 +105,7 @@ export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
   }
   return templates.map(t => ({
     id: t.id || ('template-' + Date.now()),
-    name: t.name || 'Программа тренировок',
+    name: workoutNameLabel(t.name || 'Программа тренировок'),
     description: t.description || '',
     icon: t.icon || 'Flame',
     weekVariant: t.weekVariant || 'all',
@@ -158,7 +159,7 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
 
   return {
     templateId: workout.templateId || 'custom',
-    templateName: workout.templateName || 'Тренировка',
+    templateName: workoutNameLabel(workout.templateName || 'Тренировка'),
     readiness: (workout.readiness as ReadinessLevel) || 'optimal',
     startTime: Number(workout.startTime) || Date.now(),
     cycleWeek: workout.cycleWeek,

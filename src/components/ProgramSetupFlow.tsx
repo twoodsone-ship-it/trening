@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Flame, Home, Dumbbell, Building2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Flame, Home, Dumbbell, Building2 } from 'lucide-react';
 import type { DaysPerWeek, GymProfile, ProgramGoal, WorkoutTemplate } from '../types';
 import { PROGRAM_GOALS, buildProgramTemplates } from '../data/programBuilder';
 import { GYM_PROFILES } from '../utils/equipmentMap';
@@ -52,7 +52,7 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
     <div className="fixed inset-0 z-[60] bg-app-atmosphere text-white flex flex-col animate-fade-in">
       <div className="flex-1 overflow-y-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-4">
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-7">
             {step > 1 || onCancel ? (
               <button
                 type="button"
@@ -60,7 +60,7 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
                   if (step === 1 && onCancel) onCancel();
                   else setStep(s => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4 | 5) : 1));
                 }}
-                className="w-11 h-11 rounded-2xl surface-panel flex items-center justify-center"
+                className="w-12 h-12 rounded-xl surface-panel flex items-center justify-center active:scale-95 transition"
                 aria-label="Назад"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -68,7 +68,7 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
             ) : (
               <div className="w-11" />
             )}
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5" aria-label={`Шаг ${step} из 5`}>
               {[1, 2, 3, 4, 5].map(n => (
                 <span
                   key={n}
@@ -83,12 +83,13 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
           </div>
 
           {step === 1 && (
-            <div className="space-y-6 animate-slide-up">
+          <div className="space-y-5 animate-slide-up">
               <header>
-                <p className="text-lime text-xs font-bold tracking-[0.2em] uppercase">Шаг 1</p>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-2 leading-tight">
+                <p className="text-lime text-[11px] font-bold tracking-[0.18em] uppercase">Твоя цель · шаг 1 из 5</p>
+                <h1 className="font-display text-4xl sm:text-5xl font-bold mt-2 leading-[0.95]">
                   Какая цель<br />на ближайший месяц?
                 </h1>
+                <p className="text-sm text-muted mt-3">План подстроится под цель и частоту тренировок.</p>
               </header>
               <div className="space-y-3">
                 {PROGRAM_GOALS.map(g => (
@@ -99,14 +100,18 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
                       setGoal(g.id);
                       setCardioSessions(g.id === 'cut' ? Math.min(3, days) : g.id === 'recomp' ? Math.min(2, days) : 0);
                     }}
+                    aria-pressed={goal === g.id}
                     className={cn(
-                      'w-full text-left p-4 rounded-3xl border transition',
-                      goal === g.id ? 'border-lime bg-lime/10' : 'border-white/10 bg-white/[0.03]'
+                      'w-full text-left p-4 rounded-2xl border transition flex items-center gap-3 min-h-[92px] active:scale-[0.99]',
+                      goal === g.id ? 'border-lime bg-lime/[0.09] shadow-[inset_3px_0_0_var(--lime)]' : 'border-white/10 bg-[#111512] hover:border-white/20'
                     )}
                   >
-                    <p className="font-bold text-lg">{g.title}</p>
-                    <p className="text-lime/90 text-xs font-semibold mt-0.5">{g.subtitle}</p>
-                    <p className="text-muted text-sm mt-2">{g.detail}</p>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold text-lg leading-tight">{g.title}</span>
+                      <span className="block text-lime/90 text-xs font-semibold mt-1">{g.subtitle}</span>
+                      <span className="block text-muted text-[13px] leading-snug mt-2">{g.detail}</span>
+                    </span>
+                    <CheckCircle2 className={cn('w-5 h-5 shrink-0 transition-colors', goal === g.id ? 'text-lime' : 'text-white/20')} aria-hidden="true" />
                   </button>
                 ))}
               </div>
@@ -114,12 +119,13 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
           )}
 
           {step === 2 && (
-            <div className="space-y-6 animate-slide-up">
+          <div className="space-y-5 animate-slide-up">
               <header>
-                <p className="text-lime text-xs font-bold tracking-[0.2em] uppercase">Шаг 2</p>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-2 leading-tight">
+                <p className="text-lime text-[11px] font-bold tracking-[0.18em] uppercase">Частота · шаг 2 из 5</p>
+                <h1 className="font-display text-4xl sm:text-5xl font-bold mt-2 leading-[0.95]">
                   Сколько раз<br />в неделю?
                 </h1>
+                <p className="text-sm text-muted mt-3">Выбирай темп, который сможешь поддерживать.</p>
               </header>
               <div className="grid grid-cols-5 gap-2">
                 {DAYS.map(d => (
@@ -127,8 +133,9 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
                     key={d}
                     type="button"
                     onClick={() => setDays(d)}
+                    aria-pressed={days === d}
                     className={cn(
-                      'aspect-square rounded-2xl font-mono font-bold text-xl border',
+                      'min-h-[64px] rounded-xl font-mono font-bold text-2xl border transition active:scale-95',
                       days === d ? 'bg-lime text-ink border-lime' : 'bg-white/[0.03] border-white/10'
                     )}
                   >
@@ -142,8 +149,8 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
           {step === 3 && (
             <div className="space-y-6 animate-slide-up">
               <header>
-                <p className="text-lime text-xs font-bold tracking-[0.2em] uppercase">Шаг 3</p>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-2 leading-tight">
+                <p className="text-lime text-[11px] font-bold tracking-[0.18em] uppercase">Оборудование · шаг 3 из 5</p>
+                <h1 className="font-display text-4xl sm:text-5xl font-bold mt-2 leading-[0.95]">
                   Какое<br />оборудование?
                 </h1>
                 <p className="text-muted text-sm mt-2">Подберём упражнения под твой зал или дом.</p>
@@ -156,8 +163,9 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
                       key={g.id}
                       type="button"
                       onClick={() => setGym(g.id)}
+                      aria-pressed={gym === g.id}
                       className={cn(
-                        'w-full text-left p-4 rounded-3xl border flex items-center gap-4 transition',
+                        'w-full text-left p-4 rounded-2xl border flex items-center gap-4 transition min-h-[80px] active:scale-[0.99]',
                         gym === g.id ? 'border-lime bg-lime/10' : 'border-white/10 bg-white/[0.03]'
                       )}
                     >
@@ -178,8 +186,8 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
           {step === 4 && goal && (
             <div className="space-y-6 animate-slide-up">
               <header>
-                <p className="text-lime text-xs font-bold tracking-[0.2em] uppercase">Шаг 4</p>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-2">Аксессуары</h1>
+                <p className="text-lime text-[11px] font-bold tracking-[0.18em] uppercase">Дополнения · шаг 4 из 5</p>
+                <h1 className="font-display text-4xl sm:text-5xl font-bold mt-2">Кор и кардио</h1>
                 <p className="text-muted text-sm mt-2">Настрой пресс и кардио в недельном плане.</p>
               </header>
               <div className="surface-panel p-4 space-y-3">
@@ -221,8 +229,8 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
           {step === 5 && preview && goal && (
             <div className="space-y-6 animate-slide-up">
               <header>
-                <p className="text-lime text-xs font-bold tracking-[0.2em] uppercase">Шаг 5</p>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-2">Твоя программа</h1>
+                <p className="text-lime text-[11px] font-bold tracking-[0.18em] uppercase">Предпросмотр · шаг 5 из 5</p>
+                <h1 className="font-display text-4xl sm:text-5xl font-bold mt-2">Твоя программа</h1>
               </header>
               <div className="surface-panel p-5 space-y-4">
                 <div className="flex items-center gap-2">
@@ -250,13 +258,13 @@ export const ProgramSetupFlow: React.FC<ProgramSetupFlowProps> = ({
       </div>
 
       {/* Sticky CTA — always above safe area / home indicator */}
-      <div className="shrink-0 border-t border-white/10 bg-ink/95 backdrop-blur-md px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 border-t border-white/10 bg-[#090b0a]/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="max-w-lg mx-auto">
           <button
             type="button"
             disabled={primaryDisabled || (step === 5 && !preview)}
             onClick={onPrimary}
-            className="w-full btn-lime py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40 min-h-[56px] text-base"
+            className="w-full btn-lime py-4 rounded-xl flex items-center justify-center gap-2 disabled:opacity-35 disabled:saturate-50 min-h-[56px] text-base active:scale-[0.99] transition"
           >
             {step === 5 ? <Check className="w-5 h-5" /> : null}
             {primaryLabel}

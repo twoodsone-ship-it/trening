@@ -116,24 +116,28 @@ export const HomeView: React.FC<HomeViewProps> = ({
     : null;
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white animate-fade-in" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 5rem) + 6rem)' }}>
-      <header className="pt-4 pb-8">
-        <p className="text-lime text-[11px] font-bold tracking-[0.28em] uppercase">IronForge</p>
-        <h1 className="text-[2.6rem] leading-[0.95] font-extrabold tracking-tight mt-3">
-          Тренируйся<br />умнее.
-        </h1>
-        <p className="text-muted text-sm mt-3 max-w-[20rem] leading-relaxed">
-          Программа под цель и зал. Упражнения — только после старта.
-        </p>
+    <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white animate-home-enter" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 5rem) + 6rem)' }}>
+      <header className="pt-3 pb-5 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-lime text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-2">
+            <span className="inline-block w-5 h-[3px] bg-lime rounded-full" /> IronForge · журнал
+          </p>
+          <h1 className="font-display text-[2.75rem] leading-[0.9] font-bold mt-2 tracking-tight">
+            Тренировка<br />сегодня
+          </h1>
+        </div>
+        <span className="font-mono text-[11px] text-muted text-right pb-1">
+          {new Date().toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}
+        </span>
       </header>
 
-      <div className="flex items-center gap-3 mb-5">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/15 border border-orange-400/30 text-orange-300">
+      <div className="flex items-center gap-4 mb-5 border-y border-white/10 py-2.5">
+        <div className="inline-flex items-center gap-1.5 text-orange-300">
           <Flame className="w-3.5 h-3.5" />
           <span className="text-xs font-bold font-mono">{streak}</span>
-          <span className="text-[10px] font-semibold">дн.</span>
+          <span className="text-[10px] font-semibold text-muted">дн. серия</span>
         </div>
-        <span className="text-xs text-muted">{weekCount} тр. на неделе</span>
+        <span className="text-xs text-muted">{weekCount} из {activeProgram?.daysPerWeek ?? 0} тренировок на неделе</span>
       </div>
 
       {showAdvice && (
@@ -183,22 +187,22 @@ export const HomeView: React.FC<HomeViewProps> = ({
       )}
 
       {activeProgram && (
-        <div className="surface-panel p-4 mb-4 flex items-center justify-between gap-3">
+        <div className="py-3 mb-2 flex items-center justify-between gap-3 border-b border-white/10">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted font-bold">Программа</p>
-            <p className="font-bold truncate mt-0.5">{activeProgram.title}</p>
-            <p className="text-xs text-muted truncate">{goalMeta?.subtitle}</p>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-lime font-bold">Текущий план</p>
+            <p className="font-bold truncate mt-1">{activeProgram.title}</p>
+            <p className="text-xs text-muted truncate">{goalMeta?.subtitle} · {activeProgram.daysPerWeek}× в неделю</p>
           </div>
           <div className="flex shrink-0 flex-col gap-1.5">
             <button
               type="button"
               onClick={() => setProgramEditorOpen(true)}
-              className="px-3 py-2 rounded-xl border border-lime/30 bg-lime/10 text-xs font-bold text-lime"
+              className="px-3 py-2 rounded-lg border border-lime/30 bg-lime/[0.07] text-xs font-bold text-lime min-h-[44px]"
             >Настроить</button>
             <button
               type="button"
               onClick={() => setForceSetup(true)}
-              className="px-3 py-2 rounded-xl border border-white/10 text-xs font-semibold text-muted hover:text-white flex items-center justify-center gap-1.5"
+              className="px-3 py-2 rounded-lg border border-white/10 text-xs font-semibold text-muted hover:text-white flex items-center justify-center gap-1.5 min-h-[44px]"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Сменить
             </button>
@@ -207,11 +211,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
       )}
 
       {cycle && (
-        <section className="surface-panel p-4 mb-4">
+        <section className="py-3 mb-3 border-b border-white/10">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted font-bold">Месячный цикл · блок {cycle.block}</p>
-              <p className="font-bold mt-0.5">Неделя {cycle.week} из 4 · {cycle.title}</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-muted font-bold">Блок {cycle.block} · месяц</p>
+              <p className="font-bold mt-0.5">Неделя {cycle.week}/4 <span className="text-muted font-normal">· {cycle.title}</span></p>
             </div>
             <span className={cn('shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border', cycle.phase === 'deload' ? 'text-amber-300 border-amber-400/30 bg-amber-500/10' : 'text-lime border-lime/30 bg-lime/10')}>
               {cycle.week}/4
@@ -226,18 +230,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </section>
       )}
 
-      <section className="relative overflow-hidden rounded-[1.75rem] border border-lime/25 bg-gradient-to-br from-lime/15 via-ink-2 to-ink-3 p-5 mb-5">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> Сегодня
+      <section className="relative overflow-hidden rounded-2xl border border-lime/25 bg-[#151b13] p-5 pl-6 mb-5 shadow-[inset_3px_0_0_var(--lime)]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5" /> НА СЕГОДНЯ
         </p>
-        <h2 className="text-2xl font-extrabold mt-2 tracking-tight">
+        <h2 className="font-display text-3xl font-bold mt-2 tracking-tight leading-none">
           {todayTemplate?.name || 'День отдыха'}
         </h2>
-        <p className="text-sm text-muted mt-1">
+        <p className="text-[13px] text-muted mt-2 leading-snug">
           {todayTemplate ? todayTemplate.description : 'Можно восстановиться.'}
         </p>
         {todayTemplate && (
-          <div className="flex flex-wrap gap-3 mt-4 text-xs text-muted">
+          <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted">
             <span className="inline-flex items-center gap-1.5 font-mono">
               <Dumbbell className="w-3.5 h-3.5 text-lime" /> {todayTemplate.exercises.length} упр.
             </span>
@@ -250,20 +254,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
       <section className="mb-2">
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-3">Неделя</p>
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className="grid grid-cols-7 gap-1">
           {weekDays.map(({ dow, match, trained, isToday }) => (
             <div
               key={dow}
               className={cn(
-                'rounded-2xl py-2.5 text-center border',
-                isToday && 'border-lime/60 bg-lime/10',
+                'rounded-lg py-2 text-center border min-w-0',
+                isToday && 'border-lime/60 bg-lime/[0.08]',
                 !isToday && trained && 'border-white/10 bg-white/[0.06]',
                 !isToday && !trained && 'border-white/5'
               )}
             >
               <p className="text-[10px] font-bold text-muted">{WEEKDAY_LABELS_RU[dow]}</p>
-              <p className={cn('text-[9px] mt-1 font-semibold truncate px-0.5', match ? 'text-white' : 'text-white/25')}>
-                {match ? match.name.slice(0, 5) : '—'}
+              <p className={cn('text-[9px] mt-1 font-semibold truncate px-0.5', match ? 'text-white' : 'text-white/25')} title={match?.name}>
+                {match ? match.name.split(' ')[0] : '—'}
               </p>
               {trained && <span className="inline-block mt-1 w-1.5 h-1.5 rounded-full bg-lime" />}
             </div>
@@ -272,8 +276,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </section>
 
       {activeProgram && (
-        <section className="mt-6 space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1">Цикл</p>
+        <section className="mt-6">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted mb-2">Тренировки плана</p>
+          <div className="divide-y divide-white/10 border-y border-white/10">
           {activeProgram.templateIds.map((id, i) => {
             const t = templates.find(x => x.id === id);
             if (!t) return null;
@@ -283,19 +288,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 type="button"
                 onClick={() => beginFlow(t)}
                 className={cn(
-                  'w-full text-left surface-panel p-4 flex items-center justify-between gap-3',
-                  todayTemplate?.id === t.id && 'border-lime/40'
+                  'w-full text-left py-3.5 flex items-center justify-between gap-3 interactive-row',
+                  todayTemplate?.id === t.id && 'text-lime'
                 )}
               >
                 <div className="min-w-0">
-                  <p className="text-[10px] font-mono text-muted">День {i + 1}</p>
-                  <p className="font-bold truncate">{t.name}</p>
-                  <p className="text-xs text-muted truncate">{t.description}</p>
+                  <p className="text-[10px] font-mono text-muted">ТРЕНИРОВКА {i + 1}</p>
+                  <p className="font-bold truncate mt-0.5">{t.name}</p>
+                  <p className="text-xs text-muted truncate mt-0.5">{t.description}</p>
                 </div>
                 <Play className="w-4 h-4 text-lime shrink-0" />
               </button>
             );
           })}
+          </div>
         </section>
       )}
 

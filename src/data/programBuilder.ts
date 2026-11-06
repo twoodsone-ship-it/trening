@@ -21,14 +21,14 @@ export const PROGRAM_GOALS: Array<{
     id: 'recomp',
     title: 'Рекомпозиция',
     subtitle: 'Похудение + мышцы',
-    detail: 'Умеренный объём 8–12, кор каждый день, лёгкое кардио в конце сессии.',
+    detail: 'Силовые упражнения, короткие блоки кора и лёгкое кардио по выбранному расписанию.',
     accent: 'lime'
   },
   {
     id: 'cut',
     title: 'Похудение',
     subtitle: 'Дефицит калорий',
-    detail: 'Плотность, кор каждый день, кардио-финишер. Короче отдых, техника важнее веса.',
+    detail: 'Силовая база, короткие блоки кора и кардио-финишер в выбранные дни.',
     accent: 'amber'
   },
   {
@@ -170,37 +170,37 @@ function slotsForDays(
 ): SlotDef[] {
   const fullA: SlotDef = {
     id: 'fb-a',
-    dayLabel: 'Full Body A',
+    dayLabel: 'Всё тело A',
     focus: 'Присед · Жим · Тяга',
     exerciseIds: ['barbell-squat', 'bench-press', 'barbell-row', 'overhead-press', 'lat-pulldown', 'plank']
   };
   const fullB: SlotDef = {
     id: 'fb-b',
-    dayLabel: 'Full Body B',
+    dayLabel: 'Всё тело B',
     focus: 'Ноги · Жим гантелей · Спина',
     exerciseIds: ['leg-press', 'db-bench-press', 'seated-cable-row', 'romanian-deadlift', 'lateral-raises', 'cable-crunch']
   };
   const fullC: SlotDef = {
     id: 'fb-c',
-    dayLabel: 'Full Body C',
+    dayLabel: 'Всё тело C',
     focus: 'Ягодицы · Плечи · Кор',
     exerciseIds: ['hip-thrust', 'incline-db-press', 'pull-ups', 'seated-db-press', 'leg-curls-lying', 'hanging-knee-raise']
   };
   const push: SlotDef = {
     id: 'push',
-    dayLabel: 'Push',
+    dayLabel: 'Жим',
     focus: 'Грудь · Плечи · Трицепс',
     exerciseIds: ['bench-press', 'overhead-press', 'incline-db-press', 'lateral-raises', 'tricep-pushdown', 'cable-crossover']
   };
   const pull: SlotDef = {
     id: 'pull',
-    dayLabel: 'Pull',
+    dayLabel: 'Тяга',
     focus: 'Спина · Бицепс · Задние дельты',
     exerciseIds: ['deadlift-conventional', 'lat-pulldown', 'barbell-row', 'face-pulls', 'bicep-curls', 'hammer-curls']
   };
   const legs: SlotDef = {
     id: 'legs',
-    dayLabel: 'Legs',
+    dayLabel: 'Ноги',
     focus: 'Квадрицепс · Бицепс бедра · Икры',
     exerciseIds: ['barbell-squat', 'romanian-deadlift', 'leg-press', 'leg-curls-lying', 'standing-calf-raise', 'hanging-leg-raise']
   };
@@ -240,7 +240,7 @@ function slotsForDays(
       case 5:
         return [push, pull, legs, upper, lower];
       case 6:
-        return [push, pull, legs, { ...push, id: 'push-2', dayLabel: 'Push 2' }, { ...pull, id: 'pull-2', dayLabel: 'Pull 2' }, { ...legs, id: 'legs-2', dayLabel: 'Legs 2' }];
+        return [push, pull, legs, { ...push, id: 'push-2', dayLabel: 'Жим 2' }, { ...pull, id: 'pull-2', dayLabel: 'Тяга 2' }, { ...legs, id: 'legs-2', dayLabel: 'Ноги 2' }];
       default:
         return [fullA, fullB, fullC];
     }

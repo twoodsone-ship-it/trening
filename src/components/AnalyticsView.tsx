@@ -83,7 +83,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
       {/* Top Title */}
       <div>
         <p className="text-lime text-[11px] font-bold tracking-[0.28em] uppercase">IronForge</p>
-        <h1 className="text-xl sm:text-2xl font-extrabold text-white mt-2">Аналитика & Рекорды</h1>
+        <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mt-2">Прогресс и рекорды</h1>
         <p className="text-xs text-muted mt-1">
           Статистика прогресса, тоннаж и расчетные 1RM максимумы
         </p>
@@ -211,9 +211,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
                 key={workout.id}
                 className="surface-panel p-4 sm:p-5 transition"
               >
-                <div 
+                <button
+                  type="button"
                   onClick={() => setExpandedWorkoutId(isExpanded ? null : workout.id)}
-                  className="flex items-center justify-between cursor-pointer"
+                  aria-expanded={isExpanded}
+                  className="w-full text-left flex items-center justify-between gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime rounded-lg"
                 >
                   <div>
                     <h3 className="font-bold text-sm sm:text-base text-white">
@@ -241,7 +243,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
                       <ChevronDown className="w-5 h-5 text-muted" />
                     )}
                   </div>
-                </div>
+                </button>
 
                 {/* Expanded set breakdown */}
                 {isExpanded && (
@@ -260,7 +262,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
                               key={s.setNumber}
                               className="px-2 py-0.5 bg-white/[0.04] border border-white/10 rounded font-mono text-[11px] text-white/80"
                             >
-                              {s.weight}кг × {s.reps} {s.rpe ? `@${s.rpe}` : ''}
+                              {ex.trackingMode === 'duration'
+                                ? `${Math.floor((s.durationSeconds || 0) / 60)}:${String((s.durationSeconds || 0) % 60).padStart(2, '0')}`
+                                : ex.trackingMode === 'distance'
+                                  ? `${((s.distanceMeters || 0) / 1000).toFixed(2)} км`
+                                  : `${s.weight} кг × ${s.reps}`}
+                              {s.rpe ? ` @${s.rpe}` : ''}
                             </span>
                           ))}
                         </div>

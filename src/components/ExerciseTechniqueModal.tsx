@@ -2,6 +2,7 @@ import React from 'react';
 import { X, RefreshCw, AlertTriangle, Wind, Target } from 'lucide-react';
 import type { ExerciseTechniqueGuide, EquipmentType } from '../types/index.ts';
 import { ExerciseAnimation } from './ExerciseAnimation';
+import { muscleCategoryLabel } from '../utils/uiLabels';
 
 interface ExerciseTechniqueModalProps {
   exerciseId?: string;
@@ -46,7 +47,7 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] font-bold uppercase tracking-wider text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
-                {category}
+                {muscleCategoryLabel(category)}
               </span>
               <span className="text-[10px] font-semibold text-muted bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
                 {EQUIPMENT_LABELS[equipment] || equipment}
@@ -72,6 +73,7 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
             animationType={animationType}
             category={category}
             exerciseName={exerciseName}
+            technique={technique}
           />
 
           {onOpenSwapModal && (

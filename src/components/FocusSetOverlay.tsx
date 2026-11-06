@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Clock, Minus, Plus, X } from 'lucide-react';
 import type { ActiveExerciseSession, WorkoutSet } from '../types';
-import { EXERCISE_GIF_MAP } from '../data/exerciseCatalog';
+import { muscleCategoryLabel } from '../utils/uiLabels';
 import { cn } from '../utils/cn';
 
 interface FocusSetOverlayProps {
@@ -25,9 +25,8 @@ function formatMmSs(total: number): string {
 function tipForExercise(exercise: ActiveExerciseSession): string {
   if (exercise.technique?.setup) return exercise.technique.setup;
   if (exercise.technique?.execution) return exercise.technique.execution;
-  if (exercise.category === 'Cardio') return 'Ровное дыхание, контролируемый темп, без жёстких приземлений.';
-  if (exercise.category === 'Core') return 'Нейтральная поясница, рёбра вниз, выдох на сокращении.';
-  return 'Контролируйте негатив, фиксируйте пик 0.5 сек, без рывков.';
+  if (exercise.category === 'Cardio') return 'Начни спокойно, держи ровное дыхание и темп, который можешь контролировать.';
+  return 'Двигайся плавно, сохраняй устойчивое положение и прекращай подход при боли.';
 }
 
 export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
@@ -42,14 +41,10 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
 }) => {
   const prev = exercise.previousPerformance?.sets[setIndex];
   const [elapsed, setElapsed] = useState(0);
-  const [gifError, setGifError] = useState(false);
-
-  const gifUrl =
-    exercise.gifUrl ||
-    (exercise.exerciseId && EXERCISE_GIF_MAP[exercise.exerciseId]) ||
-    undefined;
-
-  const tip = useMemo(() => tipForExercise(exercise), [exercise]);
+  const setupTip = exercise.technique?.setup || tipForExercise(exercise);
+  const executionTip = exercise.technique?.execution || (exercise.category === 'Cardio'
+    ? 'Держи ровный темп и дыхание. При необходимости снизь скорость.'
+    : 'Контролируй движение в обе стороны. Не используй рывок и не продолжай через боль.');
   const restHint = exercise.restSeconds || 90;
   const isBodyweight = exercise.weightStep === 0 || (exercise.targetWeight === 0 && exercise.category === 'Cardio');
   const isTimed = exercise.trackingMode === 'duration';
@@ -93,9 +88,9 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
         <div className="max-w-md mx-auto flex flex-col gap-4 min-h-full justify-center py-2">
           <div className="text-center space-y-1">
             <p className="text-xs font-bold uppercase tracking-wider text-lime">
-              {exercise.category} · сет {set.setNumber || setIndex + 1}
+              {muscleCategoryLabel(exercise.category)} · подход {set.setNumber || setIndex + 1}
             </p>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-[0.98]">
               {exercise.name}
             </h2>
             {prev && (
@@ -103,34 +98,19 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
             )}
           </div>
 
-          {/* Technique preview */}
-          <div className="surface-panel overflow-hidden">
-            <div className="flex gap-3 p-3">
-              <div className="w-[42%] shrink-0 rounded-2xl bg-ink border border-white/10 min-h-[120px] flex items-center justify-center overflow-hidden">
-                {gifUrl && !gifError ? (
-                  <img
-                    src={gifUrl}
-                    alt={exercise.name}
-                    className="w-full h-full max-h-36 object-contain"
-                    onError={() => setGifError(true)}
-                  />
-                ) : (
-                  <div className="p-3 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-lime mb-1">Фаза</p>
-                    <p className="text-xs text-white/80 leading-snug line-clamp-4">
-                      {exercise.technique?.execution?.slice(0, 90) || tip.slice(0, 90)}
-                    </p>
-                  </div>
-                )}
+          <div className="space-y-2">
+            <div className="border-b border-white/10 pb-2 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Техника движения</p>
+              {exercise.technique?.primaryMuscles && <p className="text-[11px] leading-snug text-lime">{exercise.technique.primaryMuscles}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="min-w-0 border-l-2 border-sky-300/70 bg-sky-300/[0.06] rounded-r-xl p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200 mb-1.5">01 · Исходное положение</p>
+                <p className="text-xs sm:text-sm text-white/85 leading-snug">{setupTip}</p>
               </div>
-              <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Как делать</p>
-                <p className="text-sm leading-snug text-white/90 line-clamp-5">{tip}</p>
-                {exercise.technique?.primaryMuscles && (
-                  <p className="text-[11px] text-lime font-semibold truncate">
-                    {exercise.technique.primaryMuscles}
-                  </p>
-                )}
+              <div className="min-w-0 border-l-2 border-lime bg-lime/[0.05] rounded-r-xl p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-lime mb-1.5">02 · Движение</p>
+                <p className="text-xs sm:text-sm text-white/85 leading-snug">{executionTip}</p>
               </div>
             </div>
           </div>
@@ -138,7 +118,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
           <div className="space-y-3">
             {!isBodyweight && (
               <FocusStepper
-                label="Вес, кг"
+                label="Вес · кг"
                 value={set.weight}
                 onMinus={() => onWeightDelta(-exercise.weightStep || -2.5)}
                 onPlus={() => onWeightDelta(+(exercise.weightStep || 2.5))}

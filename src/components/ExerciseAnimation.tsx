@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Activity, CheckCircle2, Eye, Gauge, Maximize2, Minimize2, Sparkles } from 'lucide-react';
 import { EXERCISE_GIF_MAP } from '../data/exerciseCatalog';
+import type { ExerciseTechniqueGuide } from '../types';
 import { cn } from '../utils/cn';
 
 interface ExerciseAnimationProps {
@@ -9,6 +10,7 @@ interface ExerciseAnimationProps {
   gifUrl?: string;
   category?: string;
   exerciseName?: string;
+  technique?: ExerciseTechniqueGuide;
 }
 
 interface FormCue {
@@ -107,16 +109,17 @@ const EXERCISE_CUES: Record<string, { cues: FormCue[]; primary: string; secondar
   }
 };
 
-function resolveCueKey(animationType: string, category?: string): string {
-  if (EXERCISE_CUES[animationType]) return animationType;
-  if (category === 'Cardio') return 'cardio';
-  if (category === 'Back') return 'row';
-  if (category === 'Legs') return 'squat';
-  if (category === 'Shoulders') return 'overhead-press';
-  if (category === 'Arms') return 'bicep-curl';
-  if (category === 'Core') return 'core';
-  return 'bench-press';
-}
+const GENERIC_CUES = {
+  primary: 'По карточке упражнения',
+  secondary: 'Стабилизаторы',
+  startTip: 'Прими устойчивое положение и настрой оборудование под себя.',
+  finishTip: 'Выполняй движение плавно и контролируй возвращение в исходное положение.',
+  cues: [
+    { text: 'Сохраняй контролируемый темп', type: 'focus' as const },
+    { text: 'Не задерживай дыхание', type: 'good' as const },
+    { text: 'Остановись при боли или потере техники', type: 'angle' as const }
+  ]
+};
 
 /**
  * GIF-first technique viewer. Phase/slider modes use clean cue panels
@@ -127,9 +130,10 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
   animationType,
   gifUrl,
   category = 'Chest',
-  exerciseName = ''
+  exerciseName = '',
+  technique
 }) => {
-  const resolvedGifUrl = gifUrl || (exerciseId && EXERCISE_GIF_MAP[exerciseId]) || EXERCISE_GIF_MAP[animationType];
+  const resolvedGifUrl = gifUrl || (exerciseId && EXERCISE_GIF_MAP[exerciseId]) || undefined;
   const [viewMode, setViewMode] = useState<'gif' | 'compare' | 'scrub'>('gif');
   const [phase, setPhase] = useState<'start' | 'finish'>('start');
   const [scrub, setScrub] = useState(40);
@@ -137,8 +141,17 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
   const [gifError, setGifError] = useState(false);
   const [zoomed, setZoomed] = useState(false);
 
-  const cueKey = resolveCueKey(animationType, category);
-  const cues = EXERCISE_CUES[cueKey];
+  const mappedCues = EXERCISE_CUES[animationType];
+  const cues = technique ? {
+    primary: technique.primaryMuscles,
+    secondary: 'Сопутствующие мышцы работают как стабилизаторы',
+    startTip: technique.setup,
+    finishTip: technique.execution,
+    cues: [
+      { text: technique.breathing, type: 'good' as const },
+      ...technique.mistakes.slice(0, 2).map((text: string) => ({ text: `Избегай: ${text}`, type: 'angle' as const }))
+    ]
+  } : mappedCues || GENERIC_CUES;
 
   useEffect(() => {
     if (viewMode !== 'gif') return;
@@ -218,11 +231,6 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <PhaseCard title="1. Исходное" tip={cues.startTip} accent="sky" />
           <PhaseCard title="2. Пик" tip={cues.finishTip} accent="lime" />
-          {resolvedGifUrl && !gifError && (
-            <div className="sm:col-span-2 rounded-2xl border border-white/10 bg-ink p-3 flex justify-center">
-              <img src={resolvedGifUrl} alt={exerciseName} className="max-h-48 object-contain rounded-xl" onError={() => setGifError(true)} />
-            </div>
-          )}
         </div>
       )}
 
@@ -253,7 +261,7 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
         <div className="surface-panel p-3">
           <p className="text-[10px] uppercase tracking-wider text-muted font-bold">Основная мышца</p>
-          <p className="font-bold text-lime mt-1">{cues.primary}</p>
+          <p className="font-bold text-lime mt-1">{technique?.primaryMuscles || cues.primary || category}</p>
         </div>
         <div className="surface-panel p-3">
           <p className="text-[10px] uppercase tracking-wider text-muted font-bold">Синергисты</p>

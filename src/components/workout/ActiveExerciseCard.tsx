@@ -4,6 +4,7 @@ import type { ActiveExerciseSession, SetHistoryEntry } from '../../types';
 import { cn } from '../../utils/cn';
 import { WorkoutSetRow } from './WorkoutSetRow';
 import { ExerciseHistoryChart } from '../ExerciseHistoryChart';
+import { muscleCategoryLabel } from '../../utils/uiLabels';
 
 interface ActiveExerciseCardProps {
   exercise: ActiveExerciseSession;
@@ -57,11 +58,20 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
   const [showChart, setShowChart] = useState(false);
   const completedCount = ex.sets.filter(s => s.completed).length;
   const badgeClass = badgeStyles[ex.recommendation.badgeColor] || badgeStyles.blue;
+  const targetSummary = ex.trackingMode === 'duration'
+    ? `${Math.floor((ex.defaultDurationSeconds || 60) / 60)} мин · ${ex.targetSets} подхода`
+    : `${ex.targetWeight} кг · ${ex.minReps}–${ex.maxReps} повт.`;
+  const previousSet = ex.previousPerformance?.sets[0];
+  const previousSummary = previousSet
+    ? ex.trackingMode === 'duration'
+      ? `${Math.floor((previousSet.durationSeconds || 0) / 60)} мин`
+      : `${previousSet.weight} × ${previousSet.reps}`
+    : null;
 
   return (
     <div
       className={cn(
-        'rounded-3xl border transition overflow-hidden',
+        'rounded-2xl border transition overflow-hidden',
         expanded ? 'border-lime/35 bg-ink-2' : 'border-white/8 bg-white/[0.03]'
       )}
     >
@@ -72,15 +82,15 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
       >
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-lime/90">{ex.category}</span>
-            <span className="text-xs font-mono text-muted">{completedCount}/{ex.sets.length}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-lime/90">{muscleCategoryLabel(ex.category)}</span>
+            <span className="text-xs font-mono text-muted">{completedCount}/{ex.sets.length} готово</span>
           </div>
-          <h2 className="font-bold text-base text-white mt-0.5 truncate">{ex.name}</h2>
+          <h2 className="font-display font-bold text-xl text-white mt-0.5 truncate">{ex.name}</h2>
           {!expanded && (
             <p className="text-xs text-muted mt-0.5 font-mono">
-              {ex.targetWeight} кг · {ex.minReps}–{ex.maxReps}
-              {ex.previousPerformance?.sets[0] && (
-                <span className="text-white/35"> · прошлый {ex.previousPerformance.sets[0].weight}×{ex.previousPerformance.sets[0].reps}</span>
+              {targetSummary}
+              {previousSummary && (
+                <span className="text-white/35"> · прошлый {previousSummary}</span>
               )}
             </p>
           )}
@@ -145,26 +155,20 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
             </div>
           )}
 
-          <div className={cn('p-2.5 rounded-2xl border text-xs flex items-center justify-between gap-2', badgeClass)}>
+          <div className={cn('p-3 rounded-xl border text-xs flex items-center justify-between gap-2', badgeClass)}>
             <div className="min-w-0">
               <span className="font-bold text-white block truncate">{ex.recommendation.badgeText}</span>
               <span className="text-[11px] opacity-80 block truncate">
-                Цель: {ex.targetWeight} кг × {ex.minReps}-{ex.maxReps}
+                Цель: {targetSummary}
               </span>
             </div>
             <span className="text-[10px] px-2 py-1 bg-black/30 rounded-lg font-mono font-bold shrink-0">
-              +{ex.weightStep}кг
+              {ex.weightStep > 0 ? `+${ex.weightStep} кг` : 'техника'}
             </span>
           </div>
 
           <div className="space-y-2">
-            <div className="grid grid-cols-[36px_64px_1fr_1fr_48px] gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted px-1 text-center">
-              <span>Сет</span>
-              <span>Пред.</span>
-              <span>{ex.trackingMode === 'duration' ? '—' : 'Вес'}</span>
-              <span>{ex.trackingMode === 'duration' ? 'Время' : 'Повт.'}</span>
-              <span>✓</span>
-            </div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted px-1">Подходы · прошлый результат</p>
             {ex.sets.map((set, setIdx) => {
               const prevSet: SetHistoryEntry | undefined = ex.previousPerformance?.sets[setIdx];
               return (

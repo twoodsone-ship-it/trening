@@ -91,7 +91,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [focusMode, setFocusMode] = useState(settings.focusModeDefault !== false);
   const [forcedFocus, setForcedFocus] = useState<{ exIdx: number; setIdx: number } | null>(null);
-  const [expandedExIdx, setExpandedExIdx] = useState(0);
+  const [expandedExIdx, setExpandedExIdx] = useState(-1);
   const [rpeTarget, setRpeTarget] = useState<{ exIdx: number; setIdx: number } | null>(null);
   const [elapsedMinutes, setElapsedMinutes] = useState(
     Math.max(1, Math.round((Date.now() - startTime) / 60000))
@@ -385,7 +385,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       const workingSets = completedSets.filter(s => !isWarmupSet(s));
       totalVolume += calculateVolume(workingSets);
       totalSetsCount += workingSets.length;
-      if (ex.trackingMode === 'duration') {
+      if (ex.category === 'Cardio' && ex.trackingMode === 'duration') {
         totalCardioSeconds += workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
       }
       return {
@@ -575,10 +575,6 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime" />
-                </span>
                 <h1 className="font-bold text-sm sm:text-base truncate" title={workoutName}>{workoutName}</h1>
               </div>
               <div className="flex items-center gap-2 text-[11px] sm:text-xs text-muted mt-0.5">
@@ -588,10 +584,6 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                 <span>•</span>
                 <span className="font-mono text-lime font-bold">
                   {progress.completed}/{progress.total}
-                </span>
-                <span className="text-white/30">·</span>
-                <span className="text-[10px] truncate text-muted">
-                  Сейчас: {exercises[currentExIdx]?.name || '—'}
                 </span>
               </div>
             </div>
@@ -627,7 +619,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             return (
               <div key={block.item.exerciseId + '-' + exIdx} className="space-y-2">
                 {renderCard(block.item, exIdx)}
-                {exIdx < exercises.length - 1 && (
+                {expandedExIdx === exIdx && exIdx < exercises.length - 1 && (
                   <button
                     type="button"
                     onClick={() => toggleSupersetPair(exIdx)}

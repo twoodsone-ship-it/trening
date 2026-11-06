@@ -23,7 +23,16 @@ function buildActiveExercises(
   cyclePhase: 'base' | 'progress' | 'overload' | 'deload'
 ): ActiveExerciseSession[] {
   return template.exercises.map(ex => {
-    const recommendation = evaluateDoubleProgression(
+    const recommendation = ex.trackingMode === 'duration' ? {
+      decision: 'FIRST_SESSION' as const,
+      nextWeight: 0,
+      targetRepRange: 'по времени',
+      badgeText: 'Работа по времени',
+      badgeColor: 'blue' as const,
+      analysis: 'Выберите комфортную длительность и сохраняйте ровную технику.',
+      suggestedAction: 'Увеличивайте длительность постепенно, если нагрузка ощущается комфортной.',
+      consecutivePlateauCount: 0
+    } : evaluateDoubleProgression(
       ex.targetSets,
       ex.minReps,
       ex.maxReps,

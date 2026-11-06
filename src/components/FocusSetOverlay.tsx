@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Clock, Minus, Plus, X } from 'lucide-react';
 import type { ActiveExerciseSession, WorkoutSet } from '../types';
@@ -27,6 +27,11 @@ function tipForExercise(exercise: ActiveExerciseSession): string {
   if (exercise.technique?.execution) return exercise.technique.execution;
   if (exercise.category === 'Cardio') return 'Начни спокойно, держи ровное дыхание и темп, который можешь контролировать.';
   return 'Двигайся плавно, сохраняй устойчивое положение и прекращай подход при боли.';
+}
+
+function shortCue(text: string): string {
+  const firstSentence = text.split(/(?<=[.!?])\s/)[0];
+  return firstSentence.length > 105 ? `${firstSentence.slice(0, 102).trimEnd()}…` : firstSentence;
 }
 
 export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
@@ -73,8 +78,8 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
         >
           <X className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2 font-mono text-sm text-lime">
-          <Clock className="w-4 h-4" />
+        <div className="flex items-center gap-2 font-mono text-2xl text-lime">
+          <Clock className="w-5 h-5" />
           <span className="font-bold tabular-nums">{formatMmSs(elapsed)}</span>
         </div>
         <div className="text-[10px] font-bold uppercase tracking-wider text-muted text-right leading-tight">
@@ -94,25 +99,19 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
               {exercise.name}
             </h2>
             {prev && (
-              <p className="text-sm text-muted font-mono">Прошлый: {prev.weight}×{prev.reps}</p>
+              <p className="text-sm text-muted font-mono">Прошлый: {isTimed ? formatDuration(prev.durationSeconds || 0) : `${prev.weight} кг × ${prev.reps}`}</p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <div className="border-b border-white/10 pb-2 space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Техника движения</p>
-              {exercise.technique?.primaryMuscles && <p className="text-[11px] leading-snug text-lime">{exercise.technique.primaryMuscles}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="min-w-0 border-l-2 border-sky-300/70 bg-sky-300/[0.06] rounded-r-xl p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-sky-200 mb-1.5">01 · Исходное положение</p>
-                <p className="text-xs sm:text-sm text-white/85 leading-snug">{setupTip}</p>
-              </div>
-              <div className="min-w-0 border-l-2 border-lime bg-lime/[0.05] rounded-r-xl p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-lime mb-1.5">02 · Движение</p>
-                <p className="text-xs sm:text-sm text-white/85 leading-snug">{executionTip}</p>
-              </div>
-            </div>
+          <div className="border-l-2 border-lime pl-3 text-sm leading-snug text-white/85">
+            <p><span className="text-lime font-semibold">Старт:</span> {shortCue(setupTip)}</p>
+            <p className="mt-1"><span className="text-lime font-semibold">Движение:</span> {shortCue(executionTip)}</p>
+            <details className="mt-2 text-xs text-muted">
+              <summary className="cursor-pointer min-h-[36px] flex items-center">Подробная техника</summary>
+              <p className="mt-1">{setupTip}</p>
+              <p className="mt-2">{executionTip}</p>
+              {exercise.technique?.breathing && <p className="mt-2">Дыхание: {exercise.technique.breathing}</p>}
+            </details>
           </div>
 
           <div className="space-y-3">

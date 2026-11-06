@@ -4,6 +4,7 @@ import { ActiveWorkoutView } from './components/ActiveWorkoutView';
 import { Navigation } from './components/Navigation';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { useWorkoutSession } from './hooks/useWorkoutSession';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 const AnalyticsView = lazy(() =>
   import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView }))
@@ -19,6 +20,7 @@ const WorkoutSummaryView = lazy(() =>
 );
 
 export const App: React.FC = () => {
+  const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW();
   const [programSetupOpen, setProgramSetupOpen] = React.useState(false);
   const [restResumeNonce, setRestResumeNonce] = React.useState(0);
   const focusResumeRef = useRef<(() => void) | null>(null);
@@ -81,6 +83,15 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-app-atmosphere text-white flex flex-col font-sans selection:bg-lime selection:text-ink">
+      {needRefresh && !activeWorkout && (
+        <div className="px-4 pt-3 max-w-lg mx-auto w-full">
+          <div className="rounded-xl border border-lime/30 bg-ink-2 p-3 flex items-center justify-between gap-3 text-sm">
+            <span>Доступно обновление приложения</span>
+            <button type="button" onClick={() => updateServiceWorker(true)} className="shrink-0 min-h-[44px] px-3 rounded-lg btn-lime text-xs font-bold">Обновить</button>
+            <button type="button" onClick={() => setNeedRefresh(false)} className="min-h-[44px] px-2 text-muted text-xs">Позже</button>
+          </div>
+        </div>
+      )}
       <PWAInstallBanner />
 
       <div className="flex-1">

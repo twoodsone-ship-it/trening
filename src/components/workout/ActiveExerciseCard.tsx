@@ -58,13 +58,14 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
   const [showChart, setShowChart] = useState(false);
   const completedCount = ex.sets.filter(s => s.completed).length;
   const badgeClass = badgeStyles[ex.recommendation.badgeColor] || badgeStyles.blue;
+  const durationLabel = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   const targetSummary = ex.trackingMode === 'duration'
-    ? `${Math.floor((ex.defaultDurationSeconds || 60) / 60)} мин · ${ex.targetSets} подхода`
-    : `${ex.targetWeight} кг · ${ex.minReps}–${ex.maxReps} повт.`;
+    ? `${durationLabel(ex.defaultDurationSeconds || 60)} · ${ex.targetSets} подхода`
+    : `${ex.weightStep === 0 ? 'Свой вес' : `${ex.targetWeight} кг`} · ${ex.minReps}–${ex.maxReps} повт.`;
   const previousSet = ex.previousPerformance?.sets[0];
   const previousSummary = previousSet
     ? ex.trackingMode === 'duration'
-      ? `${Math.floor((previousSet.durationSeconds || 0) / 60)} мин`
+      ? durationLabel(previousSet.durationSeconds || 0)
       : `${previousSet.weight} × ${previousSet.reps}`
     : null;
 

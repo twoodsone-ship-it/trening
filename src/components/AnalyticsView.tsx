@@ -16,7 +16,7 @@ interface AnalyticsViewProps {
   templates: WorkoutTemplate[];
 }
 
-export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates }) => {
+export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
   const [periodWeeks, setPeriodWeeks] = useState<4 | 8 | 12>(8);
   const cutoff = Date.now() - periodWeeks * 7 * 86400000;
@@ -56,24 +56,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
       });
     });
   });
-
-  // Also seed with template current weights if history empty
-  if (prMap.size === 0 && history.length === 0) {
-    templates.forEach(t => {
-      t.exercises.forEach(e => {
-        if (!prMap.has(e.name)) {
-          const est1RM = calculate1RM(e.currentWeight, e.minReps);
-          prMap.set(e.name, {
-            exerciseName: e.name,
-            category: e.category,
-            maxWeight: e.currentWeight,
-            max1RM: est1RM,
-            date: 'Базовый вес'
-          });
-        }
-      });
-    });
-  }
 
   const prList = Array.from(prMap.values()).sort((a, b) => b.max1RM - a.max1RM);
 
@@ -158,10 +140,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
       <div className="surface-panel p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-4">
           <Trophy className="w-5 h-5 text-amber-400" />
-          <h2 className="font-bold text-base text-white">Рекорды (1RM Оценка)</h2>
+          <h2 className="font-bold text-base text-white">Лучшие результаты за период</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {prList.length === 0 ? <p className="text-sm text-muted">После первой силовой тренировки здесь появятся результаты.</p> : <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {prList.slice(0, 6).map((pr) => (
             <div 
               key={pr.exerciseName}
@@ -188,7 +170,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history, templates
               </div>
             </div>
           ))}
-        </div>
+        </div>}
       </div>
 
       {/* Workout History Log Feed */}

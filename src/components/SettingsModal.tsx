@@ -7,9 +7,6 @@ import {
   Download, 
   Upload, 
   RotateCcw, 
-  Sun,
-  Moon,
-  Repeat,
   Undo2,
   Mic,
   Focus,
@@ -96,14 +93,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const toggleTrack = (on: boolean) =>
     cn('w-12 h-6 rounded-full transition relative', on ? 'bg-lime' : 'bg-white/15');
 
-  const segmentBtn = (active: boolean) =>
-    cn(
-      'py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition',
-      active
-        ? 'btn-lime'
-        : 'bg-white/[0.04] text-muted border border-white/10 hover:text-white'
-    );
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in text-white">
       <div className="w-full max-w-md surface-panel p-4 sm:p-6 border-lime/20 max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto">
@@ -126,57 +115,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Settings list */}
         <div className="my-5 space-y-4">
           
-          {/* Theme Selector (Light vs Dark) */}
-          <div className="bg-white/[0.03] p-3.5 rounded-2xl border border-white/10 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-sm text-white">Тема оформления</span>
-              <span className="text-xs text-muted font-medium">
-                {settings.theme === 'light' ? 'Светлая' : 'Тёмная OLED'}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => onUpdateSettings({ ...settings, theme: 'light' })}
-                className={segmentBtn(settings.theme === 'light')}
-              >
-                <Sun className="w-4 h-4" /> ☀️ Светлая
-              </button>
-              <button
-                onClick={() => onUpdateSettings({ ...settings, theme: 'dark' })}
-                className={segmentBtn(settings.theme === 'dark')}
-              >
-                <Moon className="w-4 h-4" /> 🌙 Тёмная
-              </button>
-            </div>
-          </div>
-
-          {/* Weekly Rotation Option */}
-          <div className="bg-white/[0.03] p-3.5 rounded-2xl border border-white/10 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Repeat className="w-4 h-4 text-lime" />
-                <span className="font-semibold text-sm text-white">Текущая неделя ротации</span>
-              </div>
-              <span className="text-xs font-mono font-bold text-lime">
-                Неделя {settings.currentWeek || 'A'}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => onUpdateSettings({ ...settings, currentWeek: 'A' })}
-                className={segmentBtn(settings.currentWeek === 'A')}
-              >
-                Неделя 1 (Вариант А)
-              </button>
-              <button
-                onClick={() => onUpdateSettings({ ...settings, currentWeek: 'B' })}
-                className={segmentBtn(settings.currentWeek === 'B')}
-              >
-                Неделя 2 (Вариант Б)
-              </button>
-            </div>
-          </div>
-
           {/* Sound Toggle */}
           <div className="flex items-center justify-between bg-white/[0.03] p-3.5 rounded-2xl border border-white/10">
             <div className="flex items-center gap-3">
@@ -187,7 +125,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               )}
               <div>
                 <span className="font-semibold text-sm text-white block">Звуки таймера</span>
-                <span className="text-xs text-muted">Сигнал окончания отдыха (Web Audio)</span>
+                <span className="text-xs text-muted">Сигнал окончания отдыха</span>
               </div>
             </div>
             <button
@@ -207,7 +145,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Smartphone className="w-5 h-5 text-lime" />
               <div>
                 <span className="font-semibold text-sm text-white block">Вибрация (Haptic)</span>
-                <span className="text-xs text-muted">Карта паттернов: сет / таймер / PR</span>
+                <span className="text-xs text-muted">После подхода и отдыха</span>
               </div>
             </div>
             <button
@@ -227,7 +165,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Mic className="w-5 h-5 text-lime" />
               <div>
                 <span className="font-semibold text-sm text-white block">Голосовой отсчёт</span>
-                <span className="text-xs text-muted">SpeechSynthesis: 3…2…1 и «начинайте»</span>
+                <span className="text-xs text-muted">Последние секунды отдыха</span>
               </div>
             </div>
             <button
@@ -299,7 +237,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }}
               className="w-full py-2 px-3 bg-white/[0.04] hover:bg-white/[0.07] text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-white/10 transition"
             >
-              <HeartPulse className="w-4 h-4 text-rose-400" /> CSV для Apple Health / Google Fit
+              <HeartPulse className="w-4 h-4 text-rose-400" /> Скачать CSV тренировок
             </button>
             <div className="flex gap-2">
               <button

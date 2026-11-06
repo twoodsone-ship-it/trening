@@ -117,21 +117,26 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   }, []);
 
   const completeSetWithRpe = (exIdx: number, setIdx: number, rpe?: number) => {
+    const warmup = isWarmupSet(exercises[exIdx].sets[setIdx]);
     let next = patchSet(exercises, exIdx, setIdx, s => ({
       ...s,
       completed: true,
-      rpe: rpe ?? s.rpe ?? 8
+      rpe: warmup ? undefined : rpe ?? s.rpe ?? 8
     }));
     onUpdateExercises(next);
     soundService.haptic('setComplete', settings.vibrationEnabled);
     soundService.playCountdownBeep();
-    onTriggerRestTimer(exercises[exIdx].restSeconds || settings.defaultRestSeconds || 90);
+    onTriggerRestTimer(warmup ? 30 : exercises[exIdx].restSeconds || settings.defaultRestSeconds || 90);
   };
 
   const toggleSetComplete = (exIdx: number, setIdx: number) => {
     const targetSet = exercises[exIdx].sets[setIdx];
     if (targetSet.completed) {
       onUpdateExercises(patchSet(exercises, exIdx, setIdx, s => ({ ...s, completed: false })));
+      return;
+    }
+    if (isWarmupSet(targetSet)) {
+      completeSetWithRpe(exIdx, setIdx);
       return;
     }
     setRpeTarget({ exIdx, setIdx });

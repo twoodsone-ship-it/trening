@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Check, Clock, Minus, Plus, X } from 'lucide-react';
 import type { ActiveExerciseSession, WorkoutSet } from '../types';
 import { muscleCategoryLabel } from '../utils/uiLabels';
+import { isWarmupSet } from '../utils/workoutHelpers';
 import { cn } from '../utils/cn';
 
 interface FocusSetOverlayProps {
@@ -45,6 +46,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   onComplete
 }) => {
   const prev = exercise.previousPerformance?.sets[setIndex];
+  const isTrial = isWarmupSet(set);
   const [elapsed, setElapsed] = useState(0);
   const setupTip = exercise.technique?.setup || tipForExercise(exercise);
   const executionTip = exercise.technique?.execution || (exercise.category === 'Cardio'
@@ -93,12 +95,13 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
         <div className="max-w-md mx-auto flex flex-col gap-4 min-h-full justify-center py-2">
           <div className="text-center space-y-1">
             <p className="text-xs font-bold uppercase tracking-wider text-lime">
-              {muscleCategoryLabel(exercise.category)} · подход {set.setNumber || setIndex + 1}
+              {isTrial ? 'Пробный подход' : `${muscleCategoryLabel(exercise.category)} · подход ${set.setNumber || setIndex + 1}`}
             </p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-[0.98]">
               {exercise.name}
             </h2>
-            {prev && (
+            {isTrial && <p className="text-sm text-muted">Лёгкий вес для знакомства с движением. Рабочие подходы будут после короткого отдыха.</p>}
+            {!isTrial && prev && (
               <p className="text-sm text-muted font-mono">Прошлый: {isTimed ? formatDuration(prev.durationSeconds || 0) : `${prev.weight} кг × ${prev.reps}`}</p>
             )}
           </div>
@@ -154,7 +157,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
             )}
           >
             <Check className="w-6 h-6" />
-            {set.completed ? 'Сет отмечен' : isTimed ? 'Интервал выполнен' : 'Подход выполнен'}
+            {set.completed ? 'Подход отмечен' : isTrial ? 'Пробный подход выполнен' : isTimed ? 'Интервал выполнен' : 'Подход выполнен'}
           </button>
         </div>
       </div>

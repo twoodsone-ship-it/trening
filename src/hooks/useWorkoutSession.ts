@@ -9,6 +9,7 @@ import type {
   GymProfile,
   ProgramGoal,
   ReadinessLevel,
+  WorkoutSet,
   WorkoutTemplate
 } from '../types';
 import { storageService } from '../services/storageService';
@@ -22,7 +23,8 @@ function buildActiveExercises(
   readiness: ReadinessLevel,
   cyclePhase: 'base' | 'progress' | 'overload' | 'deload'
 ): ActiveExerciseSession[] {
-  return template.exercises.map(ex => {
+  const firstWeightedIndex = template.exercises.findIndex(ex => (ex.trackingMode || 'reps') === 'reps' && ex.weightStep > 0 && ex.currentWeight > 0);
+  return template.exercises.map((ex, exIndex) => {
     const recommendation = ex.trackingMode === 'duration' ? {
       decision: 'FIRST_SESSION' as const,
       nextWeight: 0,
@@ -49,7 +51,7 @@ function buildActiveExercises(
       ? Math.max(ex.weightStep, Math.round((ex.currentWeight * 0.9) / ex.weightStep) * ex.weightStep)
       : 0;
     const nextWeight = cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight;
-    const initialSets = Array.from({ length: targetSets }).map((_, i) => ({
+    const initialSets: WorkoutSet[] = Array.from({ length: targetSets }).map((_, i) => ({
       id: 's-' + Date.now() + '-' + i,
       setNumber: i + 1,
       weight: nextWeight,
@@ -59,6 +61,21 @@ function buildActiveExercises(
       completed: false,
       type: 'working' as const
     }));
+    if (exIndex === firstWeightedIndex) {
+      const step = ex.weightStep || 2.5;
+      const trialWeight = Math.min(nextWeight * 0.5, ex.equipment === 'barbell' ? 20 : nextWeight * 0.5);
+      initialSets.unshift({
+        id: `trial-${Date.now()}`,
+        setNumber: 0,
+        weight: Math.max(0, Math.round(trialWeight / step) * step),
+        reps: Math.min(8, Math.max(5, ex.minReps)),
+        durationSeconds: undefined,
+        rpe: undefined,
+        completed: false,
+        type: 'warmup' as const,
+        isWarmup: true
+      });
+    }
 
     return {
       exerciseId: ex.id,

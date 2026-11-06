@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, RotateCcw, Plus, Minus, X, Bell, Focus } from 'lucide-react';
+import { Play, Pause, Plus, Minus } from 'lucide-react';
 import { soundService } from '../services/audioService';
 import { restTimerStorage } from '../utils/restTimerStorage';
 import { cn } from '../utils/cn';
@@ -38,13 +38,11 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   onFinished,
   soundEnabled = true,
   vibrationEnabled = true,
-  voiceEnabled = true,
-  clearBottomNav = false
+  voiceEnabled = true
 }) => {
   const [totalSeconds, setTotalSeconds] = useState(initialSeconds);
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(true);
-  const [isMinimized, setIsMinimized] = useState(false);
   const [done, setDone] = useState(false);
 
   const targetEndTimeRef = useRef<number>(Date.now() + initialSeconds * 1000);
@@ -76,7 +74,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     setTotalSeconds(initialSeconds);
     setTimeLeft(initialSeconds);
     setIsRunning(true);
-    setIsMinimized(false);
     setDone(false);
     lastBeepSecondsRef.current = -1;
     finishedFiredRef.current = false;
@@ -157,16 +154,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     setIsRunning(true);
   };
 
-  const resetTimer = () => {
-    finishedFiredRef.current = false;
-    setDone(false);
-    targetEndTimeRef.current = Date.now() + totalSeconds * 1000;
-    restTimerStorage.setEndsAt(targetEndTimeRef.current);
-    setTimeLeft(totalSeconds);
-    setIsRunning(true);
-    lastBeepSecondsRef.current = -1;
-  };
-
   const togglePause = () => {
     if (isRunning) {
       setIsRunning(false);
@@ -182,92 +169,20 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     onClose();
   };
 
-  if (isMinimized) {
-    return (
-      <button
-        type="button"
-        onClick={() => (isDone ? goToSet() : setIsMinimized(false))}
-        className={cn(
-          'fixed right-4 z-[60] flex items-center gap-2 bg-ink-2 border border-lime/50 shadow-2xl shadow-lime/10 text-white px-3.5 py-2.5 rounded-full transition hover:scale-105 active:scale-95 min-h-[44px]',
-          clearBottomNav
-            ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))]'
-            : 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))]'
-        )}
-      >
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime" />
-        </span>
-        <span className="font-mono font-bold text-base text-lime tabular-nums">
-          {isDone ? 'GO' : formattedTime}
-        </span>
-        <span className="text-[11px] text-muted font-semibold">{isDone ? 'К сету' : 'Отдых'}</span>
-      </button>
-    );
-  }
-
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[60] p-3 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-ink via-ink/80 to-transparent backdrop-blur-md animate-fade-in">
-      <div className="max-w-md mx-auto surface-panel bg-ink-2/95 p-4 shadow-2xl">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Bell className={cn('w-4 h-4 text-lime', !isDone && 'animate-bounce')} />
-            <span className="text-xs font-semibold tracking-wider uppercase text-muted">
-              {isDone ? 'Отдых завершён' : 'Таймер отдыха'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {!isDone && (
-              <button
-                type="button"
-                onClick={() => setIsMinimized(true)}
-                className="text-xs px-2.5 py-1.5 min-h-[36px] bg-white/5 text-muted border border-white/10 rounded-lg transition"
-              >
-                Свернуть
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={isDone ? goToSet : onClose}
-              className="p-2 text-muted rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Закрыть"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden bg-ink rounded-2xl p-4 mb-3 border border-white/10 text-center">
-          <div
-            className="absolute left-0 top-0 bottom-0 bg-lime/15 border-r border-lime/30 transition-all duration-1000 ease-linear"
-            style={{ width: `${isDone ? 100 : progressPercent}%` }}
-          />
-          <div className="relative z-10">
-            <div
-              className={cn(
-                'font-mono font-black tracking-tight text-5xl tabular-nums transition',
-                isDone ? 'text-lime' : timeLeft <= 5 ? 'text-rose-400 scale-105' : 'text-lime'
-              )}
-            >
-              {formattedTime}
-            </div>
-            <p className="text-xs text-muted mt-1">
-              {isDone
-                ? 'Пора к следующему подходу'
-                : voiceEnabled
-                ? 'Голосовой отсчёт 3…2…1'
-                : 'Восстановление'}
-            </p>
-          </div>
-        </div>
+    <div className="fixed inset-0 z-[60] bg-app-atmosphere text-white flex items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div className="w-full max-w-sm text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">{isDone ? 'Отдых завершён' : 'Отдых'}</p>
+        <p className={cn('font-mono font-black text-[clamp(4.5rem,20vw,6.5rem)] leading-none tabular-nums mt-5', timeLeft <= 5 && !isDone ? 'text-rose-400' : 'text-lime')}>{formattedTime}</p>
+        <div className="h-1 bg-white/10 rounded-full overflow-hidden mt-6 mb-8"><div className="h-full bg-lime transition-all duration-1000" style={{ width: `${isDone ? 100 : progressPercent}%` }} /></div>
 
         {isDone ? (
           <button
             type="button"
             onClick={goToSet}
-            className="w-full min-h-[52px] btn-lime rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
+            className="w-full min-h-[56px] btn-lime rounded-2xl font-bold text-base flex items-center justify-center"
           >
-            <Focus className="w-4 h-4" /> К подходу
+            К подходу
           </button>
         ) : (
           <div className="flex items-center justify-between gap-2">
@@ -305,16 +220,9 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             >
               <Plus className="w-3.5 h-3.5" /> 30с
             </button>
-            <button
-              type="button"
-              onClick={resetTimer}
-              className="min-h-[48px] min-w-[48px] flex items-center justify-center bg-white/5 border border-white/10 rounded-xl active:scale-95 transition"
-              aria-label="Сброс"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
           </div>
         )}
+        {!isDone && <button type="button" onClick={goToSet} className="mt-5 min-h-[48px] px-4 text-sm text-muted">Пропустить отдых</button>}
       </div>
     </div>
   );

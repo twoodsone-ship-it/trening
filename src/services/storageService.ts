@@ -157,6 +157,23 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
     };
   });
 
+  // Give an unfinished session created by an older version the same gentle start.
+  if (migratedExercises.every((ex: any) => ex.sets.every((set: any) => !set.completed))) {
+    const firstWeighted = migratedExercises.find((ex: any) => ex.trackingMode === 'reps' && ex.weightStep > 0 && ex.targetWeight > 0);
+    if (firstWeighted && !firstWeighted.sets.some((set: any) => set.type === 'warmup' || set.isWarmup)) {
+      const trialWeight = Math.min(firstWeighted.targetWeight * 0.5, firstWeighted.equipment === 'barbell' ? 20 : firstWeighted.targetWeight * 0.5);
+      firstWeighted.sets.unshift({
+        id: `trial-${workout.startTime || Date.now()}`,
+        setNumber: 0,
+        weight: Math.max(0, Math.round(trialWeight / firstWeighted.weightStep) * firstWeighted.weightStep),
+        reps: Math.min(8, Math.max(5, firstWeighted.minReps)),
+        completed: false,
+        type: 'warmup',
+        isWarmup: true
+      });
+    }
+  }
+
   return {
     templateId: workout.templateId || 'custom',
     templateName: workoutNameLabel(workout.templateName || 'Тренировка'),

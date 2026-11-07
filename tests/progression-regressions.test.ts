@@ -35,6 +35,17 @@ describe('progression regressions', () => {
     expect(result.decision).toBe('INCREASE_WEIGHT');
     expect(result.nextWeight).toBe(82.5);
   });
+  it('shows the actual doubled increase in the badge and analysis', () => {
+    const result = evaluateDoubleProgression(3, 8, 12, 2.5, 60, [{ ...session(setsAt(60, 14)), weight: 60 }], 'optimal', now);
+    expect(result.nextWeight).toBe(65);
+    expect(result.badgeText).toContain('+5 кг');
+    expect(result.analysis).toMatch(/удвоен|двойн/i);
+  });
+  it('names the actual working load when consolidating', () => {
+    const result = evaluateDoubleProgression(3, 8, 12, 2.5, 77.5, [{ ...session(setsAt(80, 12, 10)), weight: 80 }], 'optimal', now);
+    expect(result.decision).toBe('CONSOLIDATE_WEIGHT');
+    expect(result.suggestedAction).toContain('80 кг');
+  });
   it('treats missing RPE as unknown instead of as a grind', () => {
     const result = evaluateDoubleProgression(3, 8, 12, 2.5, 80, [session(setsAt(80, 12))], 'optimal', now);
     expect(result.decision).toBe('INCREASE_WEIGHT');

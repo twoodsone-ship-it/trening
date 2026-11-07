@@ -202,7 +202,7 @@ export function evaluateDoubleProgression(
         badgeText: '🔄 Закрепление веса',
         badgeColor: 'purple',
         analysis: `Вы закрыли ${maxReps} повторений во всех подходах, но на высоком усилии (RPE ${maxRpe}). Форма требует фиксации перед увеличением веса.${fatigueNote}`,
-        suggestedAction: `Повторите ${currentWeight} кг еще 1 тренировку. Сфокусируйтесь на чистоте техники и контроле эксцентрики. При успехе повышаем вес!`,
+        suggestedAction: `Повторите ${roundWeight(lastWeight)} кг еще 1 тренировку. Сфокусируйтесь на чистоте техники и контроле эксцентрики. При успехе повышаем вес!`,
         consecutivePlateauCount: 0
       };
     }
@@ -214,9 +214,9 @@ export function evaluateDoubleProgression(
       decision: 'INCREASE_WEIGHT',
       nextWeight,
       targetRepRange: `${minReps}-${minReps + 2}`,
-      badgeText: `⚡ +${weightStep} кг Повышение!`,
+      badgeText: `⚡ +${roundWeight(nextWeight - lastWeight)} кг Повышение!`,
       badgeColor: 'emerald',
-      analysis: `Отличная работа! Закрыты все ${targetSets} подходов по ${maxReps} повт. с хорошим запасом (RPE ${knownRpes.length ? `~${averageRpe.toFixed(1)}` : 'неизвестно'}). Активирован второй шаг двойной прогрессии.`,
+      analysis: `Отличная работа! Закрыты все ${targetSets} подходов по ${maxReps} повт. с хорошим запасом (RPE ${knownRpes.length ? `~${averageRpe.toFixed(1)}` : 'неизвестно'}). ${overperformed ? 'Прибавка удвоена, потому что каждый подход превысил диапазон на 2 повторения.' : 'Активирован второй шаг двойной прогрессии.'}`,
       suggestedAction: `Увеличьте вес до ${nextWeight} кг. Цель на сегодня: выполнить от ${minReps} повторений в каждом подходе.`,
       consecutivePlateauCount: 0
     };
@@ -239,7 +239,7 @@ export function evaluateDoubleProgression(
 
   if (repsNeeded <= 2) {
     analysisMsg += ` Вы буквально в одном шаге от взятия веса (осталось всего ${repsNeeded} повт. до максимума)!`;
-    actionMsg = `Максимальный фокус! Дожмите оставшиеся повторения, чтобы в следующий раз взять ${lastWeight + weightStep} кг.`;
+    actionMsg = `Максимальный фокус! Дожмите оставшиеся повторения, чтобы в следующий раз взять ${roundWeight(lastWeight + weightStep)} кг.`;
   }
 
   return {

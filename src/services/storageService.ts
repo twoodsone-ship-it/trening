@@ -220,6 +220,16 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
   };
 }
 
+export function extractWorkingWeightFromSets(
+  sets: { completed?: boolean; reps: number; type?: string; isWarmup?: boolean; weight: number }[]
+): number | undefined {
+  const workingSets = sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+  const topWorkingWeight = workingSets.reduce((top, set) => Math.max(top, set.weight), 0);
+  const actualWeight = workingSets.filter(s => s.weight >= topWorkingWeight - 0.01).at(-1)?.weight;
+  if (actualWeight != null) return roundWeight(actualWeight);
+  return undefined;
+}
+
 export const storageService = {
   getTemplates(): WorkoutTemplate[] {
     try {
@@ -270,6 +280,67 @@ export const storageService = {
     return [];
   },
 
+  deleteCompletedWorkout(id: string): boolean {
+    const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    if (!rawHistory) return false;
+    let history: CompletedWorkout[] = [];
+    try {
+      const parsed = JSON.parse(rawHistory);
+      if (Array.isArray(parsed)) {
+        history = parsed.filter(
+          (item: any) =>
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.endTime === 'number' &&
+            Array.isArray(item.exercises)
+        );
+      }
+    } catch {
+      return false;
+    }
+
+    const workoutIndex = history.findIndex(w => w.id === id);
+    if (workoutIndex === -1) return false;
+
+    const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
+    const previousHistory = rawHistory;
+
+    const nextHistory = history.filter(w => w.id !== id);
+    const templates = this.getTemplates();
+
+    templates.forEach(template => {
+      template.exercises.forEach(exercise => {
+        const hasSession = exercise.history.some(s => s.workoutId === id);
+        if (hasSession) {
+          exercise.history = exercise.history.filter(s => s.workoutId !== id);
+          const nonDeloadSessions = exercise.history.filter(s => s.phase !== 'deload');
+          const latestSession = nonDeloadSessions.at(-1);
+          if (latestSession) {
+            const recomputedWeight = extractWorkingWeightFromSets(latestSession.sets || []) ?? (latestSession.weight ? roundWeight(latestSession.weight) : undefined);
+            if (recomputedWeight != null) {
+              exercise.currentWeight = roundWeight(recomputedWeight);
+            }
+          }
+        }
+      });
+    });
+
+    try {
+      preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
+      preserveCorruptValue(STORAGE_KEYS.HISTORY);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+      return true;
+    } catch (error) {
+      if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
+      else localStorage.setItem(STORAGE_KEYS.TEMPLATES, previousTemplates);
+      if (previousHistory == null) localStorage.removeItem(STORAGE_KEYS.HISTORY);
+      else localStorage.setItem(STORAGE_KEYS.HISTORY, previousHistory);
+      throw error;
+    }
+  },
+
   saveCompletedWorkout(workout: CompletedWorkout) {
     const recordedWorkout: CompletedWorkout = {
       ...workout,
@@ -316,9 +387,8 @@ export const storageService = {
           owner.exercises.push(exercise);
         }
         if (!exercise) return;
+        const actualWeight = extractWorkingWeightFromSets(completedEx.sets);
         const workingSets = completedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
-        const topWorkingWeight = workingSets.reduce((top, set) => Math.max(top, set.weight), 0);
-        const actualWeight = workingSets.filter(s => s.weight >= topWorkingWeight - 0.01).at(-1)?.weight;
         if (workout.cyclePhase !== 'deload' && actualWeight != null) {
           exercise.currentWeight = roundWeight(actualWeight);
         }

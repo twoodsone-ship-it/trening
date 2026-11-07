@@ -21,7 +21,7 @@ const WorkoutSummaryView = lazy(() =>
 );
 
 export const App: React.FC = () => {
-  if (typeof window !== 'undefined' && window.location.search.includes('trigger_error=1')) {
+  if (import.meta.env.DEV && typeof window !== 'undefined' && window.location.search.includes('trigger_error=1')) {
     throw new Error('QA trigger error');
   }
   const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW();

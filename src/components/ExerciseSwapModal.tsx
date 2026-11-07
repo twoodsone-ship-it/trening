@@ -172,7 +172,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in text-white">
-      <div className="w-full max-w-xl surface-panel bg-ink-2 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[min(92dvh,calc(100dvh-1.5rem))]">
+      <div className="w-full max-w-xl md:max-w-lg surface-panel bg-ink-2 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[min(92dvh,calc(100dvh-1.5rem))]">
         
         {/* Header */}
         <div className="p-3.5 sm:p-4 border-b border-white/10 bg-ink-2 space-y-2.5 sm:space-y-3 shrink-0">

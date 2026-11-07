@@ -288,7 +288,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       {/* Dock: CTA sits in a column above reserved nav height so nothing is clipped */}
       {!overlayOpen && (
         <div
-          className="fixed inset-x-0 z-[39] px-5 pointer-events-none"
+          className="home-cta-dock fixed inset-x-0 z-[39] px-5 pointer-events-none"
           style={{ bottom: 'calc(var(--bottom-nav-height, 5rem) + 0.5rem)' }}
         >
           <div className="max-w-lg mx-auto pointer-events-auto">

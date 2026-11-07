@@ -185,7 +185,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
             Журнал пуст. Завершите тренировку во вкладке «Программы», чтобы сохранить историю.
           </div>
         ) : (
-          periodHistory.map(workout => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {periodHistory.map(workout => {
             const isExpanded = expandedWorkoutId === workout.id;
 
             return (
@@ -260,7 +261,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
 
               </div>
             );
-          })
+          })}
+          </div>
         )}
       </div>
 

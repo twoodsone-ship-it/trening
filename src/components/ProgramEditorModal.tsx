@@ -108,7 +108,7 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[80] bg-ink/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 text-white">
-      <div className="w-full max-w-xl h-[100dvh] sm:h-[min(92dvh,850px)] bg-app-atmosphere border border-white/10 sm:rounded-3xl flex flex-col overflow-hidden">
+      <div className="w-full max-w-xl md:max-w-lg h-[100dvh] sm:h-[min(92dvh,850px)] bg-app-atmosphere border border-white/10 sm:rounded-3xl flex flex-col overflow-hidden">
         <header className="shrink-0 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-white/10 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-wider text-lime">Редактор</p>

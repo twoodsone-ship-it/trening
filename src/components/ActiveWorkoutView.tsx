@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { CheckCircle2, Clock, Focus, Link2, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { roundWeight } from '../utils/roundWeight';
 import type {
   ActiveExerciseSession,
   AppSettings,
@@ -148,7 +149,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     onUpdateExercises(
       patchSet(exercises, exIdx, setIdx, s => ({
         ...s,
-        weight: Math.max(0, Math.round((s.weight + delta) * 10) / 10)
+        weight: Math.max(0, roundWeight(s.weight + delta))
       }))
     );
   };

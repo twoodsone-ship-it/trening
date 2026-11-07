@@ -16,6 +16,7 @@ import { storageService } from '../services/storageService';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
 import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
 import { createTrialSet } from '../utils/trialSet';
+import { roundWeight } from '../utils/roundWeight';
 
 export type AppTab = 'home' | 'analytics';
 
@@ -51,7 +52,7 @@ export function buildActiveExercises(
     const deloadWeight = ex.weightStep > 0
       ? Math.max(ex.weightStep, Math.round((ex.currentWeight * 0.9) / ex.weightStep) * ex.weightStep)
       : 0;
-    const nextWeight = cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight;
+    const nextWeight = roundWeight(cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight);
     const initialSets: WorkoutSet[] = Array.from({ length: targetSets }).map((_, i) => ({
       id: 's-' + Date.now() + '-' + i,
       setNumber: i + 1,

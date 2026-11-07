@@ -33,7 +33,7 @@ describe('progression regressions', () => {
   it('escalates after a previously applied consolidation decision', () => {
     const result = evaluateDoubleProgression(3, 8, 12, 2.5, 80, [session(setsAt(80, 12, 10), undefined, 'CONSOLIDATE_WEIGHT')], 'optimal', now);
     expect(result.decision).toBe('INCREASE_WEIGHT');
-    expect(result.nextWeight).toBe(81.3);
+    expect(result.nextWeight).toBe(82.5);
   });
   it('treats missing RPE as unknown instead of as a grind', () => {
     const result = evaluateDoubleProgression(3, 8, 12, 2.5, 80, [session(setsAt(80, 12))], 'optimal', now);

@@ -11,6 +11,7 @@ import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
 import { workoutNameLabel } from '../utils/uiLabels';
 import { createTrialSet } from '../utils/trialSet';
+import { roundWeight } from '../utils/roundWeight';
 import {
   normalizeMuscleCategory,
   normalizeEquipment,
@@ -229,15 +230,23 @@ export const storageService = {
   },
 
   saveCompletedWorkout(workout: CompletedWorkout) {
+    const recordedWorkout: CompletedWorkout = {
+      ...workout,
+      exercises: workout.exercises.map(exercise => ({
+        ...exercise,
+        workingWeight: roundWeight(exercise.workingWeight),
+        sets: exercise.sets.map(set => ({ ...set, weight: roundWeight(set.weight) }))
+      }))
+    };
     const history = this.getHistory();
     if (history.some(existing => existing.id === workout.id)) return;
     const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
     const previousHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
-    history.unshift(workout);
+    history.unshift(recordedWorkout);
     const templates = this.getTemplates();
     const workoutTemplate = templates.find(t => t.id === workout.templateId);
     if (templates.length) {
-      workout.exercises.forEach(completedEx => {
+      recordedWorkout.exercises.forEach(completedEx => {
         let owner = templates.find(t => t.exercises.some(e => e.id === completedEx.exerciseId));
         let exercise = owner?.exercises.find(e => e.id === completedEx.exerciseId);
         if (!exercise && workoutTemplate) {
@@ -270,7 +279,7 @@ export const storageService = {
         const topWorkingWeight = workingSets.reduce((top, set) => Math.max(top, set.weight), 0);
         const actualWeight = workingSets.filter(s => s.weight >= topWorkingWeight - 0.01).at(-1)?.weight;
         if (workout.cyclePhase !== 'deload' && actualWeight != null) {
-          exercise.currentWeight = actualWeight;
+          exercise.currentWeight = roundWeight(actualWeight);
         }
 
         const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
@@ -287,8 +296,8 @@ export const storageService = {
           targetSets: completedEx.targetSets,
           minReps: completedEx.minReps,
           maxReps: completedEx.maxReps,
-          weight: completedEx.workingWeight,
-          sets: completedEx.sets.map(s => ({ ...s, completed: true })),
+          weight: roundWeight(completedEx.workingWeight),
+          sets: completedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true })),
           totalVolume: Math.round(totalVol),
           totalDurationSeconds: totalDuration || undefined,
           estimated1RM: Math.round(maxSet1RM * 10) / 10,

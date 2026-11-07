@@ -149,6 +149,9 @@ export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
     return cloneDefaultTemplates();
   }
   const validTemplates = templates.filter(t => t && typeof t === 'object');
+  if (validTemplates.length < templates.length) {
+    corruptKeys.add(STORAGE_KEYS.TEMPLATES);
+  }
   if (validTemplates.length === 0) {
     return cloneDefaultTemplates();
   }
@@ -315,6 +318,38 @@ export function compactTemplatesExerciseHistory(
   }
 }
 
+export function isValidCompletedWorkout(item: any): item is CompletedWorkout {
+  return Boolean(
+    item &&
+    typeof item === 'object' &&
+    typeof item.id === 'string' &&
+    typeof item.endTime === 'number' &&
+    Array.isArray(item.exercises)
+  );
+}
+
+export function partitionRawHistory(raw: string | null): { valid: CompletedWorkout[]; rejected: any[] } {
+  if (!raw) return { valid: [], rejected: [] };
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return { valid: [], rejected: [] };
+    const valid: CompletedWorkout[] = [];
+    const rejected: any[] = [];
+    for (const item of parsed) {
+      if (isValidCompletedWorkout(item)) {
+        valid.push(item);
+      } else {
+        rejected.push(item);
+      }
+    }
+    return { valid, rejected };
+  } catch {
+    corruptKeys.add(STORAGE_KEYS.HISTORY);
+    console.warn('Failed to load history');
+    return { valid: [], rejected: [] };
+  }
+}
+
 export const storageService = {
   deriveExerciseHistory(exerciseId: string, templateSessions?: ExerciseSession[]): ExerciseSession[] {
     return deriveExerciseHistoryFromCompletedWorkouts(exerciseId, this.getHistory(), templateSessions);
@@ -348,45 +383,14 @@ export const storageService = {
   },
 
   getHistory(): CompletedWorkout[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(
-            (item: any) =>
-              item &&
-              typeof item.id === 'string' &&
-              typeof item.endTime === 'number' &&
-              Array.isArray(item.exercises)
-          );
-        }
-      }
-    } catch {
-      corruptKeys.add(STORAGE_KEYS.HISTORY);
-      console.warn('Failed to load history');
-    }
-    return [];
+    const raw = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    return partitionRawHistory(raw).valid;
   },
 
   updateCompletedWorkout(id: string, next: CompletedWorkout): boolean {
     const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
     if (!rawHistory) return false;
-    let history: CompletedWorkout[] = [];
-    try {
-      const parsed = JSON.parse(rawHistory);
-      if (Array.isArray(parsed)) {
-        history = parsed.filter(
-          (item: any) =>
-            item &&
-            typeof item.id === 'string' &&
-            typeof item.endTime === 'number' &&
-            Array.isArray(item.exercises)
-        );
-      }
-    } catch {
-      return false;
-    }
+    const { valid: history, rejected } = partitionRawHistory(rawHistory);
 
     const workoutIndex = history.findIndex(w => w.id === id);
     if (workoutIndex === -1) return false;
@@ -494,7 +498,7 @@ export const storageService = {
       preserveCorruptValue(STORAGE_KEYS.HISTORY);
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
       localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([...nextHistory, ...rejected]));
       return true;
     } catch (error) {
       if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
@@ -508,21 +512,7 @@ export const storageService = {
   deleteCompletedWorkout(id: string): boolean {
     const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
     if (!rawHistory) return false;
-    let history: CompletedWorkout[] = [];
-    try {
-      const parsed = JSON.parse(rawHistory);
-      if (Array.isArray(parsed)) {
-        history = parsed.filter(
-          (item: any) =>
-            item &&
-            typeof item.id === 'string' &&
-            typeof item.endTime === 'number' &&
-            Array.isArray(item.exercises)
-        );
-      }
-    } catch {
-      return false;
-    }
+    const { valid: history, rejected } = partitionRawHistory(rawHistory);
 
     const workoutIndex = history.findIndex(w => w.id === id);
     if (workoutIndex === -1) return false;
@@ -557,7 +547,7 @@ export const storageService = {
       preserveCorruptValue(STORAGE_KEYS.HISTORY);
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
       localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([...nextHistory, ...rejected]));
       return true;
     } catch (error) {
       if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
@@ -577,10 +567,11 @@ export const storageService = {
         sets: exercise.sets.map(set => ({ ...set, weight: roundWeight(set.weight) }))
       }))
     };
-    const history = this.getHistory();
+    const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    const { valid: history, rejected } = partitionRawHistory(rawHistory);
     if (history.some(existing => existing.id === workout.id)) return;
     const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-    const previousHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    const previousHistory = rawHistory;
     history.unshift(recordedWorkout);
     const templates = this.getTemplates();
     const workoutTemplate = templates.find(t => t.id === workout.templateId);
@@ -651,7 +642,7 @@ export const storageService = {
       preserveCorruptValue(STORAGE_KEYS.HISTORY);
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
       localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([...history, ...rejected]));
       if (typeof navigator !== 'undefined' && navigator.storage?.persist) void navigator.storage.persist().catch(() => undefined);
     } catch (error) {
       if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
@@ -803,7 +794,7 @@ export const storageService = {
       if (data.customExercises !== undefined && !Array.isArray(data.customExercises)) return false;
       if (data.settings !== undefined && (!data.settings || typeof data.settings !== 'object' || Array.isArray(data.settings))) return false;
       const nextTemplates = data.templates ? migrateTemplatesList(data.templates) : null;
-      const nextHistory = data.history == null ? null : data.history.filter((item: any) => item && typeof item.id === 'string' && typeof item.endTime === 'number' && Array.isArray(item.exercises));
+      const nextHistory = data.history == null ? null : data.history.filter(isValidCompletedWorkout);
       if (Array.isArray(data.history) && nextHistory.length !== data.history.length) console.warn(`Пропущено некорректных тренировок при импорте: ${data.history.length - nextHistory.length}`);
       const nextActiveWorkout = data.activeWorkout === undefined ? undefined : migrateActiveSession(data.activeWorkout);
       this.createEmergencySnapshot();

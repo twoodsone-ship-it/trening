@@ -40,6 +40,8 @@
     user-select: text;
     -webkit-user-select: text;
   }
+  input, select, textarea { font-size: max(1rem, 16px); }
+  button { touch-action: manipulation; min-width: 44px; min-height: 44px; }
 }
 
 @layer components {

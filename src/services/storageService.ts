@@ -22,6 +22,17 @@ import {
 
 export { normalizeMuscleCategory, normalizeEquipment };
 
+export const LOCALSTORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
+
+export function getLocalStorageUsage(storage: Storage): number {
+  let bytes = 0;
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key?.startsWith('ironforge_')) bytes += (key.length + (storage.getItem(key)?.length ?? 0)) * 2;
+  }
+  return bytes;
+}
+
 const STORAGE_KEYS = {
   TEMPLATES: 'ironforge_templates_v1',
   HISTORY: 'ironforge_history_v1',

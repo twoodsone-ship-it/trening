@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calculator, Check } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { calculatePlates, STANDARD_PLATES, sanitizeNumber } from '../utils/workoutMath';
 
 interface PlateCalculatorModalProps {
   initialWeight?: number;
@@ -9,7 +10,7 @@ interface PlateCalculatorModalProps {
   onClose: () => void;
 }
 
-const AVAILABLE_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5];
+const AVAILABLE_PLATES = STANDARD_PLATES;
 
 /** Physical plate colors (not UI theme accents) */
 const PLATE_COLORS: Record<number, { bg: string; text: string; border: string }> = {
@@ -35,18 +36,12 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   if (!isOpen) return null;
 
   const weightPerSide = Math.max(0, (targetWeight - barbellWeight) / 2);
-  let remaining = weightPerSide;
-  const plateBreakdown: { weight: number; count: number }[] = [];
-
-  for (const plate of AVAILABLE_PLATES) {
-    if (remaining >= plate) {
-      const count = Math.floor(remaining / plate);
-      plateBreakdown.push({ weight: plate, count });
-      remaining = Math.round((remaining - count * plate) * 100) / 100;
-    }
-  }
-
-  const remainderNotice = remaining > 0 ? remaining * 2 : 0;
+  const calculation = calculatePlates(targetWeight, barbellWeight, AVAILABLE_PLATES);
+  const plateBreakdown = AVAILABLE_PLATES.flatMap(weight => {
+    const count = calculation.platesPerSide.filter(plate => plate === weight).length;
+    return count ? [{ weight, count }] : [];
+  });
+  const remainderNotice = calculation.exact ? 0 : targetWeight - calculation.achievableWeight;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
@@ -80,7 +75,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                 step="0.5"
                 min={barbellWeight}
                 value={targetWeight}
-                onChange={e => setTargetWeight(parseFloat(e.target.value) || 0)}
+                onChange={e => setTargetWeight(sanitizeNumber(e.target.value, 1000))}
                 className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 font-mono text-2xl font-bold text-lime focus:outline-none focus:border-lime/50 min-h-[52px]"
               />
               <div className="flex gap-1">
@@ -151,9 +146,9 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
             </div>
           )}
 
-          {remainderNotice > 0 && (
+          {!calculation.exact && (
             <div className="mt-3 text-xs text-amber-300 bg-amber-500/10 border border-amber-400/30 p-2 rounded-xl text-center">
-              ⚠️ Округлите вес: {remainderNotice} кг не распределяется стандартными блинами.
+              ⚠️ {calculation.error || `Вес недоступен (разница ${remainderNotice.toFixed(2)} кг). Ближайшие варианты: ${calculation.lowerWeight ?? '—'} кг и ${calculation.upperWeight ?? '—'} кг.`}
             </div>
           )}
         </div>

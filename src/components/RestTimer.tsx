@@ -3,6 +3,7 @@ import { Play, Pause, Plus, Minus } from 'lucide-react';
 import { soundService } from '../services/audioService';
 import { restTimerStorage } from '../utils/restTimerStorage';
 import { cn } from '../utils/cn';
+import { remainingRestSeconds, shiftRestDeadline } from '../utils/workoutMath';
 
 interface RestTimerProps {
   initialSeconds: number;
@@ -96,7 +97,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     if (!isOpen || !isRunning || done) return;
 
     const tick = () => {
-      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+      const remaining = remainingRestSeconds(targetEndTimeRef.current, Date.now());
       setTimeLeft(remaining);
 
       if (remaining > 0 && remaining <= 3 && remaining !== lastBeepSecondsRef.current) {
@@ -124,7 +125,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       if (document.visibilityState !== 'visible') return;
       const stored = restTimerStorage.getEndsAt();
       if (stored != null) targetEndTimeRef.current = stored;
-      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+      const remaining = remainingRestSeconds(targetEndTimeRef.current, Date.now());
       setTimeLeft(remaining);
       if (remaining <= 0) {
         fireFinished(false);
@@ -157,10 +158,10 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     if (isDone) {
       targetEndTimeRef.current = Date.now() + Math.max(secs, 1) * 1000;
     } else {
-      targetEndTimeRef.current += secs * 1000;
+      targetEndTimeRef.current = shiftRestDeadline(targetEndTimeRef.current, secs, Date.now());
     }
     restTimerStorage.setEndsAt(targetEndTimeRef.current);
-    const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+    const remaining = remainingRestSeconds(targetEndTimeRef.current, Date.now());
     setTimeLeft(remaining);
     setTotalSeconds(prev => Math.max(prev, remaining));
     setIsRunning(true);

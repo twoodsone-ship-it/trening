@@ -16,7 +16,7 @@ export const LONG_BREAK_DAYS = 42;
  * is used for r > 15.
  */
 export function calculate1RM(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0;
+  if (!Number.isFinite(weight) || !Number.isFinite(reps) || reps <= 0 || weight <= 0) return 0;
   if (reps === 1) return weight;
   
   // Epley formula: w * (1 + r / 30)
@@ -118,6 +118,26 @@ export function evaluateDoubleProgression(
   const averageRpe = knownRpes.length ? knownRpes.reduce((sum, rpe) => sum + rpe, 0) / knownRpes.length : 0;
   const maxRpe = knownRpes.length ? Math.max(...knownRpes) : 0;
 
+  // Two consecutive sessions below the minimum indicate regression rather than a rep plateau.
+  const recentFailures = history.slice(-2);
+  if (recentFailures.length === 2 && recentFailures.every(session => {
+    const working = session.sets.filter(set => set.completed !== false && set.type !== 'warmup' && !set.isWarmup && set.type !== 'dropset');
+    const top = working.reduce((value, set) => Math.max(value, set.weight), 0);
+    const main = working.filter(set => set.weight >= top - 0.01);
+    return main.length >= targetSets && main.slice(0, targetSets).every(set => set.reps > 0 && set.reps < minReps);
+  })) {
+    const nextWeight = weightStep > 0
+      ? Math.round((lastWeight * 0.9) / weightStep) * weightStep
+      : Math.round(lastWeight * 0.9 * 10) / 10;
+    return {
+      decision: 'DELOAD_RECOMMENDED', nextWeight, targetRepRange: `${minReps}-${maxReps}`,
+      badgeText: '↘️ Разгрузка', badgeColor: 'amber',
+      analysis: 'Две тренировки подряд все рабочие подходы ниже нижней границы повторений.',
+      suggestedAction: `Снизьте вес до ${nextWeight} кг и восстановите рабочий диапазон.`,
+      consecutivePlateauCount: 0
+    };
+  }
+
   // Check Plateau Detection: Look back up to 3 previous sessions
   let consecutivePlateau = 0;
   if (!isFatigued && history.length >= PLATEAU_SESSION_COUNT) {
@@ -185,7 +205,8 @@ export function evaluateDoubleProgression(
     }
 
     // Standard smart progression: Boost weight, drop to lower rep bracket
-    const nextWeight = Math.round((lastWeight + weightStep) * 10) / 10;
+    const overperformed = completedSets.slice(0, targetSets).every(s => s.reps >= maxReps + 2);
+    const nextWeight = Math.round((lastWeight + weightStep * (overperformed ? 2 : 1)) * 10) / 10;
     return {
       decision: 'INCREASE_WEIGHT',
       nextWeight,

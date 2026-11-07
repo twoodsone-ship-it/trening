@@ -42,7 +42,7 @@ interface ActiveWorkoutViewProps {
   exercises: ActiveExerciseSession[];
   settings: AppSettings;
   onUpdateExercises: (exercises: ActiveExerciseSession[]) => void;
-  onFinishWorkout: (completed: CompletedWorkout) => void;
+  onFinishWorkout: (completed: CompletedWorkout) => boolean;
   onCancelWorkout: () => void;
   onTriggerRestTimer: (seconds: number) => void;
   /** Bumps when rest timer hits 0 — reopen focus for next set */
@@ -426,15 +426,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       };
     });
 
-    try {
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-      soundService.playPrFanfare();
-      soundService.haptic('pr', settings.vibrationEnabled);
-    } catch {
-      //
-    }
-
-    onFinishWorkout({
+    const saved = onFinishWorkout({
       id: 'w-' + Date.now(),
       templateId,
       templateName: workoutName,
@@ -449,6 +441,15 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       totalCardioSeconds,
       exercises: completedExercises
     });
+    if (saved) {
+      try {
+        if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        soundService.playPrFanfare();
+        soundService.haptic('pr', settings.vibrationEnabled);
+      } catch {
+        //
+      }
+    }
   };
 
   const progress = workoutProgress(exercises);

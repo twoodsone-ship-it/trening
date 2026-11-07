@@ -54,6 +54,7 @@ export const App: React.FC = () => {
     startWorkout,
     finishWorkout,
     finishError,
+    dismissFinishError,
     cancelWorkout,
     updateActiveExercises,
     triggerRestTimer,
@@ -100,7 +101,8 @@ export const App: React.FC = () => {
         {isViewActiveWorkout && activeWorkout ? (
           <>
           {finishError && <div role="alert" className="fixed z-[70] inset-x-3 top-3 mx-auto max-w-lg rounded-2xl border border-rose-400/40 bg-ink p-4 shadow-xl">
-            <p className="text-sm font-semibold text-rose-300">Не удалось сохранить тренировку. Она останется открытой и сохранённой на этом устройстве.</p>
+            <button type="button" onClick={dismissFinishError} aria-label="Закрыть ошибку" className="absolute right-2 top-2 min-h-[44px] min-w-[44px] rounded-lg text-xl text-rose-200">×</button>
+            <p className="pr-11 text-sm font-semibold text-rose-300">Не удалось сохранить тренировку. Она останется открытой и сохранённой на этом устройстве.</p>
             <button type="button" onClick={() => { const blob = new Blob([storageService.exportBackupJson()], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `ironforge_backup_${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); }} className="mt-3 min-h-[48px] rounded-xl bg-white/10 px-4 text-sm font-bold">Скачать резервную копию JSON</button>
           </div>}
           <ActiveWorkoutView

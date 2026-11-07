@@ -202,7 +202,7 @@ export function useWorkoutSession() {
       storageService.saveCompletedWorkout(completed);
     } catch {
       setFinishError(true);
-      return;
+      return false;
     }
     setFinishError(false);
     storageService.saveActiveWorkout(null);
@@ -211,7 +211,10 @@ export function useWorkoutSession() {
     setIsRestTimerOpen(false);
     setPendingSummary(completed);
     loadData();
+    return true;
   }, [loadData]);
+
+  const dismissFinishError = useCallback(() => setFinishError(false), []);
 
   const dismissSummary = useCallback(() => {
     setPendingSummary(null);
@@ -269,6 +272,7 @@ export function useWorkoutSession() {
     startWorkout,
     finishWorkout,
     finishError,
+    dismissFinishError,
     cancelWorkout,
     updateActiveExercises,
     triggerRestTimer,

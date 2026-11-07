@@ -1,6 +1,8 @@
 import assert from 'assert';
-import { EXERCISE_CATALOG } from './src/data/exerciseCatalog.ts';
+import { test } from 'vitest';
+import { EXERCISE_CATALOG } from '../src/data/exerciseCatalog.ts';
 
+test('legacy catalog assertions', () => {
 console.log('--- Running Exercise Catalog Integrity Tests ---');
 
 const catalogEntries = Object.entries(EXERCISE_CATALOG);
@@ -36,3 +38,4 @@ assert.strictEqual(missingReferences, 0, `Found ${missingReferences} broken alte
 console.log('✔ All alternative cross-references are 100% valid and verified!');
 console.log('✔ All technique guides are complete!');
 console.log('CATALOG INTEGRITY TEST PASSED PERFECTLY!');
+});

@@ -43,6 +43,18 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   currentWeek: 'A'
 };
+const corruptKeys = new Set<string>();
+
+function preserveCorruptValue(key: string) {
+  if (!corruptKeys.has(key)) return;
+  const raw = localStorage.getItem(key);
+  if (raw == null) return;
+  const prefix = `ironforge_corrupt_${key}_`;
+  for (let i = 0; i < localStorage.length; i += 1) if (localStorage.key(i)?.startsWith(prefix)) return;
+  const archiveKey = `${prefix}${Date.now()}`;
+  localStorage.setItem(archiveKey, raw);
+  console.warn(`Preserved corrupt localStorage value: ${key}`);
+}
 
 function cloneDefaultTemplates(): WorkoutTemplate[] {
   return JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
@@ -196,6 +208,7 @@ export const storageService = {
         }
       }
     } catch {
+      corruptKeys.add(STORAGE_KEYS.TEMPLATES);
       console.warn('Failed to parse templates from storage');
     }
     // Empty until user picks a program — return [] so Home shows setup wizard
@@ -204,6 +217,7 @@ export const storageService = {
 
   saveTemplates(templates: WorkoutTemplate[]) {
     try {
+      preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
       localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
     } catch (e) {
@@ -218,6 +232,7 @@ export const storageService = {
         return JSON.parse(data);
       }
     } catch {
+      corruptKeys.add(STORAGE_KEYS.HISTORY);
       console.warn('Failed to load history');
     }
     return [];
@@ -226,21 +241,17 @@ export const storageService = {
   saveCompletedWorkout(workout: CompletedWorkout) {
     const history = this.getHistory();
     if (history.some(existing => existing.id === workout.id)) return;
-    this.createEmergencySnapshot();
+    const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
+    const previousHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
     history.unshift(workout);
     const templates = this.getTemplates();
-    const template = templates.find(t => t.id === workout.templateId);
-    if (template) {
+    const workoutTemplate = templates.find(t => t.id === workout.templateId);
+    if (templates.length) {
       workout.exercises.forEach(completedEx => {
-        let exercise = template.exercises.find(e => e.id === completedEx.exerciseId);
-        if (!exercise) {
-          const prior = templates.flatMap(t => t.exercises).find(e => e.id === completedEx.exerciseId);
-          if (prior) {
-            exercise = { ...prior, history: [...prior.history] };
-            template.exercises.push(exercise);
-          }
-        }
-        if (!exercise) {
+        let owner = templates.find(t => t.exercises.some(e => e.id === completedEx.exerciseId));
+        let exercise = owner?.exercises.find(e => e.id === completedEx.exerciseId);
+        if (!exercise && workoutTemplate) {
+          owner = workoutTemplate;
           const catalog = EXERCISE_CATALOG[completedEx.exerciseId];
           exercise = {
             id: completedEx.exerciseId,
@@ -262,13 +273,16 @@ export const storageService = {
             cardioIntensity: catalog?.cardioIntensity,
             history: []
           };
-          template.exercises.push(exercise);
+          owner.exercises.push(exercise);
         }
-        if (workout.cyclePhase !== 'deload' && completedEx.progression.decision === 'INCREASE_WEIGHT') {
-          exercise.currentWeight = completedEx.progression.nextWeight;
+        if (!exercise) return;
+        const workingSets = completedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+        const topWorkingWeight = workingSets.reduce((top, set) => Math.max(top, set.weight), 0);
+        const actualWeight = workingSets.filter(s => s.weight >= topWorkingWeight - 0.01).at(-1)?.weight;
+        if (workout.cyclePhase !== 'deload' && actualWeight != null) {
+          exercise.currentWeight = actualWeight;
         }
 
-        const workingSets = completedEx.sets.filter(s => s.type !== 'warmup' && !s.isWarmup);
         const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
         const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
         const maxSet1RM = Math.max(...workingSets.map(s => {
@@ -284,21 +298,27 @@ export const storageService = {
           minReps: completedEx.minReps,
           maxReps: completedEx.maxReps,
           weight: completedEx.workingWeight,
-          sets: completedEx.sets,
+          sets: completedEx.sets.map(s => ({ ...s, completed: true })),
           totalVolume: Math.round(totalVol),
           totalDurationSeconds: totalDuration || undefined,
           estimated1RM: Math.round(maxSet1RM * 10) / 10,
-          progressionNote: completedEx.progression.badgeText
+          progressionNote: completedEx.progression.badgeText,
+          decision: workout.cyclePhase === 'deload' ? undefined : completedEx.progression.decision
         });
       });
     }
     try {
+      preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
+      preserveCorruptValue(STORAGE_KEYS.HISTORY);
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
       localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
       localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
-      this.clearEmergencySnapshot();
+      if (typeof navigator !== 'undefined' && navigator.storage?.persist) void navigator.storage.persist().catch(() => undefined);
     } catch (error) {
-      this.restoreEmergencySnapshot();
+      if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
+      else localStorage.setItem(STORAGE_KEYS.TEMPLATES, previousTemplates);
+      if (previousHistory == null) localStorage.removeItem(STORAGE_KEYS.HISTORY);
+      else localStorage.setItem(STORAGE_KEYS.HISTORY, previousHistory);
       throw error;
     }
   },
@@ -368,6 +388,11 @@ export const storageService = {
   },
 
   exportBackupJson(): string {
+    try {
+      this.saveSettings({ ...this.getSettings(), lastBackupAt: Date.now() });
+    } catch (error) {
+      console.warn('Failed to save backup timestamp', error);
+    }
     const backup = {
       version: '1.2',
       exportDate: new Date().toISOString(),
@@ -439,14 +464,16 @@ export const storageService = {
       if (data.customExercises !== undefined && !Array.isArray(data.customExercises)) return false;
       if (data.settings !== undefined && (!data.settings || typeof data.settings !== 'object' || Array.isArray(data.settings))) return false;
       const nextTemplates = data.templates ? migrateTemplatesList(data.templates) : null;
-      const nextHistory = data.history ?? null;
+      const nextHistory = data.history == null ? null : data.history.filter((item: any) => item && typeof item.id === 'string' && typeof item.endTime === 'number' && Array.isArray(item.exercises));
+      if (Array.isArray(data.history) && nextHistory.length !== data.history.length) console.warn(`Пропущено некорректных тренировок при импорте: ${data.history.length - nextHistory.length}`);
       const nextActiveWorkout = data.activeWorkout === undefined ? undefined : migrateActiveSession(data.activeWorkout);
       this.createEmergencySnapshot();
       if (nextTemplates) {
+        preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
         localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(nextTemplates));
         localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
       }
-      if (nextHistory) localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+      if (nextHistory) { preserveCorruptValue(STORAGE_KEYS.HISTORY); localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory)); }
       if (data.settings) localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
       if (data.customExercises) localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(data.customExercises));
       if (nextActiveWorkout !== undefined) {

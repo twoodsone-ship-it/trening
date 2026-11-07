@@ -1,6 +1,8 @@
 import assert from 'assert';
-import { EXERCISE_CATALOG } from './src/data/exerciseCatalog.ts';
+import { test } from 'vitest';
+import { EXERCISE_CATALOG } from '../src/data/exerciseCatalog.ts';
 
+test('legacy swap and animation assertions', () => {
 console.log('--- Running Exercise Swap & Animation System Tests ---');
 
 const catalogItems = Object.values(EXERCISE_CATALOG);
@@ -74,3 +76,4 @@ assert(testCustom.name.length > 0, 'Custom exercise creation must work');
 console.log('✔ Custom exercise instant creation and selection verified!');
 
 console.log('ALL SWAP & ANIMATION TESTS PASSED 100% PERFECTLY!');
+});

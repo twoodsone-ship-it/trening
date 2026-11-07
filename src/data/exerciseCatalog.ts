@@ -21,6 +21,11 @@ export interface CatalogExerciseItem {
 }
 
 export const EXERCISE_GIF_MAP: Record<string, string> = {
+  'jump-rope': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/e1e76I2.gif',
+  'burpees': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/dK9394r.gif',
+  'mountain-climbers': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/RJgzwny.gif',
+  'stationary-bike': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/H1PESYI.gif',
+  'rowing-machine': 'https://media1.tenor.com/m/1fsTZPgjeNcAAAAd/exercise-rowing.gif',
   // ГРУДЬ (CHEST)
   'bench-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/EIeI8Vf.gif',
   'db-bench-press': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/SpYC0Kp.gif',

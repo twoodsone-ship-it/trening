@@ -1,7 +1,9 @@
 import assert from 'assert';
-import { calculate1RM, calculateVolume, evaluateDoubleProgression } from './src/services/progressionEngine.ts';
-import type { ExerciseSession } from './src/types/index.ts';
+import { test } from 'vitest';
+import { calculate1RM, calculateVolume, evaluateDoubleProgression } from '../src/services/progressionEngine.ts';
+import type { ExerciseSession } from '../src/types/index.ts';
 
+test('legacy progression assertions', () => {
 console.log('--- Running Smart Double Progression Unit Tests ---');
 
 // 1. Test 1RM Calculations (Epley & Brzycki)
@@ -28,7 +30,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     {
       id: 'h1',
       workoutId: 'w1',
-      date: '2026-10-20T10:00:00.000Z',
+      date: '2026-11-06T10:00:00.000Z',
       targetSets: 3,
       minReps: 8,
       maxReps: 12,
@@ -43,7 +45,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     }
   ];
 
-  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history);
+  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(rec.decision, 'INCREASE_WEIGHT', 'Should trigger INCREASE_WEIGHT');
   assert.strictEqual(rec.nextWeight, 82.5, 'Next weight should be 80 + 2.5 = 82.5');
   assert.strictEqual(rec.badgeColor, 'emerald');
@@ -56,7 +58,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     {
       id: 'h2',
       workoutId: 'w2',
-      date: '2026-10-20T10:00:00.000Z',
+      date: '2026-11-06T10:00:00.000Z',
       targetSets: 3,
       minReps: 8,
       maxReps: 12,
@@ -71,7 +73,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     }
   ];
 
-  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history);
+  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(rec.decision, 'CONSOLIDATE_WEIGHT', 'Should trigger CONSOLIDATE_WEIGHT on RPE 10');
   assert.strictEqual(rec.nextWeight, 80, 'Weight should remain 80 kg for consolidation');
   assert.strictEqual(rec.badgeColor, 'purple');
@@ -84,7 +86,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     {
       id: 'h3',
       workoutId: 'w3',
-      date: '2026-10-20T10:00:00.000Z',
+      date: '2026-11-06T10:00:00.000Z',
       targetSets: 3,
       minReps: 8,
       maxReps: 12,
@@ -99,7 +101,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     }
   ];
 
-  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history);
+  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(rec.decision, 'INCREASE_REPS');
   assert.strictEqual(rec.nextWeight, 80);
   console.log('✔ Test 5: Rep increase progression rule verified');
@@ -125,12 +127,12 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
   });
 
   const history: ExerciseSession[] = [
-    makeSession('2026-10-01', [10, 9, 8]),
-    makeSession('2026-10-08', [10, 9, 8]),
-    makeSession('2026-10-15', [10, 9, 8])
+    makeSession('2026-11-01', [10, 9, 8]),
+    makeSession('2026-11-04', [10, 9, 8]),
+    makeSession('2026-11-06', [10, 9, 8])
   ];
 
-  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history);
+  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(rec.decision, 'PLATEAU_WARNING', '3 stalled sessions should trigger plateau alert');
   assert.strictEqual(rec.badgeColor, 'amber');
   console.log('✔ Test 6: 3-session plateau detection verified');
@@ -168,7 +170,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     {
       id: 'hw1',
       workoutId: 'w1',
-      date: '2026-10-25T10:00:00.000Z',
+      date: '2026-11-06T10:00:00.000Z',
       targetSets: 3,
       minReps: 8,
       maxReps: 12,
@@ -184,7 +186,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     }
   ];
 
-  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history);
+  const rec = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(rec.decision, 'INCREASE_WEIGHT', 'Should trigger weight increase based on working sets only');
   assert.strictEqual(rec.nextWeight, 82.5);
   console.log('✔ Test 8: Warmup set isolation from progression verified');
@@ -210,17 +212,17 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
   });
 
   const history: ExerciseSession[] = [
-    makeSession('2026-10-01', [10, 9, 8]),
-    makeSession('2026-10-08', [10, 9, 8]),
-    makeSession('2026-10-15', [10, 9, 8])
+    makeSession('2026-11-01', [10, 9, 8]),
+    makeSession('2026-11-04', [10, 9, 8]),
+    makeSession('2026-11-06', [10, 9, 8])
   ];
 
   // In optimal state, this triggers plateau warning
-  const recOptimal = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal');
+  const recOptimal = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'optimal', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(recOptimal.decision, 'PLATEAU_WARNING');
 
   // In tired/sleep_deprived state, plateau warning MUST BE FROZEN
-  const recTired = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'tired');
+  const recTired = evaluateDoubleProgression(3, 8, 12, 2.5, 80, history, 'tired', new Date('2026-11-07T12:00:00.000Z'));
   assert.notStrictEqual(recTired.decision, 'PLATEAU_WARNING', 'Plateau warning must be frozen when tired');
   assert.strictEqual(recTired.decision, 'INCREASE_REPS');
 
@@ -229,7 +231,7 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
     {
       id: 'hm1',
       workoutId: 'w1',
-      date: '2026-10-25T10:00:00.000Z',
+      date: '2026-11-06T10:00:00.000Z',
       targetSets: 3,
       minReps: 8,
       maxReps: 12,
@@ -245,13 +247,14 @@ console.log('--- Running Smart Double Progression Unit Tests ---');
   ];
 
   // In optimal state, RPE 9 allows INCREASE_WEIGHT (threshold is 9.5)
-  const recOptMax = evaluateDoubleProgression(3, 8, 12, 2.5, 80, maxRepHistory, 'optimal');
+  const recOptMax = evaluateDoubleProgression(3, 8, 12, 2.5, 80, maxRepHistory, 'optimal', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(recOptMax.decision, 'INCREASE_WEIGHT');
 
   // In tired state, threshold is reduced by 0.5 (to 9.0), so RPE 9 triggers CONSOLIDATE_WEIGHT
-  const recTiredMax = evaluateDoubleProgression(3, 8, 12, 2.5, 80, maxRepHistory, 'tired');
+  const recTiredMax = evaluateDoubleProgression(3, 8, 12, 2.5, 80, maxRepHistory, 'tired', new Date('2026-11-07T12:00:00.000Z'));
   assert.strictEqual(recTiredMax.decision, 'CONSOLIDATE_WEIGHT', 'RPE 9 on tired state must trigger weight consolidation');
   console.log('✔ Test 9: Auto-regulation readiness fatigue & RPE threshold lowering verified');
 }
 
 console.log('ALL 9 ALGORITHMIC TESTS PASSED PERFECTLY!');
+});

@@ -34,6 +34,7 @@ export interface SetHistoryEntry {
   durationSeconds?: number;
   distanceMeters?: number;
   rpe?: number;
+  completed?: boolean;
   type?: WorkoutSetType;
   isWarmup?: boolean;
 }
@@ -48,6 +49,7 @@ export interface ExerciseSession {
   weight: number;
   sets: SetHistoryEntry[];
   progressionNote?: string;
+  decision?: ProgressionDecision;
   totalVolume: number;
   totalDurationSeconds?: number;
   estimated1RM: number;
@@ -213,7 +215,9 @@ export interface AppSettings {
   focusModeDefault: boolean;
   defaultRestSeconds: number;
   barbellWeightKg: number;
+  /** @deprecated The interface currently supports kilograms only. */
   unit: 'kg' | 'lbs';
+  lastBackupAt?: number;
   theme: 'light' | 'dark';
   currentWeek: 'A' | 'B';
   activeProgram?: ActiveProgram | null;

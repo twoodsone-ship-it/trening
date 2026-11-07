@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   X, 
   Volume2, 
@@ -37,6 +37,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [storageUsage, setStorageUsage] = useState<{ used: number; quota: number } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !navigator.storage?.estimate) return;
+    void navigator.storage.estimate().then(result => {
+      if (result.usage != null && result.quota != null) setStorageUsage({ used: result.usage, quota: result.quota });
+    }).catch(() => undefined);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -51,6 +59,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    onUpdateSettings(storageService.getSettings());
+    setImportStatus('Резервная копия скачана.');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,6 +106,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in text-white">
       <div className="w-full max-w-md surface-panel p-4 sm:p-6 border-lime/20 max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto">
+
+        {history.length > 0 && (!settings.lastBackupAt || Date.now() - settings.lastBackupAt > 14 * 86400000) && <p className="mb-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">Пора сохранить резервную копию тренировок в JSON.</p>}
+        {storageUsage && <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-muted">Хранилище: {(storageUsage.used / 1048576).toFixed(1)} из {(storageUsage.quota / 1048576).toFixed(0)} МБ{storageUsage.used / storageUsage.quota > 0.7 && <p className="mt-1 text-amber-300">Свободного места становится мало. Скачайте резервную копию.</p>}</div>}
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10">

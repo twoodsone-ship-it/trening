@@ -7,7 +7,7 @@ const os = require('os');
 
 const out = process.env.IRONFORGE_QA_OUT || path.join(os.tmpdir(), 'ironforge-round2-screenshots');
 fs.mkdirSync(out, { recursive: true });
-const sizes = [[360, 640], [390, 844], [844, 390], [768, 1024], [1280, 800], [320, 640]];
+const sizes = [[360, 640], [844, 390], [768, 1024], [390, 844], [1280, 800], [320, 640]];
 const seed = {
   activeProgram: { goal: 'strength', daysPerWeek: 3, gymProfile: 'full', title: 'План', startedAt: '2026-11-01T00:00:00.000Z', templateIds: ['t'], coreSessionsPerWeek: 0, cardioSessionsPerWeek: 0 }
 };
@@ -46,10 +46,58 @@ const report = [];
       });
       report.push({ screen, size: `${width}x${height}`, ...result });
     };
+
+    // 1. Error Fallback Screen
+    try {
+      await page.goto((process.env.IRONFORGE_QA_URL || 'http://127.0.0.1:5173/') + '?trigger_error=1', { waitUntil: 'domcontentloaded' });
+      await check('ErrorFallback');
+    } catch (e) {
+      report.push({ screen: 'ErrorFallback', size: `${width}x${height}`, error: String(e).slice(0, 200) });
+    }
+
+    // Return to main app
+    await page.goto(process.env.IRONFORGE_QA_URL || 'http://127.0.0.1:5173/', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(350);
+
     await check('Home');
     try {
       await page.getByRole('button', { name: 'Аналитика' }).click();
       await check('Analytics');
+
+      // History list expanded, edit modal, delete toast
+      const historyCardBtn = page.locator('button[aria-expanded]').first();
+      if (await historyCardBtn.count()) {
+        await historyCardBtn.scrollIntoViewIfNeeded();
+        await historyCardBtn.click({ force: true });
+        await page.waitForTimeout(300);
+        await check('HistoryList');
+
+        const editBtn = page.getByRole('button', { name: /Редактировать/ }).first();
+        if (await editBtn.count()) {
+          await editBtn.scrollIntoViewIfNeeded();
+          await editBtn.click({ force: true });
+          await page.waitForTimeout(300);
+          await check('WorkoutEditModal');
+          const cancelBtn = page.getByRole('button', { name: 'Отмена' });
+          if (await cancelBtn.count()) {
+            await cancelBtn.click({ force: true });
+            await page.waitForTimeout(300);
+          }
+        }
+
+        const deleteBtn = page.getByRole('button', { name: 'Удалить' }).first();
+        if (await deleteBtn.count()) {
+          await deleteBtn.scrollIntoViewIfNeeded();
+          await deleteBtn.click({ force: true });
+          await page.waitForTimeout(200);
+          const confirmDelete = page.getByRole('button', { name: 'Да, удалить' });
+          if (await confirmDelete.count()) {
+            await confirmDelete.click({ force: true });
+            await page.waitForTimeout(300);
+            await check('DeleteToast');
+          }
+        }
+      }
       await page.getByRole('button', { name: 'Ещё' }).click();
       await check('Settings');
       await page.getByRole('button', { name: 'Закрыть', exact: true }).last().click();

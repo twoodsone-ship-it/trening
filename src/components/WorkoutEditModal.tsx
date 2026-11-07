@@ -107,33 +107,33 @@ export const WorkoutEditModal: React.FC<WorkoutEditModalProps> = ({
 
               <div className="space-y-2">
                 {ex.sets.map((s, setIdx) => (
-                  <div key={s.setNumber} className="flex items-center gap-2 text-xs bg-white/[0.02] p-2 rounded-xl border border-white/5">
-                    <span className="font-mono text-muted w-12 shrink-0">
+                  <div key={s.setNumber} className="flex flex-wrap sm:flex-nowrap items-center gap-2 text-xs bg-white/[0.02] p-2 rounded-xl border border-white/5">
+                    <span className="font-mono text-muted w-10 sm:w-12 shrink-0">
                       {s.type === 'warmup' || s.isWarmup ? 'Разминка' : `Сет ${s.setNumber}`}
                     </span>
 
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap sm:flex-nowrap">
+                      <div className="flex items-center gap-1 shrink-0">
                         <input
                           type="number"
                           step="0.5"
                           min="0"
                           value={s.weight}
                           onChange={e => handleWeightChange(exIdx, setIdx, e.target.value)}
-                          className="min-h-[44px] w-20 text-center rounded-xl bg-white/5 border border-white/10 text-white font-mono font-bold text-base focus:border-lime focus:outline-none"
+                          className="min-h-[44px] w-16 sm:w-20 text-center rounded-xl bg-white/5 border border-white/10 text-white font-mono font-bold text-base focus:border-lime focus:outline-none"
                           aria-label={`Вес для подхода ${s.setNumber}`}
                         />
                         <span className="text-muted text-xs">кг</span>
                       </div>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <input
                           type="number"
                           step="1"
                           min="0"
                           value={s.reps}
                           onChange={e => handleRepsChange(exIdx, setIdx, e.target.value)}
-                          className="min-h-[44px] w-16 text-center rounded-xl bg-white/5 border border-white/10 text-white font-mono font-bold text-base focus:border-lime focus:outline-none"
+                          className="min-h-[44px] w-14 sm:w-16 text-center rounded-xl bg-white/5 border border-white/10 text-white font-mono font-bold text-base focus:border-lime focus:outline-none"
                           aria-label={`Повторения для подхода ${s.setNumber}`}
                         />
                         <span className="text-muted text-xs">повт</span>

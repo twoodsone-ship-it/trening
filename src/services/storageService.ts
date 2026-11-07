@@ -24,6 +24,23 @@ export { normalizeMuscleCategory, normalizeEquipment };
 
 export const LOCALSTORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
 
+
+export function buildRawStorageDump(storage: Storage): string {
+  const dump: Record<string, string | null> = {};
+  const keys: string[] = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key?.startsWith('ironforge_')) {
+      keys.push(key);
+    }
+  }
+  keys.sort();
+  for (const key of keys) {
+    dump[key] = storage.getItem(key);
+  }
+  return JSON.stringify(dump, null, 2);
+}
+
 export function getLocalStorageUsage(storage: Storage): number {
   let bytes = 0;
   for (let index = 0; index < storage.length; index += 1) {

@@ -133,7 +133,8 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
   exerciseName = '',
   technique
 }) => {
-  const resolvedGifUrl = gifUrl || (exerciseId && EXERCISE_GIF_MAP[exerciseId]) || undefined;
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const resolvedGifUrl = reducedMotion ? undefined : gifUrl || (exerciseId && EXERCISE_GIF_MAP[exerciseId]) || undefined;
   const [viewMode, setViewMode] = useState<'gif' | 'compare' | 'scrub'>('gif');
   const [phase, setPhase] = useState<'start' | 'finish'>('start');
   const [scrub, setScrub] = useState(40);
@@ -154,7 +155,7 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
   } : mappedCues || GENERIC_CUES;
 
   useEffect(() => {
-    if (viewMode !== 'gif') return;
+    if (viewMode !== 'gif' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => setPhase(p => (p === 'start' ? 'finish' : 'start')), 1800);
     return () => clearInterval(id);
   }, [viewMode]);

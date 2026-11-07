@@ -67,7 +67,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   const [animationOpen, setAnimationOpen] = useState(false);
   const [animationFailed, setAnimationFailed] = useState(false);
   const [animationLoaded, setAnimationLoaded] = useState(false);
-  const animationUrl = exercise.gifUrl || EXERCISE_GIF_MAP[exercise.exerciseId];
+  const animationUrl = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? undefined : exercise.gifUrl || EXERCISE_GIF_MAP[exercise.exerciseId];
   const setupTip = exercise.technique?.setup || tipForExercise(exercise);
   const executionTip = exercise.technique?.execution || (exercise.category === 'Cardio'
     ? 'Держи ровный темп и дыхание. При необходимости снизь скорость.'

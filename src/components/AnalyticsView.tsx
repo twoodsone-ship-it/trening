@@ -13,6 +13,7 @@ import { storageService } from '../services/storageService';
 import { pluralize } from '../utils/pluralize';
 import { WorkoutTrendChart } from './WorkoutTrendChart';
 import { WorkoutEditModal } from './WorkoutEditModal';
+import { cn } from '../utils/cn';
 
 interface AnalyticsViewProps {
   history: CompletedWorkout[];
@@ -160,7 +161,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const prList = Array.from(prMap.values()).sort((a, b) => b.max1RM - a.max1RM);
 
   return (
-    <div className="max-w-2xl md:max-w-[720px] mx-auto p-3 sm:p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] space-y-4 sm:space-y-6 text-white animate-fade-in">
+    <div
+      className={cn(
+        'max-w-2xl md:max-w-[720px] mx-auto p-3 sm:p-4 pb-36 sm:pb-40 space-y-4 sm:space-y-6 text-white animate-fade-in',
+        (editingWorkout || undoState || storageError) && 'relative z-50'
+      )}
+    >
       {/* Dismissible Error Banner */}
       {storageError && (
         <div role="alert" className="fixed z-[70] inset-x-3 top-3 mx-auto max-w-lg rounded-2xl border border-rose-400/40 bg-zinc-950 p-4 shadow-xl">

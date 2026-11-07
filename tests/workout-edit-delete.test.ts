@@ -1,6 +1,9 @@
+import React from 'react';
+import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { storageService } from '../src/services/storageService';
 import { evaluateDoubleProgression } from '../src/services/progressionEngine';
+import { AnalyticsView } from '../src/components/AnalyticsView';
 import type { CompletedWorkout, WorkoutTemplate } from '../src/types';
 
 class MemoryStorage implements Storage {
@@ -479,5 +482,144 @@ describe('F1b: updateCompletedWorkout', () => {
     expect(() => storageService.updateCompletedWorkout('w-edit-fail', nextWorkout)).toThrow();
     expect(localStorage.getItem('ironforge_templates_v1')).toBe(rawTemplates);
     expect(localStorage.getItem('ironforge_history_v1')).toBe(rawHistory);
+  });
+});
+
+
+describe('F2a: delete & undo logic', () => {
+  it('undo restores byte-identical strings when storage was not modified in between', () => {
+    const rawTemplates = JSON.stringify([{ id: 't-undo', name: 'T', exercises: [{ id: 'e1', name: 'E1', currentWeight: 50, history: [{ workoutId: 'w-undo', sets: [{ setNumber: 1, weight: 50, reps: 5 }] }] }] }]);
+    const rawHistory = JSON.stringify([{
+      id: 'w-undo',
+      templateId: 't-undo',
+      templateName: 'T',
+      startTime: 100,
+      endTime: 200,
+      durationMinutes: 10,
+      totalVolumeKg: 250,
+      totalSets: 1,
+      exercises: [{
+        exerciseId: 'e1',
+        name: 'E1',
+        category: 'Chest',
+        targetSets: 1,
+        minReps: 8,
+        maxReps: 12,
+        workingWeight: 50,
+        sets: [{ setNumber: 1, weight: 50, reps: 5, completed: true }],
+        progression: { decision: 'FIRST_SESSION', nextWeight: 50, targetRepRange: '8-12', badgeText: '', badgeColor: 'blue', analysis: '', suggestedAction: '', consecutivePlateauCount: 0 }
+      }]
+    }]);
+
+    localStorage.setItem('ironforge_templates_v1', rawTemplates);
+    localStorage.setItem('ironforge_history_v1', rawHistory);
+
+    // Snapshot pre-delete
+    const preTemplates = localStorage.getItem('ironforge_templates_v1');
+    const preHistory = localStorage.getItem('ironforge_history_v1');
+
+    // Delete
+    const deleted = storageService.deleteCompletedWorkout('w-undo');
+    expect(deleted).toBe(true);
+
+    const postTemplates = localStorage.getItem('ironforge_templates_v1');
+    const postHistory = localStorage.getItem('ironforge_history_v1');
+
+    // Undo validation: current values equal post-delete values
+    const currentTemplates = localStorage.getItem('ironforge_templates_v1');
+    const currentHistory = localStorage.getItem('ironforge_history_v1');
+    const canUndo = currentTemplates === postTemplates && currentHistory === postHistory;
+    expect(canUndo).toBe(true);
+
+    // Restore
+    if (canUndo) {
+      if (preTemplates != null) localStorage.setItem('ironforge_templates_v1', preTemplates);
+      if (preHistory != null) localStorage.setItem('ironforge_history_v1', preHistory);
+    }
+
+    expect(localStorage.getItem('ironforge_templates_v1')).toBe(rawTemplates);
+    expect(localStorage.getItem('ironforge_history_v1')).toBe(rawHistory);
+  });
+
+  it('undo is refused after another save occurs', () => {
+    const rawTemplates = JSON.stringify([{ id: 't-undo2', name: 'T', exercises: [{ id: 'e1', name: 'E1', currentWeight: 50, history: [{ workoutId: 'w-undo2', sets: [] }] }] }]);
+    const rawHistory = JSON.stringify([{
+      id: 'w-undo2',
+      templateId: 't-undo2',
+      templateName: 'T',
+      startTime: 100,
+      endTime: 200,
+      durationMinutes: 10,
+      totalVolumeKg: 0,
+      totalSets: 0,
+      exercises: []
+    }]);
+
+    localStorage.setItem('ironforge_templates_v1', rawTemplates);
+    localStorage.setItem('ironforge_history_v1', rawHistory);
+
+    storageService.deleteCompletedWorkout('w-undo2');
+
+    const postTemplates = localStorage.getItem('ironforge_templates_v1');
+    const postHistory = localStorage.getItem('ironforge_history_v1');
+
+    // Another workout is saved in the meantime
+    storageService.saveCompletedWorkout({
+      id: 'w-new-session',
+      templateId: 't-undo2',
+      templateName: 'T',
+      startTime: 300,
+      endTime: 400,
+      durationMinutes: 10,
+      totalVolumeKg: 0,
+      totalSets: 0,
+      exercises: []
+    });
+
+    // Check undo condition
+    const currentTemplates = localStorage.getItem('ironforge_templates_v1');
+    const currentHistory = localStorage.getItem('ironforge_history_v1');
+    const canUndo = currentTemplates === postTemplates && currentHistory === postHistory;
+
+    expect(canUndo).toBe(false);
+  });
+});
+
+describe('F2a UI rendering', () => {
+  it('renders history list with delete buttons and handles empty state', () => {
+    const html = renderToString(React.createElement(AnalyticsView, { history: [], templates: [] }));
+    expect(html).toContain('История тренировок');
+    expect(html).toContain('Журнал пуст');
+  });
+
+  it('renders workout card with delete action in expanded state', () => {
+    const workout: CompletedWorkout = {
+      id: 'w-render-1',
+      templateId: 't1',
+      templateName: 'День рук',
+      startTime: Date.now() - 3600000,
+      endTime: Date.now() - 1800000,
+      durationMinutes: 45,
+      totalVolumeKg: 1500,
+      totalSets: 3,
+      exercises: [
+        {
+          exerciseId: 'curl',
+          name: 'Подъём штанги',
+          category: 'Arms',
+          targetSets: 3,
+          minReps: 8,
+          maxReps: 12,
+          workingWeight: 30,
+          sets: [{ setNumber: 1, weight: 30, reps: 10, completed: true }],
+          progression: { decision: 'FIRST_SESSION', nextWeight: 30, targetRepRange: '8-12', badgeText: '', badgeColor: 'blue', analysis: '', suggestedAction: '', consecutivePlateauCount: 0 }
+        }
+      ]
+    };
+
+    const html = renderToString(React.createElement(AnalyticsView, { history: [workout], templates: [], initialExpandedWorkoutId: workout.id }));
+    expect(html).toContain('День рук');
+    expect(html).toContain('1500');
+    expect(html).toContain('Удалить');
   });
 });

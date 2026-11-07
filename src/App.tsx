@@ -140,7 +140,7 @@ export const App: React.FC = () => {
 
             {activeTab === 'analytics' && (
               <Suspense fallback={<div className="p-8 text-center text-muted text-sm">Загрузка…</div>}>
-                <AnalyticsView history={history} templates={templates} />
+                <AnalyticsView history={history} templates={templates} onDataReload={loadData} />
               </Suspense>
             )}
 

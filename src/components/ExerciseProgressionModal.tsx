@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, History, Settings2, Zap } from 'lucide-react';
 import { Exercise } from '../types';
 import { evaluateDoubleProgression, calculate1RM } from '../services/progressionEngine';
+import { storageService, deriveExerciseHistoryFromCompletedWorkouts } from '../services/storageService';
 import { cn } from '../utils/cn';
 
 interface ExerciseProgressionModalProps {
@@ -50,7 +51,16 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
     onClose();
   };
 
-  const historyPoints = exercise.history.map((h, idx) => ({
+  const fullHistorySessions = useMemo(() => {
+    if (typeof localStorage === 'undefined') return exercise.history;
+    try {
+      return deriveExerciseHistoryFromCompletedWorkouts(exercise.id, storageService.getHistory(), exercise.history);
+    } catch {
+      return exercise.history;
+    }
+  }, [exercise.id, exercise.history]);
+
+  const historyPoints = fullHistorySessions.map((h, idx) => ({
     session: idx + 1,
     date: new Date(h.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
     weight: h.weight,
@@ -73,7 +83,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
 
   const tabs = [
     { id: 'progression' as const, label: 'Прогрессия', icon: Zap },
-    { id: 'history' as const, label: `История (${exercise.history.length})`, icon: History },
+    { id: 'history' as const, label: `История (${fullHistorySessions.length})`, icon: History },
     { id: 'settings' as const, label: 'Параметры', icon: Settings2 }
   ];
 
@@ -213,12 +223,12 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
 
           {activeTab === 'history' && (
             <div className="space-y-3">
-              {exercise.history.length === 0 ? (
+              {fullHistorySessions.length === 0 ? (
                 <p className="text-muted text-sm text-center py-8">
                   История подходов пуста. Начните тренировку!
                 </p>
               ) : (
-                [...exercise.history].reverse().map(session => (
+                [...fullHistorySessions].reverse().map(session => (
                   <div key={session.id} className="bg-white/[0.03] border border-white/8 rounded-2xl p-3.5 space-y-2">
                     <div className="flex items-center justify-between text-xs gap-2">
                       <span className="font-semibold text-white">
@@ -234,7 +244,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {session.sets.map(s => (
+                      {session.sets.map((s: { setNumber: number; reps: number; rpe?: number }) => (
                         <div
                           key={s.setNumber}
                           className="bg-ink/50 border border-white/10 px-2.5 py-1 rounded-lg text-xs font-mono text-muted"

@@ -5,6 +5,7 @@ import type {
   WorkoutTemplate,
   ActiveWorkout,
   Exercise,
+  ExerciseSession,
   ReadinessLevel
 } from '../types/index.ts';
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
@@ -231,7 +232,60 @@ export function extractWorkingWeightFromSets(
   return undefined;
 }
 
+export function deriveExerciseHistoryFromCompletedWorkouts(
+  exerciseId: string,
+  history: CompletedWorkout[],
+  templateSessions?: ExerciseSession[]
+): ExerciseSession[] {
+  const result: ExerciseSession[] = [];
+  const historyWorkoutIds = new Set<string>();
+
+  const sortedHistory = [...history].sort((a, b) => a.endTime - b.endTime);
+  for (const workout of sortedHistory) {
+    historyWorkoutIds.add(workout.id);
+    const completedEx = workout.exercises.find(e => e.exerciseId === exerciseId);
+    if (!completedEx) continue;
+
+    const workingSets = completedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+    const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+    const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+    const maxSet1RM = Math.max(...workingSets.map(s => (s.reps <= 0 || s.weight <= 0 ? 0 : s.weight * (1 + s.reps / 30))), 0);
+
+    result.push({
+      id: 'derived-' + workout.id + '-' + completedEx.exerciseId,
+      workoutId: workout.id,
+      date: new Date(workout.endTime).toISOString(),
+      targetSets: completedEx.targetSets,
+      minReps: completedEx.minReps,
+      maxReps: completedEx.maxReps,
+      weight: roundWeight(completedEx.workingWeight),
+      sets: completedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true })),
+      totalVolume: Math.round(totalVol),
+      totalDurationSeconds: totalDuration || undefined,
+      estimated1RM: Math.round(maxSet1RM * 10) / 10,
+      progressionNote: completedEx.progression.badgeText,
+      phase: workout.cyclePhase === 'deload' ? 'deload' : undefined,
+      decision: workout.cyclePhase === 'deload' ? undefined : completedEx.progression.decision
+    });
+  }
+
+  if (templateSessions && templateSessions.length > 0) {
+    for (const session of templateSessions) {
+      if (!session.workoutId || !historyWorkoutIds.has(session.workoutId)) {
+        result.push(session);
+      }
+    }
+  }
+
+  result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return result;
+}
+
 export const storageService = {
+  deriveExerciseHistory(exerciseId: string, templateSessions?: ExerciseSession[]): ExerciseSession[] {
+    return deriveExerciseHistoryFromCompletedWorkouts(exerciseId, this.getHistory(), templateSessions);
+  },
+
   getTemplates(): WorkoutTemplate[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);

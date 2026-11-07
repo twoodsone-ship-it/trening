@@ -128,6 +128,8 @@ export const App: React.FC = () => {
               <HomeView
                 templates={templates}
                 history={history}
+                settings={settings}
+                onUpdateSettings={updateSettings}
                 activeProgram={activeProgram}
                 onApplyProgram={applyProgram}
                 onSaveProgram={saveProgramEdits}

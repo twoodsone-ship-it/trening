@@ -219,6 +219,7 @@ export interface AppSettings {
   /** @deprecated The interface currently supports kilograms only. */
   unit: 'kg' | 'lbs';
   lastBackupAt?: number;
+  reminderDismissedAt?: number;
   theme: 'light' | 'dark';
   currentWeek: 'A' | 'B';
   activeProgram?: ActiveProgram | null;

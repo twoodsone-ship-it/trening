@@ -9,6 +9,8 @@ import type {
   ReadinessLevel,
   WorkoutTemplate
 } from '../types';
+import type { AppSettings } from '../types';
+import { getLocalStorageUsage, LOCALSTORAGE_BUDGET_BYTES } from '../services/storageService';
 import {
   PROGRAM_GOALS,
   estimateWorkoutMinutes,
@@ -25,6 +27,8 @@ import { cn } from '../utils/cn';
 interface HomeViewProps {
   templates: WorkoutTemplate[];
   history: CompletedWorkout[];
+  settings: AppSettings;
+  onUpdateSettings: (settings: AppSettings) => void;
   activeProgram: ActiveProgram | null;
   onApplyProgram: (goal: ProgramGoal, days: DaysPerWeek, gym: GymProfile, coreSessions?: 0 | 1 | 2 | 3 | 4, cardioSessions?: number) => void;
   onStartWorkout: (template: WorkoutTemplate, readiness: ReadinessLevel) => void;
@@ -36,6 +40,8 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({
   templates,
   history,
+  settings,
+  onUpdateSettings,
   activeProgram,
   onApplyProgram,
   onStartWorkout,
@@ -65,6 +71,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   );
 
   const weekCount = workoutsThisWeek(history);
+  const showBackupReminder = history.length > 0 &&
+    ((!settings.lastBackupAt || Date.now() - settings.lastBackupAt > 14 * 86400000) ||
+      getLocalStorageUsage(localStorage) / LOCALSTORAGE_BUDGET_BYTES > 0.7) &&
+    (!settings.reminderDismissedAt || Date.now() - settings.reminderDismissedAt > 7 * 86400000);
   const goalMeta = PROGRAM_GOALS.find(g => g.id === activeProgram?.goal);
   const cycle = activeProgram ? getProgramCycle(activeProgram.startedAt) : null;
   const programHistory = useMemo(() => {
@@ -99,6 +109,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white animate-home-enter" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 5rem) + 6rem)' }}>
+      {showBackupReminder && <div role="status" className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-xs text-amber-200"><span className="flex-1">Пора скачать резервную копию тренировок в настройках.</span><button type="button" className="min-h-[44px] min-w-[44px] rounded-lg" aria-label="Скрыть напоминание" onClick={() => onUpdateSettings({ ...settings, reminderDismissedAt: Date.now() })}>×</button></div>}
       <header className="pt-3 pb-4">
         <div>
           <p className="text-lime text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-2">

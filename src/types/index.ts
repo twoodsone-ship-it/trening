@@ -49,6 +49,7 @@ export interface ExerciseSession {
   weight: number;
   sets: SetHistoryEntry[];
   progressionNote?: string;
+  phase?: 'deload';
   decision?: ProgressionDecision;
   totalVolume: number;
   totalDurationSeconds?: number;

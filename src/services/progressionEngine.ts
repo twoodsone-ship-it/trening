@@ -74,13 +74,15 @@ export function evaluateDoubleProgression(
   }
 
   // Last completed session: filter out warmup sets
-  const lastSession = history[history.length - 1];
+  const workingHistory = history.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
+  const referenceHistory = workingHistory.length ? workingHistory : history;
+  const lastSession = referenceHistory[referenceHistory.length - 1];
   const eligibleSets = lastSession.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
   const topWorkingWeight = eligibleSets.reduce((top, set) => Math.max(top, set.weight), 0);
   const completedSets = eligibleSets.filter(s => s.weight >= topWorkingWeight - 0.01);
   const lastWeight = completedSets[completedSets.length - 1]?.weight ?? lastSession.weight;
   const currentTarget = currentWeight;
-  const ageDays = Math.max(0, (now.getTime() - new Date(lastSession.date).getTime()) / 86400000);
+  const ageDays = Math.max(0, (now.getTime() - new Date(history[history.length - 1].date).getTime()) / 86400000);
 
   if (ageDays >= RETURNING_AFTER_DAYS) {
     const longBreakWeight = ageDays >= LONG_BREAK_DAYS
@@ -119,7 +121,7 @@ export function evaluateDoubleProgression(
   const maxRpe = knownRpes.length ? Math.max(...knownRpes) : 0;
 
   // Two consecutive sessions below the minimum indicate regression rather than a rep plateau.
-  const recentFailures = history.slice(-2);
+  const recentFailures = referenceHistory.slice(-2);
   if (recentFailures.length === 2 && recentFailures.every(session => {
     const working = session.sets.filter(set => set.completed !== false && set.type !== 'warmup' && !set.isWarmup && set.type !== 'dropset');
     const top = working.reduce((value, set) => Math.max(value, set.weight), 0);
@@ -140,8 +142,8 @@ export function evaluateDoubleProgression(
 
   // Check Plateau Detection: Look back up to 3 previous sessions
   let consecutivePlateau = 0;
-  if (!isFatigued && history.length >= PLATEAU_SESSION_COUNT) {
-    const recentSessions = history.slice(-PLATEAU_SESSION_COUNT);
+  if (!isFatigued && referenceHistory.length >= PLATEAU_SESSION_COUNT) {
+    const recentSessions = referenceHistory.slice(-PLATEAU_SESSION_COUNT);
     const weightsEqual = recentSessions.every(s => Math.abs(s.weight - recentSessions[0].weight) < 0.1);
     
     if (weightsEqual) {

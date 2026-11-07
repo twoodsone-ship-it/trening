@@ -44,7 +44,8 @@ export function buildActiveExercises(
       readiness
     );
 
-    const lastSession = ex.history.length > 0 ? ex.history[ex.history.length - 1] : undefined;
+    const regularHistory = ex.history.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
+    const lastSession = (regularHistory.length ? regularHistory : ex.history).at(-1);
 
     const targetSets = cyclePhase === 'deload' ? Math.max(1, Math.ceil(ex.targetSets * 0.6)) : ex.targetSets;
     const deloadWeight = ex.weightStep > 0

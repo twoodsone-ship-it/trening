@@ -293,6 +293,7 @@ export const storageService = {
           totalDurationSeconds: totalDuration || undefined,
           estimated1RM: Math.round(maxSet1RM * 10) / 10,
           progressionNote: completedEx.progression.badgeText,
+          phase: workout.cyclePhase === 'deload' ? 'deload' : undefined,
           decision: workout.cyclePhase === 'deload' ? undefined : completedEx.progression.decision
         });
       });

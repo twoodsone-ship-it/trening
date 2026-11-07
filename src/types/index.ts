@@ -220,6 +220,7 @@ export interface AppSettings {
   unit: 'kg' | 'lbs';
   lastBackupAt?: number;
   reminderDismissedAt?: number;
+  /** @deprecated The interface currently supports the dark theme only. */
   theme: 'light' | 'dark';
   currentWeek: 'A' | 'B';
   activeProgram?: ActiveProgram | null;

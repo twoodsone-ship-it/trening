@@ -21,6 +21,9 @@ const WorkoutSummaryView = lazy(() =>
 );
 
 export const App: React.FC = () => {
+  if (import.meta.env.DEV && typeof window !== 'undefined' && window.location.search.includes('trigger_error=1')) {
+    throw new Error('QA trigger error');
+  }
   const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW();
   const [programSetupOpen, setProgramSetupOpen] = React.useState(false);
   const [restResumeNonce, setRestResumeNonce] = React.useState(0);
@@ -140,7 +143,7 @@ export const App: React.FC = () => {
 
             {activeTab === 'analytics' && (
               <Suspense fallback={<div className="p-8 text-center text-muted text-sm">Загрузка…</div>}>
-                <AnalyticsView history={history} templates={templates} />
+                <AnalyticsView history={history} templates={templates} onDataReload={loadData} />
               </Suspense>
             )}
 

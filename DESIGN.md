@@ -16,13 +16,14 @@ Treat the app like a precise training journal: dark graphite surfaces, clear div
 - Primary text: `#f2f5f1`
 - Secondary text: `#a2aca4`
 - Action / progress: `#c8f542`
-- Display type: Barlow Condensed
-- Interface type: DM Sans
+- Display type: Roboto Condensed
+- Interface type: Manrope
 - Measurements: JetBrains Mono
+- Minimum tap target: 44 px (48 px preferred for primary actions)
 
 ## Interaction rules
 
-- Touch controls are at least 48px and remain clear of safe areas and fixed navigation.
+- Touch controls have a minimum tap target of 44 px (48 px preferred for primary actions) and remain clear of safe areas and fixed navigation.
 - Workout screens prioritize the current set, timer, and exact exercise guidance.
 - Never substitute a different exercise's technique or animation when a specific guide is unavailable; show neutral, accurate instructions instead.
 - Use animation only when it explains state or movement; respect reduced-motion preferences.

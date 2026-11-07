@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trophy, 
   Flame, 
@@ -9,18 +9,45 @@ import {
 import { CompletedWorkout, WorkoutTemplate } from '../types';
 import { calculate1RM } from '../services/progressionEngine';
 import { calculateStreak, workoutsThisWeek } from '../utils/streak';
+import { storageService } from '../services/storageService';
+import { pluralize } from '../utils/pluralize';
 import { WorkoutTrendChart } from './WorkoutTrendChart';
+import { WorkoutEditModal } from './WorkoutEditModal';
+import { cn } from '../utils/cn';
 
 interface AnalyticsViewProps {
   history: CompletedWorkout[];
   templates: WorkoutTemplate[];
+  onDataReload?: () => void;
+  initialExpandedWorkoutId?: string | null;
+  initialEditingWorkout?: CompletedWorkout | null;
 }
 
-export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
-  const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
+interface DeleteUndoState {
+  workoutId: string;
+  prevTemplatesRaw: string | null;
+  prevHistoryRaw: string | null;
+  postTemplatesRaw: string | null;
+  postHistoryRaw: string | null;
+}
+
+export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
+  history,
+  onDataReload,
+  initialExpandedWorkoutId = null,
+  initialEditingWorkout = null
+}) => {
+  const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(initialExpandedWorkoutId);
+  const [editingWorkout, setEditingWorkout] = useState<CompletedWorkout | null>(initialEditingWorkout);
   const [periodWeeks, setPeriodWeeks] = useState<4 | 8 | 12>(8);
+  const [visibleCount, setVisibleCount] = useState<number>(30);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [undoState, setUndoState] = useState<DeleteUndoState | null>(null);
+
   const cutoff = Date.now() - periodWeeks * 7 * 86400000;
   const periodHistory = history.filter(w => w.endTime >= cutoff);
+  const visibleWorkouts = periodHistory.slice(0, visibleCount);
 
   // Compute aggregated stats
   const totalWorkouts = periodHistory.length;
@@ -33,10 +60,84 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
   const streak = calculateStreak(history);
   const weekCount = workoutsThisWeek(history);
 
+  // Auto-dismiss undo toast after 8 seconds
+  useEffect(() => {
+    if (!undoState) return;
+    const timer = setTimeout(() => {
+      setUndoState(null);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [undoState]);
+
+  const canUndo = Boolean(
+    undoState &&
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('ironforge_templates_v1') === undoState.postTemplatesRaw &&
+    localStorage.getItem('ironforge_history_v1') === undoState.postHistoryRaw
+  );
+
+  const handleDeleteWorkout = (workoutId: string) => {
+    const prevTemplatesRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('ironforge_templates_v1') : null;
+    const prevHistoryRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('ironforge_history_v1') : null;
+
+    try {
+      const success = storageService.deleteCompletedWorkout(workoutId);
+      if (success) {
+        const postTemplatesRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('ironforge_templates_v1') : null;
+        const postHistoryRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('ironforge_history_v1') : null;
+
+        setUndoState({
+          workoutId,
+          prevTemplatesRaw,
+          prevHistoryRaw,
+          postTemplatesRaw,
+          postHistoryRaw
+        });
+        setConfirmDeleteId(null);
+        onDataReload?.();
+      }
+    } catch (e) {
+      console.error('Delete workout failed', e);
+      setStorageError('Не удалось удалить тренировку. Попробуйте снова.');
+    }
+  };
+
+  const handleUndoDelete = () => {
+    if (!undoState) return;
+    if (typeof localStorage !== 'undefined') {
+      const curTemplates = localStorage.getItem('ironforge_templates_v1');
+      const curHistory = localStorage.getItem('ironforge_history_v1');
+      if (curTemplates === undoState.postTemplatesRaw && curHistory === undoState.postHistoryRaw) {
+        if (undoState.prevTemplatesRaw == null) localStorage.removeItem('ironforge_templates_v1');
+        else localStorage.setItem('ironforge_templates_v1', undoState.prevTemplatesRaw);
+        if (undoState.prevHistoryRaw == null) localStorage.removeItem('ironforge_history_v1');
+        else localStorage.setItem('ironforge_history_v1', undoState.prevHistoryRaw);
+        setUndoState(null);
+        onDataReload?.();
+        return;
+      }
+    }
+    setUndoState(null);
+  };
+
+  const handleSaveWorkoutEdit = (updated: CompletedWorkout) => {
+    try {
+      const ok = storageService.updateCompletedWorkout(updated.id, updated);
+      if (ok) {
+        setEditingWorkout(null);
+        onDataReload?.();
+      } else {
+        setStorageError('Не удалось обновить тренировку. Проверьте данные.');
+      }
+    } catch (e) {
+      console.error('Update workout failed', e);
+      setStorageError('Не удалось сохранить изменения тренировки.');
+    }
+  };
+
   // Find Personal Records (Max 1RM per exercise across history)
   const prMap = new Map<string, { exerciseName: string; category: string; maxWeight: number; max1RM: number; date: string }>();
 
-  // Check history records
   periodHistory.forEach(workout => {
     workout.exercises.forEach(ex => {
       ex.sets.forEach(set => {
@@ -60,8 +161,46 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
   const prList = Array.from(prMap.values()).sort((a, b) => b.max1RM - a.max1RM);
 
   return (
-    <div className="max-w-2xl md:max-w-[720px] mx-auto p-3 sm:p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] space-y-4 sm:space-y-6 text-white animate-fade-in">
-      
+    <div
+      className={cn(
+        'max-w-2xl md:max-w-[720px] mx-auto p-3 sm:p-4 pb-36 sm:pb-40 space-y-4 sm:space-y-6 text-white animate-fade-in',
+        (editingWorkout || undoState || storageError) && 'relative z-50'
+      )}
+    >
+      {/* Dismissible Error Banner */}
+      {storageError && (
+        <div role="alert" className="fixed z-[70] inset-x-3 top-3 mx-auto max-w-lg rounded-2xl border border-rose-400/40 bg-zinc-950 p-4 shadow-xl">
+          <button
+            type="button"
+            onClick={() => setStorageError(null)}
+            aria-label="Закрыть ошибку"
+            className="absolute right-2 top-2 min-h-[44px] min-w-[44px] rounded-lg text-xl text-rose-200"
+          >
+            ×
+          </button>
+          <p className="pr-11 text-sm font-semibold text-rose-300">{storageError}</p>
+        </div>
+      )}
+
+      {/* Undo Toast */}
+      {undoState && (
+        <div
+          role="status"
+          className="fixed bottom-20 sm:bottom-6 inset-x-4 max-w-md mx-auto z-50 flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-zinc-900 border border-white/20 shadow-2xl animate-fade-in"
+        >
+          <span className="text-sm font-semibold text-white">Тренировка удалена</span>
+          {canUndo && (
+            <button
+              type="button"
+              onClick={handleUndoDelete}
+              className="min-h-[44px] min-w-[44px] px-4 rounded-xl bg-lime/15 hover:bg-lime/25 text-lime border border-lime/30 text-xs font-bold transition"
+            >
+              Отменить
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Top Title */}
       <div>
         <p className="text-lime text-xs font-bold tracking-[0.28em] uppercase">IronForge</p>
@@ -186,7 +325,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {periodHistory.map(workout => {
+          {visibleWorkouts.map(workout => {
             const isExpanded = expandedWorkoutId === workout.id;
 
             return (
@@ -198,7 +337,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                   type="button"
                   onClick={() => setExpandedWorkoutId(isExpanded ? null : workout.id)}
                   aria-expanded={isExpanded}
-                  className="w-full text-left flex items-center justify-between gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime rounded-lg"
+                  className="w-full text-left flex items-center justify-between gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime rounded-lg min-h-[44px]"
                 >
                   <div>
                     <h3 className="font-bold text-sm sm:text-base text-white">
@@ -217,7 +356,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                         {workout.totalVolumeKg} кг
                       </span>
                       <span className="text-xs text-muted">
-                        {workout.totalSets} сетов
+                        {workout.totalSets} {pluralize(workout.totalSets, ['сет', 'сета', 'сетов'])}
                       </span>
                     </div>
                     {isExpanded ? (
@@ -228,7 +367,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                   </div>
                 </button>
 
-                {/* Expanded set breakdown */}
+                {/* Expanded set breakdown & actions */}
                 {isExpanded && (
                   <div className="mt-4 pt-3 border-t border-white/10 space-y-3">
                     {workout.exercises.map(ex => (
@@ -256,6 +395,46 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                         </div>
                       </div>
                     ))}
+
+                    {/* Workout Actions (Edit / Delete) */}
+                    {confirmDeleteId === workout.id ? (
+                      <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 space-y-2 mt-3">
+                        <p className="text-xs text-rose-200">Удалить эту тренировку из истории?</p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteWorkout(workout.id)}
+                            className="flex-1 min-h-[44px] rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+                          >
+                            Да, удалить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="flex-1 min-h-[44px] rounded-lg bg-white/10 text-white font-bold text-xs"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setEditingWorkout(workout)}
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-bold border border-white/10 transition"
+                        >
+                          Редактировать
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(workout.id)}
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30 transition"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -264,8 +443,27 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
           })}
           </div>
         )}
+
+        {periodHistory.length > visibleCount && (
+          <button
+            type="button"
+            onClick={() => setVisibleCount(c => c + 30)}
+            className="w-full min-h-[44px] py-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold text-muted hover:text-white transition"
+          >
+            Показать ещё ({periodHistory.length - visibleCount})
+          </button>
+        )}
       </div>
 
+      {/* Edit Workout Modal */}
+      {editingWorkout && (
+        <WorkoutEditModal
+          isOpen={true}
+          workout={editingWorkout}
+          onClose={() => setEditingWorkout(null)}
+          onSave={handleSaveWorkoutEdit}
+        />
+      )}
     </div>
   );
 };

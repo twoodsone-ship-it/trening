@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { soundService } from '../services/audioService';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface RpePickerModalProps {
   isOpen: boolean;
@@ -32,13 +33,19 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
 }) => {
   const [rpe, setRpe] = useState(initialRpe);
 
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose: onSkip,
+    titleId: 'rpe-picker-title'
+  });
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md surface-panel bg-ink-2 border border-white/10 rounded-[1.75rem] p-5 animate-slide-up text-white pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-md surface-panel bg-ink-2 border border-white/10 rounded-[1.75rem] p-5 animate-slide-up text-white pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <p className="text-xs font-bold uppercase tracking-wider text-muted">{setLabel}</p>
-        <h3 className="font-bold text-lg text-white mt-0.5 truncate">{exerciseName}</h3>
+        <h3 id="rpe-picker-title" className="font-bold text-lg text-white mt-0.5 truncate">{exerciseName}</h3>
         <p className="text-sm text-muted mt-1">Оцените усилие (RPE) — влияет на Smart Progression</p>
 
         <div className="mt-5 text-center">

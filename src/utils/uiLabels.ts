@@ -29,3 +29,6 @@ export function muscleCategoryLabel(category: MuscleCategory | string): string {
 export function workoutNameLabel(name: string): string {
   return LEGACY_WORKOUT_NAMES[name] || name;
 }
+
+export { pluralize } from './pluralize';
+

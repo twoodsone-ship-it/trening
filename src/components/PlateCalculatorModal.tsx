@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calculator, Check } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { calculatePlates, STANDARD_PLATES, sanitizeNumber } from '../utils/workoutMath';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface PlateCalculatorModalProps {
   initialWeight?: number;
@@ -33,6 +34,12 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   const [targetWeight, setTargetWeight] = useState<number>(initialWeight);
   const [barbellWeight, setBarbellWeight] = useState<number>(barWeight);
 
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'plate-calc-title'
+  });
+
   if (!isOpen) return null;
 
   const weightPerSide = Math.max(0, (targetWeight - barbellWeight) / 2);
@@ -45,13 +52,13 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md surface-panel p-4 sm:p-6 border-lime/20 max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto animate-slide-up">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-md surface-panel p-4 sm:p-6 border-lime/20 max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto animate-slide-up">
         <div className="flex items-center justify-between pb-3 border-b border-white/8 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Calculator className="w-5 h-5 text-lime shrink-0" />
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">Инструмент</p>
-              <h3 className="font-extrabold text-lg text-white leading-tight">Калькулятор блинов</h3>
+              <h3 id="plate-calc-title" className="font-extrabold text-lg text-white leading-tight">Калькулятор блинов</h3>
             </div>
           </div>
           <button

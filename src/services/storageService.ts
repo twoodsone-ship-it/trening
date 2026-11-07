@@ -5,6 +5,7 @@ import type {
   WorkoutTemplate,
   ActiveWorkout,
   Exercise,
+  ExerciseSession,
   ReadinessLevel
 } from '../types/index.ts';
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
@@ -12,6 +13,7 @@ import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCata
 import { workoutNameLabel } from '../utils/uiLabels';
 import { createTrialSet } from '../utils/trialSet';
 import { roundWeight } from '../utils/roundWeight';
+import { sanitizeNumber } from '../utils/workoutMath';
 import {
   normalizeMuscleCategory,
   normalizeEquipment,
@@ -23,6 +25,24 @@ import {
 export { normalizeMuscleCategory, normalizeEquipment };
 
 export const LOCALSTORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
+export const TEMPLATE_HISTORY_KEEP = 30;
+
+
+export function buildRawStorageDump(storage: Storage): string {
+  const dump: Record<string, string | null> = {};
+  const keys: string[] = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key?.startsWith('ironforge_')) {
+      keys.push(key);
+    }
+  }
+  keys.sort();
+  for (const key of keys) {
+    dump[key] = storage.getItem(key);
+  }
+  return JSON.stringify(dump, null, 2);
+}
 
 export function getLocalStorageUsage(storage: Storage): number {
   let bytes = 0;
@@ -128,7 +148,14 @@ export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
   if (!Array.isArray(templates) || templates.length === 0) {
     return cloneDefaultTemplates();
   }
-  return templates.map(t => ({
+  const validTemplates = templates.filter(t => t && typeof t === 'object');
+  if (validTemplates.length < templates.length) {
+    corruptKeys.add(STORAGE_KEYS.TEMPLATES);
+  }
+  if (validTemplates.length === 0) {
+    return cloneDefaultTemplates();
+  }
+  return validTemplates.map(t => ({
     id: t.id || ('template-' + Date.now()),
     name: workoutNameLabel(t.name || 'Программа тренировок'),
     description: t.description || '',
@@ -199,7 +226,135 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
   };
 }
 
+export function extractWorkingWeightFromSets(
+  sets: { completed?: boolean; reps: number; type?: string; isWarmup?: boolean; weight: number }[]
+): number | undefined {
+  const workingSets = sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+  const topWorkingWeight = workingSets.reduce((top, set) => Math.max(top, set.weight), 0);
+  const actualWeight = workingSets.filter(s => s.weight >= topWorkingWeight - 0.01).at(-1)?.weight;
+  if (actualWeight != null) return roundWeight(actualWeight);
+  return undefined;
+}
+
+export function deriveExerciseHistoryFromCompletedWorkouts(
+  exerciseId: string,
+  history: CompletedWorkout[],
+  templateSessions?: ExerciseSession[]
+): ExerciseSession[] {
+  const result: ExerciseSession[] = [];
+  const historyWorkoutIds = new Set<string>();
+
+  const sortedHistory = [...history].sort((a, b) => a.endTime - b.endTime);
+  for (const workout of sortedHistory) {
+    historyWorkoutIds.add(workout.id);
+    const completedEx = workout.exercises.find(e => e.exerciseId === exerciseId);
+    if (!completedEx) continue;
+
+    const workingSets = completedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+    const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+    const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+    const maxSet1RM = Math.max(...workingSets.map(s => (s.reps <= 0 || s.weight <= 0 ? 0 : s.weight * (1 + s.reps / 30))), 0);
+
+    result.push({
+      id: 'derived-' + workout.id + '-' + completedEx.exerciseId,
+      workoutId: workout.id,
+      date: new Date(workout.endTime).toISOString(),
+      targetSets: completedEx.targetSets,
+      minReps: completedEx.minReps,
+      maxReps: completedEx.maxReps,
+      weight: roundWeight(completedEx.workingWeight),
+      sets: completedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true })),
+      totalVolume: Math.round(totalVol),
+      totalDurationSeconds: totalDuration || undefined,
+      estimated1RM: Math.round(maxSet1RM * 10) / 10,
+      progressionNote: completedEx.progression.badgeText,
+      phase: workout.cyclePhase === 'deload' ? 'deload' : undefined,
+      decision: workout.cyclePhase === 'deload' ? undefined : completedEx.progression.decision
+    });
+  }
+
+  if (templateSessions && templateSessions.length > 0) {
+    for (const session of templateSessions) {
+      if (!session.workoutId || !historyWorkoutIds.has(session.workoutId)) {
+        result.push(session);
+      }
+    }
+  }
+
+  result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return result;
+}
+
+export function compactTemplatesExerciseHistory(
+  templates: WorkoutTemplate[],
+  history: CompletedWorkout[],
+  keepWindow: number = TEMPLATE_HISTORY_KEEP
+): void {
+  const historyWorkoutIds = new Set(history.map(w => w.id));
+  for (const template of templates) {
+    for (const exercise of template.exercises) {
+      if (!Array.isArray(exercise.history) || exercise.history.length <= keepWindow) {
+        continue;
+      }
+
+      const legacySessions: ExerciseSession[] = [];
+      const syncedSessions: ExerciseSession[] = [];
+
+      for (const session of exercise.history) {
+        if (session.workoutId && historyWorkoutIds.has(session.workoutId)) {
+          syncedSessions.push(session);
+        } else {
+          legacySessions.push(session);
+        }
+      }
+
+      if (syncedSessions.length > keepWindow) {
+        const keptSynced = syncedSessions.slice(-keepWindow);
+        const combined = [...legacySessions, ...keptSynced];
+        combined.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        exercise.history = combined;
+      }
+    }
+  }
+}
+
+export function isValidCompletedWorkout(item: any): item is CompletedWorkout {
+  return Boolean(
+    item &&
+    typeof item === 'object' &&
+    typeof item.id === 'string' &&
+    typeof item.endTime === 'number' &&
+    Array.isArray(item.exercises)
+  );
+}
+
+export function partitionRawHistory(raw: string | null): { valid: CompletedWorkout[]; rejected: any[] } {
+  if (!raw) return { valid: [], rejected: [] };
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return { valid: [], rejected: [] };
+    const valid: CompletedWorkout[] = [];
+    const rejected: any[] = [];
+    for (const item of parsed) {
+      if (isValidCompletedWorkout(item)) {
+        valid.push(item);
+      } else {
+        rejected.push(item);
+      }
+    }
+    return { valid, rejected };
+  } catch {
+    corruptKeys.add(STORAGE_KEYS.HISTORY);
+    console.warn('Failed to load history');
+    return { valid: [], rejected: [] };
+  }
+}
+
 export const storageService = {
+  deriveExerciseHistory(exerciseId: string, templateSessions?: ExerciseSession[]): ExerciseSession[] {
+    return deriveExerciseHistoryFromCompletedWorkouts(exerciseId, this.getHistory(), templateSessions);
+  },
+
   getTemplates(): WorkoutTemplate[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
@@ -228,16 +383,179 @@ export const storageService = {
   },
 
   getHistory(): CompletedWorkout[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
-      if (data) {
-        return JSON.parse(data);
+    const raw = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    return partitionRawHistory(raw).valid;
+  },
+
+  updateCompletedWorkout(id: string, next: CompletedWorkout): boolean {
+    const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    if (!rawHistory) return false;
+    const { valid: history, rejected } = partitionRawHistory(rawHistory);
+
+    const workoutIndex = history.findIndex(w => w.id === id);
+    if (workoutIndex === -1) return false;
+
+    const existingWorkout = history[workoutIndex];
+    if (!next || !Array.isArray(next.exercises)) return false;
+
+    if (next.exercises.length !== existingWorkout.exercises.length) return false;
+    for (let i = 0; i < next.exercises.length; i += 1) {
+      if (next.exercises[i].exerciseId !== existingWorkout.exercises[i].exerciseId) return false;
+      if (!Array.isArray(next.exercises[i].sets) || next.exercises[i].sets.length !== existingWorkout.exercises[i].sets.length) {
+        return false;
       }
-    } catch {
-      corruptKeys.add(STORAGE_KEYS.HISTORY);
-      console.warn('Failed to load history');
     }
-    return [];
+
+    const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
+    const previousHistory = rawHistory;
+
+    let totalVolumeKg = 0;
+    let totalSets = 0;
+    let totalCardioSeconds = 0;
+
+    const updatedExercises = next.exercises.map((nextEx, exIdx) => {
+      const existingEx = existingWorkout.exercises[exIdx];
+      const sanitizedSets = nextEx.sets.map((s, setIdx) => {
+        const origSet = existingEx.sets[setIdx];
+        const weight = roundWeight(sanitizeNumber(s.weight, 1000));
+        const reps = Math.round(sanitizeNumber(s.reps, 500));
+        const rpe = s.rpe != null ? Math.min(10, Math.max(6, sanitizeNumber(s.rpe, 10))) : undefined;
+        return {
+          ...origSet,
+          weight,
+          reps,
+          rpe
+        };
+      });
+
+      const actualWeight = extractWorkingWeightFromSets(sanitizedSets);
+      const workingWeight = actualWeight ?? roundWeight(sanitizeNumber(nextEx.workingWeight ?? existingEx.workingWeight, 1000));
+
+      const workingSets = sanitizedSets.filter(s => s.completed !== false && !s.isWarmup && s.type !== 'warmup');
+      totalVolumeKg += workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+      totalSets += workingSets.length;
+      if (nextEx.category === 'Cardio' && nextEx.trackingMode === 'duration') {
+        totalCardioSeconds += workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+      }
+
+      return {
+        ...existingEx,
+        workingWeight,
+        sets: sanitizedSets,
+        progression: existingEx.progression
+      };
+    });
+
+    const updatedWorkout: CompletedWorkout = {
+      ...existingWorkout,
+      totalVolumeKg: Math.round(totalVolumeKg),
+      totalSets,
+      totalCardioSeconds: existingWorkout.totalCardioSeconds !== undefined ? totalCardioSeconds : undefined,
+      exercises: updatedExercises
+    };
+
+    const nextHistory = [...history];
+    nextHistory[workoutIndex] = updatedWorkout;
+
+    const templates = this.getTemplates();
+    templates.forEach(template => {
+      template.exercises.forEach(exercise => {
+        const matchingSession = exercise.history.find(s => s.workoutId === id);
+        if (matchingSession) {
+          const updatedEx = updatedWorkout.exercises.find(e => e.exerciseId === exercise.id);
+          if (updatedEx) {
+            const workingSets = updatedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+            const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+            const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+            const maxSet1RM = Math.max(...workingSets.map(s => {
+              if (s.reps <= 0 || s.weight <= 0) return 0;
+              return s.weight * (1 + s.reps / 30);
+            }), 0);
+
+            matchingSession.weight = roundWeight(updatedEx.workingWeight);
+            matchingSession.sets = updatedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true }));
+            matchingSession.totalVolume = Math.round(totalVol);
+            matchingSession.totalDurationSeconds = totalDuration || undefined;
+            matchingSession.estimated1RM = Math.round(maxSet1RM * 10) / 10;
+          }
+
+          const nonDeloadSessions = exercise.history.filter(s => s.phase !== 'deload');
+          const latestSession = nonDeloadSessions.at(-1);
+          if (latestSession) {
+            const recomputedWeight = extractWorkingWeightFromSets(latestSession.sets || []) ?? (latestSession.weight ? roundWeight(latestSession.weight) : undefined);
+            if (recomputedWeight != null) {
+              exercise.currentWeight = roundWeight(recomputedWeight);
+            }
+          }
+        }
+      });
+    });
+
+    compactTemplatesExerciseHistory(templates, nextHistory);
+
+    try {
+      preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
+      preserveCorruptValue(STORAGE_KEYS.HISTORY);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([...nextHistory, ...rejected]));
+      return true;
+    } catch (error) {
+      if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
+      else localStorage.setItem(STORAGE_KEYS.TEMPLATES, previousTemplates);
+      if (previousHistory == null) localStorage.removeItem(STORAGE_KEYS.HISTORY);
+      else localStorage.setItem(STORAGE_KEYS.HISTORY, previousHistory);
+      throw error;
+    }
+  },
+
+  deleteCompletedWorkout(id: string): boolean {
+    const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    if (!rawHistory) return false;
+    const { valid: history, rejected } = partitionRawHistory(rawHistory);
+
+    const workoutIndex = history.findIndex(w => w.id === id);
+    if (workoutIndex === -1) return false;
+
+    const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
+    const previousHistory = rawHistory;
+
+    const nextHistory = history.filter(w => w.id !== id);
+    const templates = this.getTemplates();
+
+    templates.forEach(template => {
+      template.exercises.forEach(exercise => {
+        const hasSession = exercise.history.some(s => s.workoutId === id);
+        if (hasSession) {
+          exercise.history = exercise.history.filter(s => s.workoutId !== id);
+          const nonDeloadSessions = exercise.history.filter(s => s.phase !== 'deload');
+          const latestSession = nonDeloadSessions.at(-1);
+          if (latestSession) {
+            const recomputedWeight = extractWorkingWeightFromSets(latestSession.sets || []) ?? (latestSession.weight ? roundWeight(latestSession.weight) : undefined);
+            if (recomputedWeight != null) {
+              exercise.currentWeight = roundWeight(recomputedWeight);
+            }
+          }
+        }
+      });
+    });
+
+    compactTemplatesExerciseHistory(templates, nextHistory);
+
+    try {
+      preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
+      preserveCorruptValue(STORAGE_KEYS.HISTORY);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([...nextHistory, ...rejected]));
+      return true;
+    } catch (error) {
+      if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
+      else localStorage.setItem(STORAGE_KEYS.TEMPLATES, previousTemplates);
+      if (previousHistory == null) localStorage.removeItem(STORAGE_KEYS.HISTORY);
+      else localStorage.setItem(STORAGE_KEYS.HISTORY, previousHistory);
+      throw error;
+    }
   },
 
   saveCompletedWorkout(workout: CompletedWorkout) {
@@ -249,10 +567,11 @@ export const storageService = {
         sets: exercise.sets.map(set => ({ ...set, weight: roundWeight(set.weight) }))
       }))
     };
-    const history = this.getHistory();
+    const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    const { valid: history, rejected } = partitionRawHistory(rawHistory);
     if (history.some(existing => existing.id === workout.id)) return;
     const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-    const previousHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    const previousHistory = rawHistory;
     history.unshift(recordedWorkout);
     const templates = this.getTemplates();
     const workoutTemplate = templates.find(t => t.id === workout.templateId);
@@ -286,9 +605,8 @@ export const storageService = {
           owner.exercises.push(exercise);
         }
         if (!exercise) return;
+        const actualWeight = extractWorkingWeightFromSets(completedEx.sets);
         const workingSets = completedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
-        const topWorkingWeight = workingSets.reduce((top, set) => Math.max(top, set.weight), 0);
-        const actualWeight = workingSets.filter(s => s.weight >= topWorkingWeight - 0.01).at(-1)?.weight;
         if (workout.cyclePhase !== 'deload' && actualWeight != null) {
           exercise.currentWeight = roundWeight(actualWeight);
         }
@@ -318,12 +636,13 @@ export const storageService = {
         });
       });
     }
+    compactTemplatesExerciseHistory(templates, history);
     try {
       preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
       preserveCorruptValue(STORAGE_KEYS.HISTORY);
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
       localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([...history, ...rejected]));
       if (typeof navigator !== 'undefined' && navigator.storage?.persist) void navigator.storage.persist().catch(() => undefined);
     } catch (error) {
       if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
@@ -475,7 +794,7 @@ export const storageService = {
       if (data.customExercises !== undefined && !Array.isArray(data.customExercises)) return false;
       if (data.settings !== undefined && (!data.settings || typeof data.settings !== 'object' || Array.isArray(data.settings))) return false;
       const nextTemplates = data.templates ? migrateTemplatesList(data.templates) : null;
-      const nextHistory = data.history == null ? null : data.history.filter((item: any) => item && typeof item.id === 'string' && typeof item.endTime === 'number' && Array.isArray(item.exercises));
+      const nextHistory = data.history == null ? null : data.history.filter(isValidCompletedWorkout);
       if (Array.isArray(data.history) && nextHistory.length !== data.history.length) console.warn(`Пропущено некорректных тренировок при импорте: ${data.history.length - nextHistory.length}`);
       const nextActiveWorkout = data.activeWorkout === undefined ? undefined : migrateActiveSession(data.activeWorkout);
       this.createEmergencySnapshot();

@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, History, Settings2, Zap } from 'lucide-react';
 import { Exercise } from '../types';
 import { evaluateDoubleProgression, calculate1RM } from '../services/progressionEngine';
+import { storageService, deriveExerciseHistoryFromCompletedWorkouts } from '../services/storageService';
 import { cn } from '../utils/cn';
+import { pluralize } from '../utils/pluralize';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ExerciseProgressionModalProps {
   exercise: Exercise;
@@ -50,7 +53,16 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
     onClose();
   };
 
-  const historyPoints = exercise.history.map((h, idx) => ({
+  const fullHistorySessions = useMemo(() => {
+    if (typeof localStorage === 'undefined') return exercise.history;
+    try {
+      return deriveExerciseHistoryFromCompletedWorkouts(exercise.id, storageService.getHistory(), exercise.history);
+    } catch {
+      return exercise.history;
+    }
+  }, [exercise.id, exercise.history]);
+
+  const historyPoints = fullHistorySessions.map((h, idx) => ({
     session: idx + 1,
     date: new Date(h.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
     weight: h.weight,
@@ -73,19 +85,25 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
 
   const tabs = [
     { id: 'progression' as const, label: 'Прогрессия', icon: Zap },
-    { id: 'history' as const, label: `История (${exercise.history.length})`, icon: History },
+    { id: 'history' as const, label: `История (${fullHistorySessions.length})`, icon: History },
     { id: 'settings' as const, label: 'Параметры', icon: Settings2 }
   ];
 
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'exercise-progression-title'
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg surface-panel border-lime/20 shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden animate-slide-up">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-lg surface-panel border-lime/20 shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden animate-slide-up">
         <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-white/8 gap-2 shrink-0">
           <div className="min-w-0 flex-1">
             <span className="text-xs font-bold tracking-wider uppercase text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
               {exercise.category}
             </span>
-            <h3 className="font-extrabold text-base sm:text-lg text-white mt-1 truncate">{exercise.name}</h3>
+            <h3 id="exercise-progression-title" className="font-extrabold text-base sm:text-lg text-white mt-1 truncate">{exercise.name}</h3>
           </div>
           <button
             type="button"
@@ -154,7 +172,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                   <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">
                     <span className="text-muted block">Рабочих подходов:</span>
                     <span className="font-mono font-bold text-sm text-white">
-                      {exercise.targetSets} подхода
+                      {exercise.targetSets} {pluralize(exercise.targetSets, ['подход', 'подхода', 'подходов'])}
                     </span>
                   </div>
                   <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">
@@ -213,12 +231,12 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
 
           {activeTab === 'history' && (
             <div className="space-y-3">
-              {exercise.history.length === 0 ? (
+              {fullHistorySessions.length === 0 ? (
                 <p className="text-muted text-sm text-center py-8">
                   История подходов пуста. Начните тренировку!
                 </p>
               ) : (
-                [...exercise.history].reverse().map(session => (
+                [...fullHistorySessions].reverse().map(session => (
                   <div key={session.id} className="bg-white/[0.03] border border-white/8 rounded-2xl p-3.5 space-y-2">
                     <div className="flex items-center justify-between text-xs gap-2">
                       <span className="font-semibold text-white">
@@ -234,7 +252,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {session.sets.map(s => (
+                      {session.sets.map((s: { setNumber: number; reps: number; rpe?: number }) => (
                         <div
                           key={s.setNumber}
                           className="bg-ink/50 border border-white/10 px-2.5 py-1 rounded-lg text-xs font-mono text-muted"

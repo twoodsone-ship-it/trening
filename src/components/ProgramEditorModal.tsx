@@ -5,6 +5,7 @@ import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCata
 import { applyAccessorySchedule } from '../data/programBuilder';
 import { isEquipmentAllowed } from '../utils/equipmentMap';
 import { cn } from '../utils/cn';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ProgramEditorModalProps {
   isOpen: boolean;
@@ -66,6 +67,26 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
     .filter(item => item.name.toLowerCase().includes(search.toLowerCase()))
     .slice(0, 45), [programDraft.gymProfile, search]);
 
+  const isDirty = useMemo(() => {
+    return JSON.stringify(draft) !== JSON.stringify(templates) ||
+           JSON.stringify(programDraft) !== JSON.stringify(program);
+  }, [draft, programDraft, templates, program]);
+
+  const handleRequestClose = () => {
+    if (isDirty) {
+      if (typeof window !== 'undefined' && !window.confirm('Закрыть редактор? Несохраненные изменения программы будут потеряны.')) {
+        return;
+      }
+    }
+    onClose();
+  };
+
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose: handleRequestClose,
+    titleId: 'program-editor-title'
+  });
+
   if (!isOpen || !selected) return null;
 
   const updateSelected = (transform: (template: WorkoutTemplate) => WorkoutTemplate) => {
@@ -108,13 +129,13 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[80] bg-ink/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 text-white">
-      <div className="w-full max-w-xl md:max-w-lg h-[100dvh] sm:h-[min(92dvh,850px)] bg-app-atmosphere border border-white/10 sm:rounded-3xl flex flex-col overflow-hidden">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-xl md:max-w-lg h-[100dvh] sm:h-[min(92dvh,850px)] bg-app-atmosphere border border-white/10 sm:rounded-3xl flex flex-col overflow-hidden">
         <header className="shrink-0 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-white/10 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-wider text-lime">Редактор</p>
-            <h2 className="font-bold truncate">{program.title}</h2>
+            <h2 id="program-editor-title" className="font-bold truncate">{program.title}</h2>
           </div>
-          <button type="button" onClick={onClose} className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center" aria-label="Закрыть"><X /></button>
+          <button type="button" onClick={handleRequestClose} className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center" aria-label="Закрыть"><X /></button>
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">

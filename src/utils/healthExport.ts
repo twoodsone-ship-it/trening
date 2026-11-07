@@ -1,4 +1,5 @@
 import type { CompletedWorkout } from '../types';
+import { pluralize } from './pluralize';
 
 /** CSV suitable for Apple Health / Google Fit / spreadsheet imports */
 export function workoutsToCsv(history: CompletedWorkout[]): string {
@@ -35,7 +36,7 @@ export function workoutsToCsv(history: CompletedWorkout[]): string {
           s.durationSeconds ?? '',
           s.distanceMeters ?? '',
           s.rpe ?? '',
-          s.type || (s.isWarmup ? 'warmup' : 'working')
+          csvEscape(s.type || (s.isWarmup ? 'warmup' : 'working'))
         ].join(','));
       });
     });
@@ -44,11 +45,15 @@ export function workoutsToCsv(history: CompletedWorkout[]): string {
   return rows.join('\n');
 }
 
-function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+export function csvEscape(value: string): string {
+  let val = String(value ?? '');
+  if (/^[=+\-@\t\r]/.test(val)) {
+    val = `'${val}`;
   }
-  return value;
+  if (/[",\n\r]/.test(val)) {
+    return `"${val.replace(/"/g, '""')}"`;
+  }
+  return val;
 }
 
 export function downloadCsv(filename: string, content: string) {
@@ -66,7 +71,7 @@ export function downloadCsv(filename: string, content: string) {
 export async function shareWorkoutSummary(workout: CompletedWorkout): Promise<boolean> {
   const text = [
     `IronForge: ${workout.templateName}`,
-    `⏱ ${workout.durationMinutes} мин · 🏋️ ${workout.totalVolumeKg} кг · ${workout.totalSets} сетов`,
+    `⏱ ${workout.durationMinutes} мин · 🏋️ ${workout.totalVolumeKg} кг · ${workout.totalSets} ${pluralize(workout.totalSets, ['сет', 'сета', 'сетов'])}`,
     ...(workout.totalCardioSeconds ? [`🚴 Кардио: ${Math.round(workout.totalCardioSeconds / 60)} мин`] : []),
     ...workout.exercises.map(ex => {
       const best = ex.sets.reduce((m, s) => Math.max(m, s.weight * s.reps), 0);

@@ -4,7 +4,7 @@ import type { ActiveExerciseSession, SetHistoryEntry } from '../../types';
 import { cn } from '../../utils/cn';
 import { WorkoutSetRow } from './WorkoutSetRow';
 import { ExerciseHistoryChart } from '../ExerciseHistoryChart';
-import { muscleCategoryLabel } from '../../utils/uiLabels';
+import { muscleCategoryLabel, pluralize } from '../../utils/uiLabels';
 import { previousSetFor } from '../../utils/workoutHelpers';
 
 interface ActiveExerciseCardProps {
@@ -61,7 +61,7 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
   const badgeClass = badgeStyles[ex.recommendation.badgeColor] || badgeStyles.blue;
   const durationLabel = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   const targetSummary = ex.trackingMode === 'duration'
-    ? `${durationLabel(ex.defaultDurationSeconds || 60)} · ${ex.targetSets} подхода`
+    ? `${durationLabel(ex.defaultDurationSeconds || 60)} · ${ex.targetSets} ${pluralize(ex.targetSets, ['подход', 'подхода', 'подходов'])}`
     : `${ex.weightStep === 0 ? 'Свой вес' : `${ex.targetWeight} кг`} · ${ex.minReps}–${ex.maxReps} повт.`;
   const previousSet = ex.previousPerformance?.sets[0];
   const previousSummary = previousSet

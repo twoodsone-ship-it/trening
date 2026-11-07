@@ -3,6 +3,7 @@ import { X, RefreshCw, AlertTriangle, Wind, Target } from 'lucide-react';
 import type { ExerciseTechniqueGuide, EquipmentType } from '../types/index.ts';
 import { ExerciseAnimation } from './ExerciseAnimation';
 import { muscleCategoryLabel } from '../utils/uiLabels';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ExerciseTechniqueModalProps {
   exerciseId?: string;
@@ -38,11 +39,17 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
   onClose,
   onOpenSwapModal
 }) => {
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'exercise-technique-title'
+  });
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2.5 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in text-white">
-      <div className="w-full max-w-lg bg-ink-2 border border-white/10 rounded-[1.75rem] shadow-2xl max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-lg bg-ink-2 border border-white/10 rounded-[1.75rem] shadow-2xl max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-white/10 bg-ink/80 gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -53,7 +60,7 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
                 {EQUIPMENT_LABELS[equipment] || equipment}
               </span>
             </div>
-            <h3 className="font-bold text-base sm:text-lg text-white mt-1 truncate">{exerciseName}</h3>
+            <h3 id="exercise-technique-title" className="font-bold text-base sm:text-lg text-white mt-1 truncate">{exerciseName}</h3>
           </div>
 
           <button

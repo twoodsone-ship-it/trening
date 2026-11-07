@@ -13,6 +13,7 @@ import type {
   WorkoutTemplate
 } from '../types';
 import { storageService } from '../services/storageService';
+import { pluralize } from '../utils/pluralize';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
 import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
 import { createTrialSet } from '../utils/trialSet';
@@ -88,7 +89,7 @@ export function buildActiveExercises(
             decision: 'CONSOLIDATE_WEIGHT',
             nextWeight,
             badgeText: 'Разгрузочная неделя',
-            suggestedAction: `Выполни ${targetSets} подхода примерно с 90% обычного веса. Оставь запас и сосредоточься на восстановлении.`
+            suggestedAction: `Выполни ${targetSets} ${pluralize(targetSets, ['подход', 'подхода', 'подходов'])} примерно с 90% обычного веса. Оставь запас и сосредоточься на восстановлении.`
           }
         : recommendation,
       previousPerformance: lastSession

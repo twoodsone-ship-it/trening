@@ -12,6 +12,7 @@ import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCata
 import { workoutNameLabel } from '../utils/uiLabels';
 import { createTrialSet } from '../utils/trialSet';
 import { roundWeight } from '../utils/roundWeight';
+import { sanitizeNumber } from '../utils/workoutMath';
 import {
   normalizeMuscleCategory,
   normalizeEquipment,
@@ -278,6 +279,140 @@ export const storageService = {
       console.warn('Failed to load history');
     }
     return [];
+  },
+
+  updateCompletedWorkout(id: string, next: CompletedWorkout): boolean {
+    const rawHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+    if (!rawHistory) return false;
+    let history: CompletedWorkout[] = [];
+    try {
+      const parsed = JSON.parse(rawHistory);
+      if (Array.isArray(parsed)) {
+        history = parsed.filter(
+          (item: any) =>
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.endTime === 'number' &&
+            Array.isArray(item.exercises)
+        );
+      }
+    } catch {
+      return false;
+    }
+
+    const workoutIndex = history.findIndex(w => w.id === id);
+    if (workoutIndex === -1) return false;
+
+    const existingWorkout = history[workoutIndex];
+    if (!next || !Array.isArray(next.exercises)) return false;
+
+    if (next.exercises.length !== existingWorkout.exercises.length) return false;
+    for (let i = 0; i < next.exercises.length; i += 1) {
+      if (next.exercises[i].exerciseId !== existingWorkout.exercises[i].exerciseId) return false;
+      if (!Array.isArray(next.exercises[i].sets) || next.exercises[i].sets.length !== existingWorkout.exercises[i].sets.length) {
+        return false;
+      }
+    }
+
+    const previousTemplates = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
+    const previousHistory = rawHistory;
+
+    let totalVolumeKg = 0;
+    let totalSets = 0;
+    let totalCardioSeconds = 0;
+
+    const updatedExercises = next.exercises.map((nextEx, exIdx) => {
+      const existingEx = existingWorkout.exercises[exIdx];
+      const sanitizedSets = nextEx.sets.map((s, setIdx) => {
+        const origSet = existingEx.sets[setIdx];
+        const weight = roundWeight(sanitizeNumber(s.weight, 1000));
+        const reps = Math.round(sanitizeNumber(s.reps, 500));
+        const rpe = s.rpe != null ? Math.min(10, Math.max(6, sanitizeNumber(s.rpe, 10))) : undefined;
+        return {
+          ...origSet,
+          weight,
+          reps,
+          rpe
+        };
+      });
+
+      const actualWeight = extractWorkingWeightFromSets(sanitizedSets);
+      const workingWeight = actualWeight ?? roundWeight(sanitizeNumber(nextEx.workingWeight ?? existingEx.workingWeight, 1000));
+
+      const workingSets = sanitizedSets.filter(s => s.completed !== false && !s.isWarmup && s.type !== 'warmup');
+      totalVolumeKg += workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+      totalSets += workingSets.length;
+      if (nextEx.category === 'Cardio' && nextEx.trackingMode === 'duration') {
+        totalCardioSeconds += workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+      }
+
+      return {
+        ...existingEx,
+        workingWeight,
+        sets: sanitizedSets,
+        progression: existingEx.progression
+      };
+    });
+
+    const updatedWorkout: CompletedWorkout = {
+      ...existingWorkout,
+      totalVolumeKg: Math.round(totalVolumeKg),
+      totalSets,
+      totalCardioSeconds: existingWorkout.totalCardioSeconds !== undefined ? totalCardioSeconds : undefined,
+      exercises: updatedExercises
+    };
+
+    const nextHistory = [...history];
+    nextHistory[workoutIndex] = updatedWorkout;
+
+    const templates = this.getTemplates();
+    templates.forEach(template => {
+      template.exercises.forEach(exercise => {
+        const matchingSession = exercise.history.find(s => s.workoutId === id);
+        if (matchingSession) {
+          const updatedEx = updatedWorkout.exercises.find(e => e.exerciseId === exercise.id);
+          if (updatedEx) {
+            const workingSets = updatedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+            const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+            const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+            const maxSet1RM = Math.max(...workingSets.map(s => {
+              if (s.reps <= 0 || s.weight <= 0) return 0;
+              return s.weight * (1 + s.reps / 30);
+            }), 0);
+
+            matchingSession.weight = roundWeight(updatedEx.workingWeight);
+            matchingSession.sets = updatedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true }));
+            matchingSession.totalVolume = Math.round(totalVol);
+            matchingSession.totalDurationSeconds = totalDuration || undefined;
+            matchingSession.estimated1RM = Math.round(maxSet1RM * 10) / 10;
+          }
+
+          const nonDeloadSessions = exercise.history.filter(s => s.phase !== 'deload');
+          const latestSession = nonDeloadSessions.at(-1);
+          if (latestSession) {
+            const recomputedWeight = extractWorkingWeightFromSets(latestSession.sets || []) ?? (latestSession.weight ? roundWeight(latestSession.weight) : undefined);
+            if (recomputedWeight != null) {
+              exercise.currentWeight = roundWeight(recomputedWeight);
+            }
+          }
+        }
+      });
+    });
+
+    try {
+      preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
+      preserveCorruptValue(STORAGE_KEYS.HISTORY);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+      localStorage.setItem('ironforge_templates_version', TEMPLATES_VERSION);
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+      return true;
+    } catch (error) {
+      if (previousTemplates == null) localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
+      else localStorage.setItem(STORAGE_KEYS.TEMPLATES, previousTemplates);
+      if (previousHistory == null) localStorage.removeItem(STORAGE_KEYS.HISTORY);
+      else localStorage.setItem(STORAGE_KEYS.HISTORY, previousHistory);
+      throw error;
+    }
   },
 
   deleteCompletedWorkout(id: string): boolean {

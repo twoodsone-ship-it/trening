@@ -287,3 +287,197 @@ describe('F1a: deleteCompletedWorkout', () => {
     expect(history[0].id).toBe('fixture-old');
   });
 });
+
+
+describe('F1b: updateCompletedWorkout', () => {
+  it('edit recomputes totalVolumeKg, totalSets, exercise workingWeight and estimated1RM', () => {
+    const template: WorkoutTemplate = {
+      id: 't-edit',
+      name: 'Leg Day',
+      description: '',
+      exercises: [
+        {
+          id: 'squat',
+          name: 'Приседания',
+          category: 'Legs',
+          targetSets: 3,
+          minReps: 8,
+          maxReps: 12,
+          weightStep: 2.5,
+          currentWeight: 100,
+          restSeconds: 90,
+          history: []
+        }
+      ]
+    };
+    storageService.saveTemplates([template]);
+
+    const workout: CompletedWorkout = {
+      id: 'w-edit-1',
+      templateId: 't-edit',
+      templateName: 'Leg Day',
+      startTime: Date.now() - 3600000,
+      endTime: Date.now() - 1800000,
+      durationMinutes: 30,
+      totalVolumeKg: 3000,
+      totalSets: 3,
+      exercises: [
+        {
+          exerciseId: 'squat',
+          name: 'Приседания',
+          category: 'Legs',
+          targetSets: 3,
+          minReps: 8,
+          maxReps: 12,
+          workingWeight: 100,
+          sets: [
+            { setNumber: 1, weight: 100, reps: 10, completed: true, type: 'working' },
+            { setNumber: 2, weight: 100, reps: 10, completed: true, type: 'working' },
+            { setNumber: 3, weight: 100, reps: 10, completed: true, type: 'working' }
+          ],
+          progression: {
+            decision: 'INCREASE_WEIGHT',
+            nextWeight: 102.5,
+            targetRepRange: '8-12',
+            badgeText: 'Отлично',
+            badgeColor: 'emerald',
+            analysis: '',
+            suggestedAction: '',
+            consecutivePlateauCount: 0
+          }
+        }
+      ]
+    };
+    storageService.saveCompletedWorkout(workout);
+
+    // Initial check
+    expect(storageService.getTemplates()[0].exercises[0].currentWeight).toBe(100);
+
+    // Edit: change weight from 100 to 110 kg and reps to 12
+    const updatedWorkout: CompletedWorkout = {
+      ...workout,
+      exercises: [
+        {
+          ...workout.exercises[0],
+          sets: [
+            { setNumber: 1, weight: 110, reps: 12, completed: true, type: 'working' },
+            { setNumber: 2, weight: 110, reps: 12, completed: true, type: 'working' },
+            { setNumber: 3, weight: 110, reps: 12, completed: true, type: 'working' }
+          ]
+        }
+      ]
+    };
+
+    const res = storageService.updateCompletedWorkout('w-edit-1', updatedWorkout);
+    expect(res).toBe(true);
+
+    const savedWorkout = storageService.getHistory()[0];
+    // Volume: 3 * 110 * 12 = 3960
+    expect(savedWorkout.totalVolumeKg).toBe(3960);
+    expect(savedWorkout.totalSets).toBe(3);
+    expect(savedWorkout.exercises[0].workingWeight).toBe(110);
+    // Progression note preserved
+    expect(savedWorkout.exercises[0].progression.badgeText).toBe('Отлично');
+
+    const savedTemplate = storageService.getTemplates()[0];
+    const savedEx = savedTemplate.exercises[0];
+    expect(savedEx.currentWeight).toBe(110);
+    expect(savedEx.history[0].totalVolume).toBe(3960);
+    // Estimated 1RM for 110 kg x 12 reps: 110 * (1 + 12/30) = 110 * 1.4 = 154
+    expect(savedEx.history[0].estimated1RM).toBe(154);
+  });
+
+  it('edit refuses adding/removing exercises or sets', () => {
+    const workout: CompletedWorkout = {
+      id: 'w-struct',
+      templateId: 't',
+      templateName: 'T',
+      startTime: 100,
+      endTime: 200,
+      durationMinutes: 10,
+      totalVolumeKg: 100,
+      totalSets: 1,
+      exercises: [
+        {
+          exerciseId: 'e1',
+          name: 'E1',
+          category: 'Chest',
+          targetSets: 1,
+          minReps: 8,
+          maxReps: 12,
+          workingWeight: 50,
+          sets: [{ setNumber: 1, weight: 50, reps: 10, completed: true }],
+          progression: { decision: 'FIRST_SESSION', nextWeight: 50, targetRepRange: '8-12', badgeText: '', badgeColor: 'blue', analysis: '', suggestedAction: '', consecutivePlateauCount: 0 }
+        }
+      ]
+    };
+    storageService.saveCompletedWorkout(workout);
+
+    // Try adding a set
+    const withExtraSet: CompletedWorkout = {
+      ...workout,
+      exercises: [
+        {
+          ...workout.exercises[0],
+          sets: [
+            { setNumber: 1, weight: 50, reps: 10, completed: true },
+            { setNumber: 2, weight: 50, reps: 10, completed: true }
+          ]
+        }
+      ]
+    };
+    expect(storageService.updateCompletedWorkout('w-struct', withExtraSet)).toBe(false);
+
+    // Try adding an exercise
+    const withExtraExercise: CompletedWorkout = {
+      ...workout,
+      exercises: [
+        ...workout.exercises,
+        { ...workout.exercises[0], exerciseId: 'e2', name: 'E2' }
+      ]
+    };
+    expect(storageService.updateCompletedWorkout('w-struct', withExtraExercise)).toBe(false);
+  });
+
+  it('quota failure leaves storage byte-identical on edit', () => {
+    const rawTemplates = JSON.stringify([{ id: 't1', name: 'T1', exercises: [{ id: 'e1', name: 'E1', currentWeight: 50, history: [{ workoutId: 'w-edit-fail', sets: [{ setNumber: 1, weight: 50, reps: 5 }] }] }] }]);
+    const rawHistory = JSON.stringify([{
+      id: 'w-edit-fail',
+      templateId: 't1',
+      templateName: 'T1',
+      startTime: 100,
+      endTime: 200,
+      durationMinutes: 10,
+      totalVolumeKg: 250,
+      totalSets: 1,
+      exercises: [{
+        exerciseId: 'e1',
+        name: 'E1',
+        category: 'Chest',
+        targetSets: 1,
+        minReps: 8,
+        maxReps: 12,
+        workingWeight: 50,
+        sets: [{ setNumber: 1, weight: 50, reps: 5, completed: true }],
+        progression: { decision: 'FIRST_SESSION', nextWeight: 50, targetRepRange: '8-12', badgeText: '', badgeColor: 'blue', analysis: '', suggestedAction: '', consecutivePlateauCount: 0 }
+      }]
+    }]);
+
+    const storage = new QuotaThrowingStorage();
+    storage.setItem('ironforge_templates_v1', rawTemplates);
+    storage.setItem('ironforge_history_v1', rawHistory);
+    storage.failOnKey = 'ironforge_history_v1';
+
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: storage,
+      configurable: true
+    });
+
+    const nextWorkout = JSON.parse(rawHistory)[0];
+    nextWorkout.exercises[0].sets[0].weight = 60;
+
+    expect(() => storageService.updateCompletedWorkout('w-edit-fail', nextWorkout)).toThrow();
+    expect(localStorage.getItem('ironforge_templates_v1')).toBe(rawTemplates);
+    expect(localStorage.getItem('ironforge_history_v1')).toBe(rawHistory);
+  });
+});

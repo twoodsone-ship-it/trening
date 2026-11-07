@@ -64,7 +64,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
       
       {/* Top Title */}
       <div>
-        <p className="text-lime text-[11px] font-bold tracking-[0.28em] uppercase">IronForge</p>
+        <p className="text-lime text-xs font-bold tracking-[0.28em] uppercase">IronForge</p>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mt-2">Прогресс и рекорды</h1>
         <p className="text-xs text-muted mt-1">
           Статистика прогресса, тоннаж и расчетные 1RM максимумы
@@ -83,7 +83,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-bold text-sm">Обзор нагрузки</h2>
-            <p className="text-[11px] text-muted">Силовой объём, занятия и кардио</p>
+            <p className="text-xs text-muted">Силовой объём, занятия и кардио</p>
           </div>
           <div className="flex gap-1 rounded-xl bg-white/[0.04] border border-white/10 p-1">
             {([4, 8, 12] as const).map(weeks => (
@@ -100,38 +100,38 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <div className="surface-panel p-2.5 sm:p-4 flex flex-col justify-between min-w-0">
-          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted truncate">
+          <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-muted truncate">
             Тренировки
           </span>
           <div className="mt-1.5 flex items-baseline gap-1">
             <span className="text-xl sm:text-3xl font-mono font-black text-lime">
               {totalWorkouts}
             </span>
-            <span className="text-[10px] sm:text-xs text-muted truncate">сессий</span>
+            <span className="text-xs sm:text-xs text-muted truncate">сессий</span>
           </div>
         </div>
 
         <div className="surface-panel p-2.5 sm:p-4 flex flex-col justify-between min-w-0">
-          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted truncate">
+          <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-muted truncate">
             Тоннаж
           </span>
           <div className="mt-1.5 flex items-baseline gap-1">
             <span className="text-xl sm:text-3xl font-mono font-black text-sky-400">
               {totalVolumeTons}
             </span>
-            <span className="text-[10px] sm:text-xs text-muted truncate">тонн</span>
+            <span className="text-xs sm:text-xs text-muted truncate">тонн</span>
           </div>
         </div>
 
         <div className="surface-panel p-2.5 sm:p-4 flex flex-col justify-between min-w-0">
-          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted truncate">
+          <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-muted truncate">
             Подходы
           </span>
           <div className="mt-1.5 flex items-baseline gap-1">
             <span className="text-xl sm:text-3xl font-mono font-black text-white">
               {totalSets}
             </span>
-            <span className="text-[10px] sm:text-xs text-muted truncate">сетов</span>
+            <span className="text-xs sm:text-xs text-muted truncate">сетов</span>
           </div>
         </div>
       </div>
@@ -150,13 +150,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
               className="bg-white/[0.03] border border-white/10 p-3.5 rounded-2xl flex items-center justify-between"
             >
               <div>
-                <span className="text-[10px] text-muted uppercase tracking-wider block font-bold">
+                <span className="text-xs text-muted uppercase tracking-wider block font-bold">
                   {pr.category}
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-white truncate max-w-[140px] block mt-0.5">
                   {pr.exerciseName}
                 </span>
-                <span className="text-[10px] text-muted font-mono">
+                <span className="text-xs text-muted font-mono">
                   {pr.date}
                 </span>
               </div>
@@ -164,7 +164,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                 <span className="text-base sm:text-lg font-mono font-black text-amber-400">
                   {pr.max1RM} <span className="text-xs text-muted">кг</span>
                 </span>
-                <span className="text-[10px] text-muted block font-mono">
+                <span className="text-xs text-muted block font-mono">
                   1RM Epley
                 </span>
               </div>
@@ -215,7 +215,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                       <span className="font-mono font-bold text-xs sm:text-sm text-lime block">
                         {workout.totalVolumeKg} кг
                       </span>
-                      <span className="text-[10px] text-muted">
+                      <span className="text-xs text-muted">
                         {workout.totalSets} сетов
                       </span>
                     </div>
@@ -234,7 +234,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                       <div key={ex.exerciseId} className="bg-white/[0.03] p-3 rounded-2xl border border-white/10 text-xs">
                         <div className="flex justify-between items-center mb-1.5">
                           <span className="font-semibold text-white">{ex.name}</span>
-                          <span className="text-[10px] text-lime font-mono font-bold">
+                          <span className="text-xs text-lime font-mono font-bold">
                             {ex.progression.badgeText}
                           </span>
                         </div>
@@ -242,7 +242,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ history }) => {
                           {ex.sets.map(s => (
                             <span 
                               key={s.setNumber}
-                              className="px-2 py-0.5 bg-white/[0.04] border border-white/10 rounded font-mono text-[11px] text-white/80"
+                              className="px-2 py-0.5 bg-white/[0.04] border border-white/10 rounded font-mono text-xs text-white/80"
                             >
                               {ex.trackingMode === 'duration'
                                 ? `${Math.floor((s.durationSeconds || 0) / 60)}:${String((s.durationSeconds || 0) % 60).padStart(2, '0')}`

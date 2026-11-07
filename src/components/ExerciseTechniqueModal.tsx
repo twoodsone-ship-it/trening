@@ -46,10 +46,10 @@ export const ExerciseTechniqueModal: React.FC<ExerciseTechniqueModalProps> = ({
         <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-white/10 bg-ink/80 gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold uppercase tracking-wider text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
                 {muscleCategoryLabel(category)}
               </span>
-              <span className="text-[10px] font-semibold text-muted bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-muted bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
                 {EQUIPMENT_LABELS[equipment] || equipment}
               </span>
             </div>

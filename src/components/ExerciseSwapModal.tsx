@@ -183,7 +183,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="font-bold text-sm sm:text-lg text-white truncate">Замена упражнения</h3>
-                <span className="text-[11px] sm:text-xs text-muted block truncate">
+                <span className="text-xs sm:text-xs text-muted block truncate">
                   Тренажер занят или отсутствует? Выберите замену:
                 </span>
               </div>
@@ -256,7 +256,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setSelectedEquipment(tab.id)}
-                  className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1 ${
                     selectedEquipment === tab.id
                       ? 'btn-lime shadow-xs'
                       : 'bg-white/5 text-muted border border-white/10 hover:bg-white/10'
@@ -334,7 +334,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[11px] font-semibold text-muted mb-1">
+                  <label className="block text-xs font-semibold text-muted mb-1">
                     Вес (кг)
                   </label>
                   <input
@@ -346,7 +346,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-muted mb-1">
+                  <label className="block text-xs font-semibold text-muted mb-1">
                     Мин повт.
                   </label>
                   <input
@@ -357,7 +357,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-muted mb-1">
+                  <label className="block text-xs font-semibold text-muted mb-1">
                     Макс повт.
                   </label>
                   <input
@@ -429,18 +429,18 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
                 >
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
                         {badge.label}
                       </span>
                       {isDirectAlt && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-lime/10 text-lime border border-white/10">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-lime/10 text-lime border border-white/10">
                           ⭐ Прямой аналог
                         </span>
                       )}
-                      <span className="text-[11px] text-muted font-mono">
+                      <span className="text-xs text-muted font-mono">
                         {alt.defaultSets}×{alt.minReps}-{alt.maxReps} повт.
                       </span>
-                      <span className="text-[11px] font-mono text-lime font-bold">
+                      <span className="text-xs font-mono text-lime font-bold">
                         ~{alt.defaultWeight} кг
                       </span>
                     </div>
@@ -449,7 +449,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
                       {alt.name}
                     </h4>
 
-                    <p className="text-[11px] text-muted line-clamp-1">
+                    <p className="text-xs text-muted line-clamp-1">
                       {alt.technique.primaryMuscles}
                     </p>
                   </div>

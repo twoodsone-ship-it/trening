@@ -33,7 +33,7 @@ export const WorkoutBriefingModal: React.FC<WorkoutBriefingModalProps> = ({
         <div className="p-5 pb-3 overflow-y-auto min-h-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Брифинг</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">Брифинг</p>
               <h3 id="briefing-title" className="text-xl font-extrabold mt-1 leading-tight">
                 {b.headline}
               </h3>
@@ -50,7 +50,7 @@ export const WorkoutBriefingModal: React.FC<WorkoutBriefingModalProps> = ({
           </div>
 
           <div className="mt-4 space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
               <Target className="w-3.5 h-3.5 text-lime" /> Цели на сегодня
             </p>
             {b.targets.map(t => (

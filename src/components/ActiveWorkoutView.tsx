@@ -585,7 +585,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           <div className="min-w-0 flex-1 flex items-center gap-3">
             <div className="relative shrink-0">
               <WorkoutProgressRing percent={progress.percent} />
-              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold font-mono text-lime">
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold font-mono text-lime">
                 {progress.percent}
               </span>
             </div>
@@ -593,7 +593,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-sm sm:text-base truncate" title={workoutName}>{workoutName}</h1>
               </div>
-              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-muted mt-0.5">
+              <div className="flex items-center gap-2 text-xs sm:text-xs text-muted mt-0.5">
                 <span className="flex items-center gap-1 font-mono">
                   <Clock className="w-3.5 h-3.5 text-lime" /> {elapsedMinutes} мин
                 </span>
@@ -639,7 +639,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleSupersetPair(exIdx)}
-                    className="w-full text-[11px] font-semibold text-sky-400 py-1.5 flex items-center justify-center gap-1"
+                    className="w-full text-xs font-semibold text-sky-400 py-1.5 flex items-center justify-center gap-1"
                   >
                     <Link2 className="w-3.5 h-3.5" /> Суперсет со следующим
                   </button>
@@ -651,10 +651,10 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           return (
             <div key={block.groupId + '-' + blockIdx} className="rounded-[1.75rem] border border-sky-400/40 bg-sky-500/5 p-2 space-y-2">
               <div className="px-2 pt-1 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1">
                   <Link2 className="w-3.5 h-3.5" /> Суперсет
                 </span>
-                <button type="button" onClick={() => toggleSupersetPair(block.indices[0])} className="text-[10px] text-muted">
+                <button type="button" onClick={() => toggleSupersetPair(block.indices[0])} className="text-xs text-muted">
                   Развязать
                 </button>
               </div>

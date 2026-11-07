@@ -114,7 +114,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
           <Clock className="w-5 h-5" />
           <span className="font-bold tabular-nums">{formatMmSs(elapsed)}</span>
         </div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-muted text-right leading-tight">
+        <div className="text-xs font-bold uppercase tracking-wider text-muted text-right leading-tight">
           отдых
           <br />
           <span className="text-white/80 font-mono">{restHint}с</span>
@@ -166,7 +166,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
             )}
             {plateResult && <PlateLoadingGuide result={plateResult} targetWeight={set.weight} barbellWeight={barbellWeight} />}
             {exercise.cardioIntensity && (
-              <p className="text-[10px] text-sky-300 font-semibold uppercase tracking-wider">
+              <p className="text-xs text-sky-300 font-semibold uppercase tracking-wider">
                 {exercise.cardioIntensity === 'intervals' ? 'Интервалы' : exercise.cardioIntensity === 'easy' ? 'Лёгкий темп' : 'Умеренный темп'}
               </p>
             )}
@@ -232,9 +232,9 @@ function PlateLoadingGuide({
     <div className="rounded-2xl border border-lime/20 bg-lime/[0.06] p-3" aria-label="Раскладка блинов на штанге">
       <div className="flex items-center justify-between gap-2 mb-2">
         <p className="text-xs font-bold text-lime">Блины на штангу</p>
-        <p className="text-[11px] text-muted">гриф {barbellWeight} кг</p>
+        <p className="text-xs text-muted">гриф {barbellWeight} кг</p>
       </div>
-      <p className="text-[11px] text-muted mb-2">На каждую сторону: {result.platesPerSide.length} шт. · {((result.achievableWeight - barbellWeight) / 2).toLocaleString('ru-RU')} кг</p>
+      <p className="text-xs text-muted mb-2">На каждую сторону: {result.platesPerSide.length} шт. · {((result.achievableWeight - barbellWeight) / 2).toLocaleString('ru-RU')} кг</p>
       {(['Левая', 'Правая'] as const).map(side => (
         <div key={side} className="flex items-start gap-2 py-1.5 border-t border-white/10">
           <span className="w-14 shrink-0 text-xs font-semibold text-white">{side}</span>
@@ -243,7 +243,7 @@ function PlateLoadingGuide({
           </span>
         </div>
       ))}
-      {breakdown.length > 0 && <p className="text-[10px] text-muted mt-1">Порядок: от грифа к краю</p>}
+      {breakdown.length > 0 && <p className="text-xs text-muted mt-1">Порядок: от грифа к краю</p>}
       {!result.exact && (
         <p role="status" className="text-xs text-amber-300 mt-2">
           {targetWeight < barbellWeight
@@ -279,7 +279,7 @@ function FocusStepper({
         <Minus className="w-6 h-6" />
       </button>
       <div className="text-center">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{label}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted">{label}</p>
         <p className="font-mono text-4xl font-black text-white tabular-nums">{displayValue ?? value}</p>
       </div>
       <button

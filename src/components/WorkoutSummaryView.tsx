@@ -50,7 +50,7 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-lime/15 border border-lime/40 animate-pulse-ring">
             <Award className="w-8 h-8 text-lime" />
           </div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Готово</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">Готово</p>
           <h1 className="text-2xl font-extrabold text-white">Тренировка завершена</h1>
           <p className="text-sm text-muted">{workout.templateName}</p>
         </div>
@@ -85,9 +85,9 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
             <div key={ex.exerciseId} className="surface-panel p-3.5 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-sm text-white truncate">{ex.name}</p>
-                <p className="text-[11px] text-muted truncate">{ex.progression.suggestedAction}</p>
+                <p className="text-xs text-muted truncate">{ex.progression.suggestedAction}</p>
               </div>
-              <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg bg-lime/10 text-lime border border-lime/30">
+              <span className="shrink-0 text-xs font-bold px-2 py-1 rounded-lg bg-lime/10 text-lime border border-lime/30">
                 {ex.progression.badgeText}
               </span>
             </div>
@@ -100,11 +100,11 @@ export const WorkoutSummaryView: React.FC<WorkoutSummaryViewProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {prs.map(pr => (
                 <div key={pr.name} className="surface-panel p-3">
-                  <p className="text-[11px] text-muted truncate">{pr.name}</p>
+                  <p className="text-xs text-muted truncate">{pr.name}</p>
                   <p className="font-mono font-bold text-lime">
                     {pr.weight}×{pr.reps}
                   </p>
-                  <p className="text-[10px] text-muted">≈ {pr.est1RM} кг 1RM</p>
+                  <p className="text-xs text-muted">≈ {pr.est1RM} кг 1RM</p>
                 </div>
               ))}
             </div>
@@ -146,7 +146,7 @@ function Stat({
   return (
     <div className="surface-panel p-3 flex flex-col gap-1">
       <span className="text-lime">{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{label}</span>
+      <span className="text-xs font-bold uppercase tracking-wider text-muted">{label}</span>
       <span className="font-mono font-black text-xl text-white">
         {value}
         {unit && <span className="text-xs font-semibold text-muted ml-0.5">{unit}</span>}

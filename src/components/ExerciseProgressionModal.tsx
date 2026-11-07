@@ -82,7 +82,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
       <div className="w-full max-w-lg surface-panel border-lime/20 shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden animate-slide-up">
         <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-white/8 gap-2 shrink-0">
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold tracking-wider uppercase text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-bold tracking-wider uppercase text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
               {exercise.category}
             </span>
             <h3 className="font-extrabold text-base sm:text-lg text-white mt-1 truncate">{exercise.name}</h3>
@@ -192,14 +192,14 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                       const heightPct = Math.max(15, Math.min(100, (pt.oneRM / maxOneRM) * 100));
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                          <div className="absolute -top-7 hidden group-hover:block bg-ink-3 text-[10px] px-1.5 py-0.5 rounded shadow z-10 whitespace-nowrap border border-white/10">
+                          <div className="absolute -top-7 hidden group-hover:block bg-ink-3 text-xs px-1.5 py-0.5 rounded shadow z-10 whitespace-nowrap border border-white/10">
                             {pt.oneRM} кг ({pt.date})
                           </div>
                           <div
                             style={{ height: `${heightPct}%` }}
                             className="w-full bg-lime/80 group-hover:bg-lime rounded-t transition-all"
                           />
-                          <span className="text-[9px] text-muted truncate w-full text-center">
+                          <span className="text-xs text-muted truncate w-full text-center">
                             {pt.date}
                           </span>
                         </div>
@@ -240,12 +240,12 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                           className="bg-ink/50 border border-white/10 px-2.5 py-1 rounded-lg text-xs font-mono text-muted"
                         >
                           Сет {s.setNumber}: <span className="font-bold text-lime">{s.reps}</span> повт.
-                          {s.rpe && <span className="text-muted text-[10px] ml-1">@RPE{s.rpe}</span>}
+                          {s.rpe && <span className="text-muted text-xs ml-1">@RPE{s.rpe}</span>}
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-muted pt-1 border-t border-white/8">
+                    <div className="flex items-center justify-between text-xs text-muted pt-1 border-t border-white/8">
                       <span>Общий тоннаж: {session.totalVolume} кг</span>
                       <span>1RM: ~{session.estimated1RM} кг</span>
                     </div>

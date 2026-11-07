@@ -84,7 +84,7 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
       >
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-lime/90">{muscleCategoryLabel(ex.category)}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-lime/90">{muscleCategoryLabel(ex.category)}</span>
             <span className="text-xs font-mono text-muted">{completedCount}/{ex.sets.length} готово</span>
           </div>
           <h2 className="font-display font-bold text-xl text-white mt-0.5 truncate">{ex.name}</h2>
@@ -129,7 +129,7 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
               <button
                 type="button"
                 onClick={() => setShowChart(v => !v)}
-                className="ml-auto min-h-[44px] text-[11px] font-bold text-lime px-2 py-1"
+                className="ml-auto min-h-[44px] text-xs font-bold text-lime px-2 py-1"
               >
                 {showChart ? 'Скрыть график' : 'График'}
               </button>
@@ -160,17 +160,17 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
           <div className={cn('p-3 rounded-xl border text-xs flex items-center justify-between gap-2', badgeClass)}>
             <div className="min-w-0">
               <span className="font-bold text-white block truncate">{ex.recommendation.badgeText}</span>
-              <span className="text-[11px] opacity-80 block truncate">
+              <span className="text-xs opacity-80 block truncate">
                 Цель: {targetSummary}
               </span>
             </div>
-            <span className="text-[10px] px-2 py-1 bg-black/30 rounded-lg font-mono font-bold shrink-0">
+            <span className="text-xs px-2 py-1 bg-black/30 rounded-lg font-mono font-bold shrink-0">
               {ex.weightStep > 0 ? `+${ex.weightStep} кг` : 'техника'}
             </span>
           </div>
 
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted px-1">Подходы · прошлый результат</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted px-1">Подходы · прошлый результат</p>
             {ex.sets.map((set, setIdx) => {
               const prevSet: SetHistoryEntry | undefined = previousSetFor(set, ex.previousPerformance?.sets);
               return (

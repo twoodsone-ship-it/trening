@@ -64,7 +64,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         >
           <Home className="w-5 h-5" />
-          <span className="text-[10px] tracking-wide font-medium">Главная</span>
+          <span className="text-xs tracking-wide font-medium">Главная</span>
         </button>
 
         <button
@@ -76,7 +76,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         >
           <BarChart2 className="w-5 h-5" />
-          <span className="text-[10px] tracking-wide font-medium">Аналитика</span>
+          <span className="text-xs tracking-wide font-medium">Аналитика</span>
         </button>
 
         <button
@@ -85,7 +85,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           className="flex flex-col items-center justify-center gap-1 py-1.5 px-3 text-white/40 hover:text-white/70 rounded-xl min-w-[64px] min-h-[48px] active:scale-95 transition"
         >
           <Settings className="w-5 h-5" />
-          <span className="text-[10px] tracking-wide font-medium">Ещё</span>
+          <span className="text-xs tracking-wide font-medium">Ещё</span>
         </button>
       </div>
     </div>

@@ -50,7 +50,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
           <div className="flex items-center gap-2 min-w-0">
             <Calculator className="w-5 h-5 text-lime shrink-0" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Инструмент</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime">Инструмент</p>
               <h3 className="font-extrabold text-lg text-white leading-tight">Калькулятор блинов</h3>
             </div>
           </div>
@@ -168,7 +168,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
           </div>
 
           <div className="w-2.5 h-7 bg-zinc-400 rounded-sm" />
-          <div className="w-24 sm:w-32 h-2.5 bg-zinc-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold select-none">
+          <div className="w-24 sm:w-32 h-2.5 bg-zinc-500 rounded-full flex items-center justify-center text-xs text-white font-bold select-none">
             {barbellWeight}kg
           </div>
           <div className="w-2.5 h-7 bg-zinc-400 rounded-sm" />

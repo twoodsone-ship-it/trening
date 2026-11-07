@@ -30,6 +30,10 @@ function formatMmSs(total: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
+export function shouldShowPlateGuide(equipment: string | undefined, isTrial: boolean, weight: number, barbellWeight: number): boolean {
+  return equipment === 'barbell' && !(isTrial && weight < barbellWeight);
+}
+
 function tipForExercise(exercise: ActiveExerciseSession): string {
   if (exercise.technique?.setup) return exercise.technique.setup;
   if (exercise.technique?.execution) return exercise.technique.execution;
@@ -72,8 +76,8 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   const isBodyweight = exercise.weightStep === 0 || (exercise.targetWeight === 0 && exercise.category === 'Cardio');
   const isTimed = exercise.trackingMode === 'duration';
   const plateResult = useMemo(
-    () => exercise.equipment === 'barbell' ? calculatePlates(set.weight, barbellWeight) : null,
-    [exercise.equipment, set.weight, barbellWeight]
+    () => shouldShowPlateGuide(exercise.equipment, isTrial, set.weight, barbellWeight) ? calculatePlates(set.weight, barbellWeight) : null,
+    [exercise.equipment, isTrial, set.weight, barbellWeight]
   );
   const durationStep = (exercise.defaultDurationSeconds || 60) < 90 ? 15 : 60;
   const formatDuration = (value: number) => {

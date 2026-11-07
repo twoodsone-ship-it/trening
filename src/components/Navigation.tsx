@@ -37,7 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   }, [hasActiveWorkout]);
 
   return (
-    <div ref={navRef} className="fixed bottom-0 inset-x-0 z-40 bg-ink/95 backdrop-blur-xl border-t border-white/10 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+    <div ref={navRef} className="fixed bottom-0 inset-x-0 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:w-[720px] z-40 bg-ink/95 backdrop-blur-xl border-t border-white/10 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
       {hasActiveWorkout && (
         <div className="max-w-md mx-auto mb-2 px-1">
           <button

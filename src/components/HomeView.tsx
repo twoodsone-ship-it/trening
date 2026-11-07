@@ -108,7 +108,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const showAdvice = advice?.severity === 'warning' && advice.id !== dismissedAdviceId ? advice : null;
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white animate-home-enter" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 5rem) + 6rem)' }}>
+    <div className="max-w-lg md:max-w-[720px] mx-auto px-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white animate-home-enter" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 5rem) + 6rem)' }}>
       {showBackupReminder && <div role="status" className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-xs text-amber-200"><span className="flex-1">Пора скачать резервную копию тренировок в настройках.</span><button type="button" className="min-h-[44px] min-w-[44px] rounded-lg" aria-label="Скрыть напоминание" onClick={() => onUpdateSettings({ ...settings, reminderDismissedAt: Date.now() })}>×</button></div>}
       <header className="pt-3 pb-4">
         <div>
@@ -229,8 +229,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
       {activeProgram && (
         <section className="mt-6">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted mb-2">Тренировки плана</p>
-          <div className="divide-y divide-white/10 border-y border-white/10">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted mb-2">Тренировки плана</p>
+          <div className="divide-y divide-white/10 border-y border-white/10 md:grid md:grid-cols-2 md:gap-x-5 md:divide-y-0">
           {activeProgram.templateIds.map((id, i) => {
             const t = templates.find(x => x.id === id);
             if (!t) return null;

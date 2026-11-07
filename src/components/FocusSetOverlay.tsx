@@ -100,7 +100,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[220] bg-app-atmosphere flex flex-col text-white animate-fade-in">
+    <div className="fixed inset-0 z-[220] h-[100dvh] bg-app-atmosphere flex flex-col text-white animate-fade-in">
       <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
         <button
           type="button"
@@ -191,7 +191,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
             type="button"
             onClick={showIntroduction ? onConfirmIntroduction : onComplete}
             className={cn(
-              'w-full py-5 rounded-3xl font-black text-lg flex items-center justify-center gap-2 min-h-[64px] active:scale-95 transition',
+              'sticky bottom-0 z-10 w-full py-5 rounded-3xl font-black text-lg flex items-center justify-center gap-2 min-h-[64px] active:scale-95 transition',
               set.completed ? 'bg-white/10 text-muted' : 'btn-lime animate-pulse-ring'
             )}
           >

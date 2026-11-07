@@ -579,7 +579,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-app-atmosphere pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white">
+    <div className="min-h-[100dvh] bg-app-atmosphere pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white">
       <div className="sticky top-0 z-40 bg-ink/90 backdrop-blur-md border-b border-white/10 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1 flex items-center gap-3">

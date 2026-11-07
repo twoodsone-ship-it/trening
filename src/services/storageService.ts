@@ -145,7 +145,11 @@ export function migrateTemplatesList(templates: any[]): WorkoutTemplate[] {
   if (!Array.isArray(templates) || templates.length === 0) {
     return cloneDefaultTemplates();
   }
-  return templates.map(t => ({
+  const validTemplates = templates.filter(t => t && typeof t === 'object');
+  if (validTemplates.length === 0) {
+    return cloneDefaultTemplates();
+  }
+  return validTemplates.map(t => ({
     id: t.id || ('template-' + Date.now()),
     name: workoutNameLabel(t.name || 'Программа тренировок'),
     description: t.description || '',
@@ -248,7 +252,16 @@ export const storageService = {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
       if (data) {
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(
+            (item: any) =>
+              item &&
+              typeof item.id === 'string' &&
+              typeof item.endTime === 'number' &&
+              Array.isArray(item.exercises)
+          );
+        }
       }
     } catch {
       corruptKeys.add(STORAGE_KEYS.HISTORY);

@@ -61,6 +61,36 @@ describe('storage backward compatibility', () => {
     expect(archivedKey && localStorage.getItem(archivedKey)).toBe(raw);
   });
 
+  it('E2: filters malformed history items in memory and preserves raw localStorage string', () => {
+    const rawHistory = JSON.stringify([
+      { id: 'good-1', endTime: 1000, exercises: [] },
+      { id: 'bad-1', endTime: 'invalid', exercises: [] },
+      null,
+      { missing: 'fields' },
+      { id: 'good-2', endTime: 2000, exercises: [] }
+    ]);
+    localStorage.setItem('ironforge_history_v1', rawHistory);
+
+    const loaded = storageService.getHistory();
+    expect(loaded.map(w => w.id)).toEqual(['good-1', 'good-2']);
+    expect(localStorage.getItem('ironforge_history_v1')).toBe(rawHistory);
+  });
+
+  it('E2: filters malformed template items in memory without crashing', () => {
+    const rawTemplates = JSON.stringify([
+      { id: 'good-tpl', name: 'Valid', exercises: [] },
+      null,
+      'not-an-object',
+      123
+    ]);
+    localStorage.setItem('ironforge_templates_v1', rawTemplates);
+
+    const loaded = storageService.getTemplates();
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].id).toBe('good-tpl');
+    expect(localStorage.getItem('ironforge_templates_v1')).toBe(rawTemplates);
+  });
+
   it('updates an exercise found outside the workout template and lowers its weight to the load used', () => {
     localStorage.setItem('ironforge_templates_v1', JSON.stringify([{ id: 'other', name: 'Другая', exercises: [{ id: 'bench-press', name: 'Жим', currentWeight: 82.5, history: [] }] }]));
     storageService.saveCompletedWorkout({ id: 'w-cross-template', templateId: 'regenerated', templateName: 'Новая программа', startTime: 1, endTime: 2,

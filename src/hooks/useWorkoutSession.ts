@@ -57,7 +57,7 @@ function buildActiveExercises(
       weight: nextWeight,
       reps: ex.minReps,
       durationSeconds: ex.trackingMode === 'duration' ? (ex.defaultDurationSeconds || 0) : undefined,
-      rpe: 8,
+      rpe: undefined,
       completed: false,
       type: 'working' as const
     }));
@@ -129,12 +129,13 @@ export function useWorkoutSession() {
   const [history, setHistory] = useState<CompletedWorkout[]>([]);
   const [settings, setSettings] = useState<AppSettings>(storageService.getSettings());
   const [activeProgram, setActiveProgram] = useState<ActiveProgram | null>(null);
-  const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(() => storageService.getActiveWorkout());
   const [isViewActiveWorkout, setIsViewActiveWorkout] = useState(false);
   const [pendingSummary, setPendingSummary] = useState<CompletedWorkout | null>(null);
   const [restTimerSeconds, setRestTimerSeconds] = useState(90);
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [finishError, setFinishError] = useState(false);
 
   const loadData = useCallback(() => {
     setTemplates(storageService.getTemplates());
@@ -158,7 +159,8 @@ export function useWorkoutSession() {
   }, []);
 
   useEffect(() => {
-    storageService.saveActiveWorkout(activeWorkout);
+    if (activeWorkout) storageService.saveActiveWorkout(activeWorkout);
+    else if (!storageService.getActiveWorkout()) storageService.saveActiveWorkout(null);
   }, [activeWorkout]);
 
   const applyProgram = useCallback((
@@ -208,7 +210,14 @@ export function useWorkoutSession() {
   }, [activeProgram]);
 
   const finishWorkout = useCallback((completed: CompletedWorkout) => {
-    storageService.saveCompletedWorkout(completed);
+    try {
+      storageService.saveCompletedWorkout(completed);
+    } catch {
+      setFinishError(true);
+      return;
+    }
+    setFinishError(false);
+    storageService.saveActiveWorkout(null);
     setActiveWorkout(null);
     setIsViewActiveWorkout(false);
     setIsRestTimerOpen(false);
@@ -271,6 +280,7 @@ export function useWorkoutSession() {
     saveProgramEdits,
     startWorkout,
     finishWorkout,
+    finishError,
     cancelWorkout,
     updateActiveExercises,
     triggerRestTimer,

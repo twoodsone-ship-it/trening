@@ -20,12 +20,24 @@ function notifyRestDone() {
   try {
     if (typeof Notification === 'undefined') return;
     if (Notification.permission !== 'granted') return;
-    const n = new Notification('IronForge — отдых окончен', {
+    const options = {
       body: 'Начинайте следующий подход',
       tag: 'ironforge-rest-done',
       silent: false
-    });
-    window.setTimeout(() => n.close(), 8000);
+    };
+    if ('serviceWorker' in navigator) {
+      void navigator.serviceWorker.ready.then(registration => registration.showNotification('IronForge — отдых окончен', options)).catch(() => {
+        try {
+          const notification = new Notification('IronForge — отдых окончен', options);
+          window.setTimeout(() => notification.close(), 8000);
+        } catch {
+          // Notification APIs can be unavailable in restricted browser contexts.
+        }
+      });
+    } else {
+      const notification = new Notification('IronForge — отдых окончен', options);
+      window.setTimeout(() => notification.close(), 8000);
+    }
   } catch {
     //
   }

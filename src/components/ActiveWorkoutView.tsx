@@ -122,7 +122,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     let next = patchSet(exercises, exIdx, setIdx, s => ({
       ...s,
       completed: true,
-      rpe: warmup ? undefined : rpe ?? s.rpe ?? 8
+      rpe: warmup ? undefined : rpe ?? s.rpe
     }));
     onUpdateExercises(next);
     soundService.haptic('setComplete', settings.vibrationEnabled);
@@ -228,7 +228,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           setNumber: workingSets.length + 1,
           weight: lastWorking ? lastWorking.weight : ex.targetWeight,
           reps: lastWorking ? lastWorking.reps : ex.minReps,
-          rpe: 8,
+          rpe: undefined,
           completed: false,
           type: 'working',
           isWarmup: false
@@ -290,7 +290,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           weight: existing.completed ? existing.weight : newCatalogEx.defaultWeight,
           reps: existing.completed ? existing.reps : newCatalogEx.minReps,
           durationSeconds: existing.completed ? existing.durationSeconds : newCatalogEx.defaultDurationSeconds,
-          rpe: existing.rpe || 8,
+          rpe: existing.rpe,
           completed: existing.completed,
           type: existing.type || 'working',
           isWarmup: existing.isWarmup
@@ -301,7 +301,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         setNumber: i + 1,
         weight: newCatalogEx.defaultWeight,
         reps: newCatalogEx.minReps,
-        rpe: 8,
+        rpe: undefined,
         completed: false,
         type: 'working' as const
       };
@@ -368,7 +368,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         weight: newCatalogEx.defaultWeight,
         reps: newCatalogEx.minReps,
         durationSeconds: newCatalogEx.trackingMode === 'duration' ? newCatalogEx.defaultDurationSeconds : undefined,
-        rpe: 8,
+        rpe: undefined,
         completed: false,
         type: 'working' as const
       })),
@@ -389,6 +389,9 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     const completedExercises = exercises.map(ex => {
       const completedSets = ex.sets.filter(s => s.completed);
       const workingSets = completedSets.filter(s => !isWarmupSet(s));
+      const actualWorkingSets = workingSets.filter(s => s.reps > 0 && s.type !== 'dropset');
+      const topWorkingWeight = actualWorkingSets.reduce((top, set) => Math.max(top, set.weight), 0);
+      const workingWeight = actualWorkingSets.filter(s => s.weight >= topWorkingWeight - 0.01).at(-1)?.weight ?? ex.targetWeight;
       totalVolume += calculateVolume(workingSets);
       totalSetsCount += workingSets.length;
       if (ex.category === 'Cardio' && ex.trackingMode === 'duration') {
@@ -401,7 +404,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         targetSets: ex.targetSets,
         minReps: ex.minReps,
         maxReps: ex.maxReps,
-        workingWeight: ex.targetWeight,
+        workingWeight,
         trackingMode: ex.trackingMode || 'reps',
         sets: completedSets.map(s => ({
           setNumber: s.setNumber,

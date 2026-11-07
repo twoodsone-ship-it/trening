@@ -5,6 +5,7 @@ import { Navigation } from './components/Navigation';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { useWorkoutSession } from './hooks/useWorkoutSession';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { storageService } from './services/storageService';
 
 const AnalyticsView = lazy(() =>
   import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView }))
@@ -52,6 +53,7 @@ export const App: React.FC = () => {
     saveProgramEdits,
     startWorkout,
     finishWorkout,
+    finishError,
     cancelWorkout,
     updateActiveExercises,
     triggerRestTimer,
@@ -96,6 +98,11 @@ export const App: React.FC = () => {
 
       <div className="flex-1">
         {isViewActiveWorkout && activeWorkout ? (
+          <>
+          {finishError && <div role="alert" className="fixed z-[70] inset-x-3 top-3 mx-auto max-w-lg rounded-2xl border border-rose-400/40 bg-ink p-4 shadow-xl">
+            <p className="text-sm font-semibold text-rose-300">Не удалось сохранить тренировку. Она останется открытой и сохранённой на этом устройстве.</p>
+            <button type="button" onClick={() => { const blob = new Blob([storageService.exportBackupJson()], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `ironforge_backup_${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); }} className="mt-3 min-h-[48px] rounded-xl bg-white/10 px-4 text-sm font-bold">Скачать резервную копию JSON</button>
+          </div>}
           <ActiveWorkoutView
             workoutName={activeWorkout.templateName}
             templateId={activeWorkout.templateId}
@@ -112,6 +119,7 @@ export const App: React.FC = () => {
             onCancelWorkout={cancelWorkout}
             onTriggerRestTimer={triggerRestTimer}
           />
+          </>
         ) : (
           <>
             {activeTab === 'home' && (

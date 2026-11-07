@@ -10,6 +10,7 @@ import type {
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
 import { workoutNameLabel } from '../utils/uiLabels';
+import { createTrialSet } from '../utils/trialSet';
 import {
   normalizeMuscleCategory,
   normalizeEquipment,
@@ -169,22 +170,11 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
     };
   });
 
-  // Give an unfinished session created by an older version the same gentle start.
-  if (migratedExercises.every((ex: any) => ex.sets.every((set: any) => !set.completed))) {
-    const firstWeighted = migratedExercises.find((ex: any) => ex.trackingMode === 'reps' && ex.weightStep > 0 && ex.targetWeight > 0);
-    if (firstWeighted && !firstWeighted.sets.some((set: any) => set.type === 'warmup' || set.isWarmup)) {
-      const trialWeight = Math.min(firstWeighted.targetWeight * 0.5, firstWeighted.equipment === 'barbell' ? 20 : firstWeighted.targetWeight * 0.5);
-      firstWeighted.sets.unshift({
-        id: `trial-${workout.startTime || Date.now()}`,
-        setNumber: 0,
-        weight: Math.max(0, Math.round(trialWeight / firstWeighted.weightStep) * firstWeighted.weightStep),
-        reps: Math.min(8, Math.max(5, firstWeighted.minReps)),
-        completed: false,
-        type: 'warmup',
-        isWarmup: true
-      });
-    }
-  }
+  // Add the default trial to exercises that have not yet started in saved sessions.
+  migratedExercises.forEach((ex: any, index: number) => {
+    if (ex.sets.some((set: any) => set.completed || set.type === 'warmup' || set.isWarmup)) return;
+    ex.sets.unshift(createTrialSet(ex, `trial-${workout.startTime || Date.now()}-${index}`));
+  });
 
   return {
     templateId: workout.templateId || 'custom',

@@ -15,15 +15,15 @@ import type {
 import { storageService } from '../services/storageService';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
 import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
+import { createTrialSet } from '../utils/trialSet';
 
 export type AppTab = 'home' | 'analytics';
 
-function buildActiveExercises(
+export function buildActiveExercises(
   template: WorkoutTemplate,
   readiness: ReadinessLevel,
   cyclePhase: 'base' | 'progress' | 'overload' | 'deload'
 ): ActiveExerciseSession[] {
-  const firstWeightedIndex = template.exercises.findIndex(ex => (ex.trackingMode || 'reps') === 'reps' && ex.weightStep > 0 && ex.currentWeight > 0);
   return template.exercises.map((ex, exIndex) => {
     const recommendation = ex.trackingMode === 'duration' ? {
       decision: 'FIRST_SESSION' as const,
@@ -61,21 +61,7 @@ function buildActiveExercises(
       completed: false,
       type: 'working' as const
     }));
-    if (exIndex === firstWeightedIndex) {
-      const step = ex.weightStep || 2.5;
-      const trialWeight = Math.min(nextWeight * 0.5, ex.equipment === 'barbell' ? 20 : nextWeight * 0.5);
-      initialSets.unshift({
-        id: `trial-${Date.now()}`,
-        setNumber: 0,
-        weight: Math.max(0, Math.round(trialWeight / step) * step),
-        reps: Math.min(8, Math.max(5, ex.minReps)),
-        durationSeconds: undefined,
-        rpe: undefined,
-        completed: false,
-        type: 'warmup' as const,
-        isWarmup: true
-      });
-    }
+    initialSets.unshift(createTrialSet({ ...ex, targetWeight: nextWeight }, `trial-${Date.now()}-${exIndex}`));
 
     return {
       exerciseId: ex.id,

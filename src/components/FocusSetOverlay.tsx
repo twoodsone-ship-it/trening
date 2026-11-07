@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Clock, Minus, Plus, X, Play } from 'lucide-react';
 import { EXERCISE_GIF_MAP } from '../data/exerciseCatalog';
@@ -6,6 +6,7 @@ import type { ActiveExerciseSession, WorkoutSet } from '../types';
 import { muscleCategoryLabel } from '../utils/uiLabels';
 import { isWarmupSet, previousSetFor } from '../utils/workoutHelpers';
 import { cn } from '../utils/cn';
+import { calculatePlates } from '../utils/workoutMath';
 
 interface FocusSetOverlayProps {
   exercise: ActiveExerciseSession;
@@ -14,6 +15,7 @@ interface FocusSetOverlayProps {
   exerciseNumber: number;
   exerciseCount: number;
   showIntroduction: boolean;
+  barbellWeight: number;
   onConfirmIntroduction: () => void;
   onClose: () => void;
   onWeightDelta: (delta: number) => void;
@@ -47,6 +49,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   exerciseNumber,
   exerciseCount,
   showIntroduction,
+  barbellWeight,
   onConfirmIntroduction,
   onClose,
   onWeightDelta,
@@ -68,6 +71,10 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
   const restHint = isTrial ? 30 : exercise.restSeconds || 90;
   const isBodyweight = exercise.weightStep === 0 || (exercise.targetWeight === 0 && exercise.category === 'Cardio');
   const isTimed = exercise.trackingMode === 'duration';
+  const plateResult = useMemo(
+    () => exercise.equipment === 'barbell' ? calculatePlates(set.weight, barbellWeight) : null,
+    [exercise.equipment, set.weight, barbellWeight]
+  );
   const durationStep = (exercise.defaultDurationSeconds || 60) < 90 ? 15 : 60;
   const formatDuration = (value: number) => {
     const safe = Math.max(0, value);
@@ -153,6 +160,7 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
                 onPlus={() => onWeightDelta(+(exercise.weightStep || 2.5))}
               />
             )}
+            {plateResult && <PlateLoadingGuide result={plateResult} targetWeight={set.weight} barbellWeight={barbellWeight} />}
             {exercise.cardioIntensity && (
               <p className="text-[10px] text-sky-300 font-semibold uppercase tracking-wider">
                 {exercise.cardioIntensity === 'intervals' ? 'Интервалы' : exercise.cardioIntensity === 'easy' ? 'Лёгкий темп' : 'Умеренный темп'}
@@ -199,6 +207,49 @@ export const FocusSetOverlay: React.FC<FocusSetOverlayProps> = ({
     document.body
   );
 };
+
+function PlateLoadingGuide({
+  result,
+  targetWeight,
+  barbellWeight
+}: {
+  result: ReturnType<typeof calculatePlates>;
+  targetWeight: number;
+  barbellWeight: number;
+}) {
+  const breakdown = result.platesPerSide.reduce<{ weight: number; count: number }[]>((items, weight) => {
+    const last = items[items.length - 1];
+    if (last?.weight === weight) last.count += 1;
+    else items.push({ weight, count: 1 });
+    return items;
+  }, []);
+
+  return (
+    <div className="rounded-2xl border border-lime/20 bg-lime/[0.06] p-3" aria-label="Раскладка блинов на штанге">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-xs font-bold text-lime">Блины на штангу</p>
+        <p className="text-[11px] text-muted">гриф {barbellWeight} кг</p>
+      </div>
+      <p className="text-[11px] text-muted mb-2">На каждую сторону: {result.platesPerSide.length} шт. · {((result.achievableWeight - barbellWeight) / 2).toLocaleString('ru-RU')} кг</p>
+      {(['Левая', 'Правая'] as const).map(side => (
+        <div key={side} className="flex items-start gap-2 py-1.5 border-t border-white/10">
+          <span className="w-14 shrink-0 text-xs font-semibold text-white">{side}</span>
+          <span className="text-xs text-white/85">
+            {breakdown.length ? breakdown.map(({ weight, count }) => `${weight.toLocaleString('ru-RU')} кг × ${count}`).join(' → ') : 'без блинов'}
+          </span>
+        </div>
+      ))}
+      {breakdown.length > 0 && <p className="text-[10px] text-muted mt-1">Порядок: от грифа к краю</p>}
+      {!result.exact && (
+        <p role="status" className="text-xs text-amber-300 mt-2">
+          {targetWeight < barbellWeight
+            ? `Вес ${targetWeight} кг меньше веса грифа.`
+            : `Точно ${targetWeight} кг не собрать. Показана раскладка на ${result.achievableWeight} кг.`}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function FocusStepper({
   label,

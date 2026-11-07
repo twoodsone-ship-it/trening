@@ -18,6 +18,7 @@ import { FocusSetOverlay } from './FocusSetOverlay';
 import { isWarmupSet, nextSetType, renumberSets, workoutProgress, previousSetFor } from '../utils/workoutHelpers';
 import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/superset';
 import { restTimerStorage } from '../utils/restTimerStorage';
+import { createTrialSet } from '../utils/trialSet';
 import { cn } from '../utils/cn';
 
 const PlateCalculatorModal = lazy(() =>
@@ -280,9 +281,10 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       []
     );
 
-    const targetSetCount = Math.max(newCatalogEx.defaultSets, oldEx.sets.length);
+    const oldWorkingSets = oldEx.sets.filter(set => !isWarmupSet(set));
+    const targetSetCount = Math.max(newCatalogEx.defaultSets, oldWorkingSets.length);
     const newSets: WorkoutSet[] = Array.from({ length: targetSetCount }).map((_, i) => {
-      const existing = oldEx.sets[i];
+      const existing = oldWorkingSets[i];
       if (existing) {
         return {
           id: existing.id || ('swap-' + Date.now() + '-' + i),
@@ -306,6 +308,9 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         type: 'working' as const
       };
     });
+    const existingTrial = oldEx.sets.find(isWarmupSet);
+    if (existingTrial?.completed) newSets.unshift(existingTrial);
+    else newSets.unshift(createTrialSet({ ...newCatalogEx, targetWeight: newCatalogEx.defaultWeight }, existingTrial?.id || `trial-${Date.now()}-${swappingExIndex}`));
 
     onUpdateExercises(
       patchExercise(exercises, swappingExIndex, () => ({
@@ -362,7 +367,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       trackingMode: newCatalogEx.trackingMode || 'reps',
       defaultDurationSeconds: newCatalogEx.defaultDurationSeconds,
       cardioIntensity: newCatalogEx.cardioIntensity,
-      sets: Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
+      sets: [createTrialSet({ ...newCatalogEx, targetWeight: newCatalogEx.defaultWeight }, `trial-${Date.now()}-${exercises.length}`), ...Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
         id: 's-' + Date.now() + '-' + i,
         setNumber: i + 1,
         weight: newCatalogEx.defaultWeight,
@@ -371,7 +376,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         rpe: undefined,
         completed: false,
         type: 'working' as const
-      })),
+      }))],
       recommendation
     };
 
@@ -697,6 +702,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           key={`${focusTarget.exIdx}:${exercises[focusTarget.exIdx].sets[focusTarget.setIdx].id}`}
           exerciseNumber={focusTarget.exIdx + 1}
           exerciseCount={exercises.length}
+          barbellWeight={settings.barbellWeightKg || 20}
           showIntroduction={focusTarget.exIdx > 0 && !introducedExercises.has(`${focusTarget.exIdx}:${exercises[focusTarget.exIdx].exerciseId}`)}
           onConfirmIntroduction={() => setIntroducedExercises(previous => new Set(previous).add(`${focusTarget.exIdx}:${exercises[focusTarget.exIdx].exerciseId}`))}
           exercise={exercises[focusTarget.exIdx]}

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildActiveExercises } from '../src/hooks/useWorkoutSession';
-import { storageService } from '../src/services/storageService';
+import { storageService, TEMPLATE_HISTORY_KEEP } from '../src/services/storageService';
 import type { CompletedWorkout } from '../src/types';
 
 class MemoryStorage implements Storage {
@@ -46,7 +46,7 @@ describe('60-session progression simulation', () => {
         storageService.saveCompletedWorkout(completed);
         if (phase === 'base') previousWeight = active.targetWeight;
         expect(storageService.getHistory()).toHaveLength(index + 1);
-        expect(storageService.getTemplates()[0].exercises[0].history).toHaveLength(index + 1);
+        expect(storageService.getTemplates()[0].exercises[0].history).toHaveLength(Math.min(index + 1, TEMPLATE_HISTORY_KEEP));
       }
     });
   }

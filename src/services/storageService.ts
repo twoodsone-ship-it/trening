@@ -25,6 +25,7 @@ import {
 export { normalizeMuscleCategory, normalizeEquipment };
 
 export const LOCALSTORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
+export const TEMPLATE_HISTORY_KEEP = 30;
 
 
 export function buildRawStorageDump(storage: Storage): string {
@@ -281,6 +282,39 @@ export function deriveExerciseHistoryFromCompletedWorkouts(
   return result;
 }
 
+export function compactTemplatesExerciseHistory(
+  templates: WorkoutTemplate[],
+  history: CompletedWorkout[],
+  keepWindow: number = TEMPLATE_HISTORY_KEEP
+): void {
+  const historyWorkoutIds = new Set(history.map(w => w.id));
+  for (const template of templates) {
+    for (const exercise of template.exercises) {
+      if (!Array.isArray(exercise.history) || exercise.history.length <= keepWindow) {
+        continue;
+      }
+
+      const legacySessions: ExerciseSession[] = [];
+      const syncedSessions: ExerciseSession[] = [];
+
+      for (const session of exercise.history) {
+        if (session.workoutId && historyWorkoutIds.has(session.workoutId)) {
+          syncedSessions.push(session);
+        } else {
+          legacySessions.push(session);
+        }
+      }
+
+      if (syncedSessions.length > keepWindow) {
+        const keptSynced = syncedSessions.slice(-keepWindow);
+        const combined = [...legacySessions, ...keptSynced];
+        combined.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        exercise.history = combined;
+      }
+    }
+  }
+}
+
 export const storageService = {
   deriveExerciseHistory(exerciseId: string, templateSessions?: ExerciseSession[]): ExerciseSession[] {
     return deriveExerciseHistoryFromCompletedWorkouts(exerciseId, this.getHistory(), templateSessions);
@@ -453,6 +487,8 @@ export const storageService = {
       });
     });
 
+    compactTemplatesExerciseHistory(templates, nextHistory);
+
     try {
       preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
       preserveCorruptValue(STORAGE_KEYS.HISTORY);
@@ -513,6 +549,8 @@ export const storageService = {
         }
       });
     });
+
+    compactTemplatesExerciseHistory(templates, nextHistory);
 
     try {
       preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
@@ -607,6 +645,7 @@ export const storageService = {
         });
       });
     }
+    compactTemplatesExerciseHistory(templates, history);
     try {
       preserveCorruptValue(STORAGE_KEYS.TEMPLATES);
       preserveCorruptValue(STORAGE_KEYS.HISTORY);

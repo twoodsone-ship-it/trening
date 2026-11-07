@@ -3,6 +3,7 @@ import { X, RefreshCw, Check, Dumbbell, ArrowRight, Search, Filter, Plus, AlertC
 import type { Exercise, EquipmentType, MuscleCategory } from '../types/index.ts';
 import { EXERCISE_CATALOG, CatalogExerciseItem } from '../data/exerciseCatalog';
 import { storageService } from '../services/storageService';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ExerciseSwapModalProps {
   currentExercise: {
@@ -168,11 +169,17 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
     setIsCreatingCustom(false);
   };
 
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'exercise-swap-title'
+  });
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in text-white">
-      <div className="w-full max-w-xl md:max-w-lg surface-panel bg-ink-2 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[min(92dvh,calc(100dvh-1.5rem))]">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-xl md:max-w-lg surface-panel bg-ink-2 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[min(92dvh,calc(100dvh-1.5rem))]">
         
         {/* Header */}
         <div className="p-3.5 sm:p-4 border-b border-white/10 bg-ink-2 space-y-2.5 sm:space-y-3 shrink-0">
@@ -182,7 +189,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
                 <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin-slow" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-sm sm:text-lg text-white truncate">Замена упражнения</h3>
+                <h3 id="exercise-swap-title" className="font-bold text-sm sm:text-lg text-white truncate">Замена упражнения</h3>
                 <span className="text-xs sm:text-xs text-muted block truncate">
                   Тренажер занят или отсутствует? Выберите замену:
                 </span>

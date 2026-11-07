@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { ReadinessLevel, WorkoutTemplate } from '../types';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ReadinessCheckinModalProps {
   template: WorkoutTemplate | null;
@@ -17,11 +18,17 @@ const OPTIONS: { level: ReadinessLevel; title: string; hint: string; color: stri
 ];
 
 export const ReadinessCheckinModal: React.FC<ReadinessCheckinModalProps> = ({ template, isOpen, onClose, onConfirm }) => {
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'readiness-title'
+  });
+
   if (!isOpen || !template || typeof document === 'undefined') return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 text-white">
-      <div role="dialog" aria-modal="true" aria-labelledby="readiness-title" className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-ink-2 border border-white/10 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-ink-2 border border-white/10 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs text-lime font-semibold">{template.name} · {template.exercises.length} упражнений</p>

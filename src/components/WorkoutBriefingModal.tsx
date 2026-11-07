@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ArrowRight, Target, X, Zap } from 'lucide-react';
 import type { ProgramGoal, WorkoutTemplate } from '../types';
 import { buildWorkoutBriefing } from '../data/programBuilder';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface WorkoutBriefingModalProps {
   template: WorkoutTemplate;
@@ -19,16 +20,21 @@ export const WorkoutBriefingModal: React.FC<WorkoutBriefingModalProps> = ({
   onClose,
   onContinue
 }) => {
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'briefing-title'
+  });
+
   if (!isOpen || typeof document === 'undefined') return null;
   const b = buildWorkoutBriefing(template, goal);
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div
+        ref={containerRef}
+        {...dialogProps}
         className="w-full max-w-md surface-panel border-lime/25 flex flex-col max-h-[min(88dvh,640px)] overflow-hidden shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="briefing-title"
       >
         <div className="p-5 pb-3 overflow-y-auto min-h-0 flex-1">
           <div className="flex items-start justify-between gap-3">

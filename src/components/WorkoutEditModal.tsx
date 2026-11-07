@@ -4,6 +4,7 @@ import type { CompletedWorkout } from '../types';
 import { RpePickerModal } from './RpePickerModal';
 import { sanitizeNumber } from '../utils/workoutMath';
 import { roundWeight } from '../utils/roundWeight';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface WorkoutEditModalProps {
   isOpen: boolean;
@@ -24,6 +25,12 @@ export const WorkoutEditModal: React.FC<WorkoutEditModalProps> = ({
   useEffect(() => {
     setDraft(workout ? JSON.parse(JSON.stringify(workout)) : null);
   }, [workout]);
+
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'workout-edit-title'
+  });
 
   if (!isOpen || !draft) return null;
 
@@ -70,11 +77,11 @@ export const WorkoutEditModal: React.FC<WorkoutEditModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg surface-panel bg-ink-2 border border-white/10 rounded-2xl max-h-[90vh] max-h-[90dvh] flex flex-col text-white shadow-2xl">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-lg surface-panel bg-ink-2 border border-white/10 rounded-2xl max-h-[90vh] max-h-[90dvh] flex flex-col text-white shadow-2xl">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-bold text-white">Редактировать тренировку</h2>
+            <h2 id="workout-edit-title" className="font-display text-xl font-bold text-white">Редактировать тренировку</h2>
             <p className="text-xs text-muted mt-0.5">
               {draft.templateName} • {new Date(draft.endTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
             </p>

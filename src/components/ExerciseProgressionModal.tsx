@@ -5,6 +5,7 @@ import { evaluateDoubleProgression, calculate1RM } from '../services/progression
 import { storageService, deriveExerciseHistoryFromCompletedWorkouts } from '../services/storageService';
 import { cn } from '../utils/cn';
 import { pluralize } from '../utils/pluralize';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ExerciseProgressionModalProps {
   exercise: Exercise;
@@ -88,15 +89,21 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
     { id: 'settings' as const, label: 'Параметры', icon: Settings2 }
   ];
 
+  const { containerRef, dialogProps } = useDialogA11y({
+    isOpen,
+    onClose,
+    titleId: 'exercise-progression-title'
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg surface-panel border-lime/20 shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden animate-slide-up">
+      <div ref={containerRef} {...dialogProps} className="w-full max-w-lg surface-panel border-lime/20 shadow-2xl text-white max-h-[min(92dvh,calc(100dvh-1.5rem))] flex flex-col overflow-hidden animate-slide-up">
         <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-white/8 gap-2 shrink-0">
           <div className="min-w-0 flex-1">
             <span className="text-xs font-bold tracking-wider uppercase text-lime bg-lime/10 border border-lime/30 px-2 py-0.5 rounded-full">
               {exercise.category}
             </span>
-            <h3 className="font-extrabold text-base sm:text-lg text-white mt-1 truncate">{exercise.name}</h3>
+            <h3 id="exercise-progression-title" className="font-extrabold text-base sm:text-lg text-white mt-1 truncate">{exercise.name}</h3>
           </div>
           <button
             type="button"

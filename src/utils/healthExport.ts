@@ -1,4 +1,5 @@
 import type { CompletedWorkout } from '../types';
+import { pluralize } from './pluralize';
 
 /** CSV suitable for Apple Health / Google Fit / spreadsheet imports */
 export function workoutsToCsv(history: CompletedWorkout[]): string {
@@ -66,7 +67,7 @@ export function downloadCsv(filename: string, content: string) {
 export async function shareWorkoutSummary(workout: CompletedWorkout): Promise<boolean> {
   const text = [
     `IronForge: ${workout.templateName}`,
-    `⏱ ${workout.durationMinutes} мин · 🏋️ ${workout.totalVolumeKg} кг · ${workout.totalSets} сетов`,
+    `⏱ ${workout.durationMinutes} мин · 🏋️ ${workout.totalVolumeKg} кг · ${workout.totalSets} ${pluralize(workout.totalSets, ['сет', 'сета', 'сетов'])}`,
     ...(workout.totalCardioSeconds ? [`🚴 Кардио: ${Math.round(workout.totalCardioSeconds / 60)} мин`] : []),
     ...workout.exercises.map(ex => {
       const best = ex.sets.reduce((m, s) => Math.max(m, s.weight * s.reps), 0);

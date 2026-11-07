@@ -10,6 +10,7 @@ import { CompletedWorkout, WorkoutTemplate } from '../types';
 import { calculate1RM } from '../services/progressionEngine';
 import { calculateStreak, workoutsThisWeek } from '../utils/streak';
 import { storageService } from '../services/storageService';
+import { pluralize } from '../utils/pluralize';
 import { WorkoutTrendChart } from './WorkoutTrendChart';
 import { WorkoutEditModal } from './WorkoutEditModal';
 
@@ -349,7 +350,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         {workout.totalVolumeKg} кг
                       </span>
                       <span className="text-xs text-muted">
-                        {workout.totalSets} сетов
+                        {workout.totalSets} {pluralize(workout.totalSets, ['сет', 'сета', 'сетов'])}
                       </span>
                     </div>
                     {isExpanded ? (

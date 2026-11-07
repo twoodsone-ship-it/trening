@@ -4,6 +4,7 @@ import { Exercise } from '../types';
 import { evaluateDoubleProgression, calculate1RM } from '../services/progressionEngine';
 import { storageService, deriveExerciseHistoryFromCompletedWorkouts } from '../services/storageService';
 import { cn } from '../utils/cn';
+import { pluralize } from '../utils/pluralize';
 
 interface ExerciseProgressionModalProps {
   exercise: Exercise;
@@ -164,7 +165,7 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                   <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">
                     <span className="text-muted block">Рабочих подходов:</span>
                     <span className="font-mono font-bold text-sm text-white">
-                      {exercise.targetSets} подхода
+                      {exercise.targetSets} {pluralize(exercise.targetSets, ['подход', 'подхода', 'подходов'])}
                     </span>
                   </div>
                   <div className="bg-ink/50 p-2.5 rounded-xl border border-white/8">

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculate1RM, evaluateDoubleProgression } from '../src/services/progressionEngine';
 import { calculateBodyweightVolume, calculatePlates, committedInputValue, remainingRestSeconds, sanitizeNumber, shiftRestDeadline } from '../src/utils/workoutMath';
+import { pluralize } from '../src/utils/pluralize';
 import type { ExerciseSession, SetHistoryEntry } from '../src/types';
 
 const now = new Date('2026-11-07T12:00:00.000Z');
@@ -109,5 +110,17 @@ describe('Input Sanitizer', () => {
   });
   it('commits the placeholder when the input is blank', () => {
     expect(committedInputValue('', '80', 1000)).toBe(80);
+  });
+});
+
+describe('Pluralize helper', () => {
+  it('inflects Russian nouns for 1, 2, 5, 11, 21, 22', () => {
+    const forms: [string, string, string] = ['подход', 'подхода', 'подходов'];
+    expect(pluralize(1, forms)).toBe('подход');
+    expect(pluralize(2, forms)).toBe('подхода');
+    expect(pluralize(5, forms)).toBe('подходов');
+    expect(pluralize(11, forms)).toBe('подходов');
+    expect(pluralize(21, forms)).toBe('подход');
+    expect(pluralize(22, forms)).toBe('подхода');
   });
 });

@@ -5,6 +5,7 @@ import type {
   SetHistoryEntry 
 } from '../types/index.ts';
 import { roundWeight } from '../utils/roundWeight';
+import { pluralize } from '../utils/pluralize';
 
 export const PLATEAU_SESSION_COUNT = 3;
 export const RETURNING_AFTER_DAYS = 21;
@@ -70,7 +71,7 @@ export function evaluateDoubleProgression(
       badgeText: '🏁 Первый цикл',
       badgeColor: 'blue',
       analysis: 'История пока отсутствует. Начните с комфортного веса и стремитесь к верхней границе повторений.',
-      suggestedAction: `Выполните ${targetSets} подхода по ${minReps}-${maxReps} повторений с весом ${currentWeight} кг.`,
+      suggestedAction: `Выполните ${targetSets} ${pluralize(targetSets, ['подход', 'подхода', 'подходов'])} по ${minReps}-${maxReps} повторений с весом ${currentWeight} кг.`,
       consecutivePlateauCount: 0
     };
   }
@@ -110,7 +111,7 @@ export function evaluateDoubleProgression(
       badgeText: '🎯 Цель: рабочие сеты',
       badgeColor: 'blue',
       analysis: 'В прошлой тренировке зафиксированы только разминочные сеты либо неполные данные. Продолжайте работу с текущим весом.',
-      suggestedAction: `Работайте с весом ${currentWeight} кг, цель — ${targetSets} рабочих подходов по ${minReps}-${maxReps} повт.`,
+      suggestedAction: `Работайте с весом ${currentWeight} кг, цель — ${targetSets} ${pluralize(targetSets, ['рабочий подход', 'рабочих подхода', 'рабочих подходов'])} по ${minReps}-${maxReps} повт.`,
       consecutivePlateauCount: 0
     };
   }
@@ -216,7 +217,7 @@ export function evaluateDoubleProgression(
       targetRepRange: `${minReps}-${minReps + 2}`,
       badgeText: `⚡ +${roundWeight(nextWeight - lastWeight)} кг Повышение!`,
       badgeColor: 'emerald',
-      analysis: `Отличная работа! Закрыты все ${targetSets} подходов по ${maxReps} повт. с хорошим запасом (RPE ${knownRpes.length ? `~${averageRpe.toFixed(1)}` : 'неизвестно'}). ${overperformed ? 'Прибавка удвоена, потому что каждый подход превысил диапазон на 2 повторения.' : 'Активирован второй шаг двойной прогрессии.'}`,
+      analysis: `Отличная работа! ${targetSets === 1 ? 'Закрыт' : 'Закрыты'} все ${targetSets} ${pluralize(targetSets, ['подход', 'подхода', 'подходов'])} по ${maxReps} повт. с хорошим запасом (RPE ${knownRpes.length ? `~${averageRpe.toFixed(1)}` : 'неизвестно'}). ${overperformed ? 'Прибавка удвоена, потому что каждый подход превысил диапазон на 2 повторения.' : 'Активирован второй шаг двойной прогрессии.'}`,
       suggestedAction: `Увеличьте вес до ${nextWeight} кг. Цель на сегодня: выполнить от ${minReps} повторений в каждом подходе.`,
       consecutivePlateauCount: 0
     };

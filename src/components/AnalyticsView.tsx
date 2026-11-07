@@ -11,12 +11,14 @@ import { calculate1RM } from '../services/progressionEngine';
 import { calculateStreak, workoutsThisWeek } from '../utils/streak';
 import { storageService } from '../services/storageService';
 import { WorkoutTrendChart } from './WorkoutTrendChart';
+import { WorkoutEditModal } from './WorkoutEditModal';
 
 interface AnalyticsViewProps {
   history: CompletedWorkout[];
   templates: WorkoutTemplate[];
   onDataReload?: () => void;
   initialExpandedWorkoutId?: string | null;
+  initialEditingWorkout?: CompletedWorkout | null;
 }
 
 interface DeleteUndoState {
@@ -30,9 +32,11 @@ interface DeleteUndoState {
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   history,
   onDataReload,
-  initialExpandedWorkoutId = null
+  initialExpandedWorkoutId = null,
+  initialEditingWorkout = null
 }) => {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(initialExpandedWorkoutId);
+  const [editingWorkout, setEditingWorkout] = useState<CompletedWorkout | null>(initialEditingWorkout);
   const [periodWeeks, setPeriodWeeks] = useState<4 | 8 | 12>(8);
   const [visibleCount, setVisibleCount] = useState<number>(30);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -112,6 +116,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       }
     }
     setUndoState(null);
+  };
+
+  const handleSaveWorkoutEdit = (updated: CompletedWorkout) => {
+    try {
+      const ok = storageService.updateCompletedWorkout(updated.id, updated);
+      if (ok) {
+        setEditingWorkout(null);
+        onDataReload?.();
+      } else {
+        setStorageError('Не удалось обновить тренировку. Проверьте данные.');
+      }
+    } catch (e) {
+      console.error('Update workout failed', e);
+      setStorageError('Не удалось сохранить изменения тренировки.');
+    }
   };
 
   // Find Personal Records (Max 1RM per exercise across history)
@@ -370,7 +389,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </div>
                     ))}
 
-                    {/* Workout Actions (Delete) */}
+                    {/* Workout Actions (Edit / Delete) */}
                     {confirmDeleteId === workout.id ? (
                       <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 space-y-2 mt-3">
                         <p className="text-xs text-rose-200">Удалить эту тренировку из истории?</p>
@@ -393,6 +412,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </div>
                     ) : (
                       <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setEditingWorkout(workout)}
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-bold border border-white/10 transition"
+                        >
+                          Редактировать
+                        </button>
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteId(workout.id)}
@@ -422,6 +448,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         )}
       </div>
 
+      {/* Edit Workout Modal */}
+      {editingWorkout && (
+        <WorkoutEditModal
+          isOpen={true}
+          workout={editingWorkout}
+          onClose={() => setEditingWorkout(null)}
+          onSave={handleSaveWorkoutEdit}
+        />
+      )}
     </div>
   );
 };

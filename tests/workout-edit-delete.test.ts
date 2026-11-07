@@ -623,3 +623,47 @@ describe('F2a UI rendering', () => {
     expect(html).toContain('Удалить');
   });
 });
+
+describe('F2b UI edit modal', () => {
+  it('renders WorkoutEditModal with title, exercises, set inputs, and Save/Cancel buttons', () => {
+    const workout: CompletedWorkout = {
+      id: 'w-edit-modal-1',
+      templateId: 't1',
+      templateName: 'День ног',
+      startTime: Date.now() - 3600000,
+      endTime: Date.now() - 1800000,
+      durationMinutes: 45,
+      totalVolumeKg: 2000,
+      totalSets: 2,
+      exercises: [
+        {
+          exerciseId: 'squat',
+          name: 'Приседания',
+          category: 'Legs',
+          targetSets: 2,
+          minReps: 8,
+          maxReps: 12,
+          workingWeight: 100,
+          sets: [
+            { setNumber: 1, weight: 100, reps: 10, completed: true, rpe: 8 },
+            { setNumber: 2, weight: 100, reps: 10, completed: true, rpe: 8.5 }
+          ],
+          progression: { decision: 'FIRST_SESSION', nextWeight: 100, targetRepRange: '8-12', badgeText: '', badgeColor: 'blue', analysis: '', suggestedAction: '', consecutivePlateauCount: 0 }
+        }
+      ]
+    };
+
+    // When AnalyticsView has editingWorkout set or WorkoutEditModal is rendered
+    const html = renderToString(React.createElement(AnalyticsView, {
+      history: [workout],
+      templates: [],
+      initialExpandedWorkoutId: workout.id,
+      initialEditingWorkout: workout
+    }));
+
+    expect(html).toContain('Редактировать тренировку');
+    expect(html).toContain('Приседания');
+    expect(html).toContain('Сохранить');
+    expect(html).toContain('Отмена');
+  });
+});

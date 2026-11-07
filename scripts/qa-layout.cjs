@@ -21,18 +21,26 @@ const report = [];
     page.setDefaultTimeout(5000);
     await page.addInitScript(value => {
       localStorage.setItem('ironforge_settings_v1', JSON.stringify({ ...value, focusModeDefault: true }));
+      localStorage.setItem('ironforge_active_program_v1', JSON.stringify(value.activeProgram));
       localStorage.setItem('ironforge_templates_v1', JSON.stringify([{ id: 't', name: 'Тренировка А', description: 'Жим штанги лёжа', exercises: [{ id: 'bench-press', name: 'Жим штанги лёжа', category: 'Chest', equipment: 'barbell', targetSets: 3, minReps: 8, maxReps: 12, weightStep: 2.5, currentWeight: 60, restSeconds: 90, history: [] }] }]));
       const progression = { decision: 'INCREASE_REPS', nextWeight: 60, targetRepRange: '8-12', badgeText: 'Набор повторений', badgeColor: 'blue', analysis: '', suggestedAction: 'Добавьте повторение.', consecutivePlateauCount: 0 };
       localStorage.setItem('ironforge_history_v1', JSON.stringify([0, 1].map(index => ({
         id: `qa-${index}`, templateId: 't', templateName: 'Тренировка А', startTime: Date.UTC(2026, 10, 3 + index, 10), endTime: Date.UTC(2026, 10, 3 + index, 11),
         durationMinutes: 60, totalVolumeKg: 1800, totalSets: 3, exercises: [{ exerciseId: 'bench-press', name: 'Жим штанги лёжа', category: 'Chest', targetSets: 3, minReps: 8, maxReps: 12,
-          workingWeight: 60, sets: [1, 2, 3].map(setNumber => ({ setNumber, weight: 60, reps: 10, type: 'working' })), progression }]
+        workingWeight: 60, sets: [1, 2, 3].map(setNumber => ({ setNumber, weight: 60, reps: 10, type: 'working' })), progression }]
       }))));
     }, seed);
+
     await page.goto(process.env.IRONFORGE_QA_URL || 'http://127.0.0.1:5173/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(350);
+
+    const safeTap = async locator => {
+      await locator.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+      await locator.click(); // Strict check: NO force: true
+    };
+
     const check = async screen => {
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(600);
       await page.screenshot({ path: path.join(out, `${screen}-${width}x${height}.png`) });
       const result = await page.evaluate(() => {
         const visible = el => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
@@ -61,62 +69,116 @@ const report = [];
 
     await check('Home');
     try {
-      await page.getByRole('button', { name: 'Аналитика' }).click();
+      await safeTap(page.getByRole('button', { name: 'Аналитика' }));
       await check('Analytics');
 
       // History list expanded, edit modal, delete toast
       const historyCardBtn = page.locator('button[aria-expanded]').first();
       if (await historyCardBtn.count()) {
-        await historyCardBtn.scrollIntoViewIfNeeded();
-        await historyCardBtn.click({ force: true });
-        await page.waitForTimeout(300);
+        await safeTap(historyCardBtn);
+        await page.waitForTimeout(200);
         await check('HistoryList');
 
         const editBtn = page.getByRole('button', { name: /Редактировать/ }).first();
         if (await editBtn.count()) {
-          await editBtn.scrollIntoViewIfNeeded();
-          await editBtn.click({ force: true });
-          await page.waitForTimeout(300);
+          await safeTap(editBtn);
+          await page.waitForTimeout(200);
           await check('WorkoutEditModal');
-          const cancelBtn = page.getByRole('button', { name: 'Отмена' });
-          if (await cancelBtn.count()) {
-            await cancelBtn.click({ force: true });
-            await page.waitForTimeout(300);
+
+          // J1: Interact with WorkoutEditModal inputs and RPE button without force
+          const weightInput = page.locator('input[aria-label*="Вес для подхода"]').first();
+          if (await weightInput.count()) {
+            await safeTap(weightInput);
+            await weightInput.fill('65');
+          }
+
+          const repsInput = page.locator('input[aria-label*="Повторения для подхода"]').first();
+          if (await repsInput.count()) {
+            await safeTap(repsInput);
+            await repsInput.fill('11');
+          }
+
+          const rpeBtn = page.locator('button:has-text("RPE"), button:has-text("@")').first();
+          if (await rpeBtn.count()) {
+            await safeTap(rpeBtn);
+            await page.waitForTimeout(200);
+            await check('RpePickerModal');
+
+            // Click RPE number button without force
+            const rpe9Btn = page.getByRole('button', { name: '9', exact: true });
+            if (await rpe9Btn.count()) {
+              await safeTap(rpe9Btn);
+            }
+
+            // Click Save RPE without force
+            const saveRpeBtn = page.getByRole('button', { name: /Сохранить RPE/ });
+            if (await saveRpeBtn.count()) {
+              await safeTap(saveRpeBtn);
+              await page.waitForTimeout(200);
+            }
+          }
+
+          // Click Cancel (Отмена) in WorkoutEditModal without force
+          const cancelEditBtn = page.getByRole('button', { name: 'Отмена' });
+          if (await cancelEditBtn.count()) {
+            await safeTap(cancelEditBtn);
+            await page.waitForTimeout(200);
           }
         }
 
+        // Delete confirmation flow
         const deleteBtn = page.getByRole('button', { name: 'Удалить' }).first();
         if (await deleteBtn.count()) {
-          await deleteBtn.scrollIntoViewIfNeeded();
-          await deleteBtn.click({ force: true });
+          await safeTap(deleteBtn);
           await page.waitForTimeout(200);
+
+          // Click Cancel in delete confirmation
+          const cancelDelete = page.getByRole('button', { name: 'Отмена' });
+          if (await cancelDelete.count()) {
+            await safeTap(cancelDelete);
+            await page.waitForTimeout(200);
+          }
+
+          // Click Delete again
+          await safeTap(deleteBtn);
+          await page.waitForTimeout(200);
+
           const confirmDelete = page.getByRole('button', { name: 'Да, удалить' });
           if (await confirmDelete.count()) {
-            await confirmDelete.click({ force: true });
+            await safeTap(confirmDelete);
             await page.waitForTimeout(300);
             await check('DeleteToast');
+
+            // Test Undo button without force
+            const undoBtn = page.getByRole('button', { name: /Отменить/ });
+            if (await undoBtn.count()) {
+              await safeTap(undoBtn);
+              await page.waitForTimeout(200);
+            }
           }
         }
       }
-      await page.getByRole('button', { name: 'Ещё' }).click();
+
+      await safeTap(page.getByRole('button', { name: 'Ещё' }));
       await check('Settings');
-      await page.getByRole('button', { name: 'Закрыть', exact: true }).last().click();
-      await page.getByRole('button', { name: 'Главная' }).click();
-      await page.getByRole('button', { name: 'Начать тренировку' }).click();
-      await page.getByRole('button', { name: /В ресурсе/ }).click();
+      await safeTap(page.getByRole('button', { name: 'Закрыть', exact: true }).last());
+      await safeTap(page.getByRole('button', { name: 'Главная' }));
+      await safeTap(page.getByRole('button', { name: 'Начать тренировку' }));
+      await safeTap(page.getByRole('button', { name: /В ресурсе/ }));
       await page.waitForTimeout(100);
       await check('FocusSetOverlay');
-      await page.getByRole('button', { name: 'Закрыть', exact: true }).last().click();
+      await safeTap(page.getByRole('button', { name: 'Закрыть', exact: true }).last());
       await check('ActiveWorkout');
-      await page.getByRole('button', { name: 'Начать сет' }).click();
-      await page.getByRole('button', { name: /Пробный подход выполнен/ }).click();
+      await safeTap(page.getByRole('button', { name: 'Начать сет' }));
+      await safeTap(page.getByRole('button', { name: /Пробный подход выполнен/ }));
       await page.waitForTimeout(100);
       await check('RestTimer');
+
       if (width === 360 && height === 640) {
-        await page.getByRole('button', { name: 'Пропустить отдых' }).click();
+        await safeTap(page.getByRole('button', { name: 'Пропустить отдых' }));
         await page.waitForTimeout(200);
         const focusClose = page.locator('[class*="z-[220]"] button[aria-label="Закрыть"]');
-        if (await focusClose.count()) await focusClose.click();
+        if (await focusClose.count()) await safeTap(focusClose);
         await page.evaluate(() => {
           const original = Storage.prototype.setItem;
           Storage.prototype.setItem = function(key, value) {
@@ -125,15 +187,15 @@ const report = [];
           };
         });
         const confettiBefore = await page.locator('canvas').count();
-        await page.getByRole('button', { name: 'Завершить' }).click();
+        await safeTap(page.getByRole('button', { name: 'Завершить' }));
         const firstFailure = await page.getByRole('alert').getByText('Не удалось сохранить тренировку', { exact: false }).isVisible();
-        await page.getByRole('button', { name: 'Закрыть ошибку' }).click();
-        await page.getByRole('button', { name: 'Завершить' }).click();
+        await safeTap(page.getByRole('button', { name: 'Закрыть ошибку' }));
+        await safeTap(page.getByRole('button', { name: 'Завершить' }));
         const retryFailure = await page.getByRole('alert').getByText('Не удалось сохранить тренировку', { exact: false }).isVisible();
         report.push({ screen: 'SaveFailure', size: `${width}x${height}`, firstFailure, retryFailure, noConfetti: await page.locator('canvas').count() === confettiBefore });
       }
     } catch (error) {
-      report.push({ size: `${width}x${height}`, error: String(error).slice(0, 400) });
+      report.push({ size: `${width}x${height}`, error: String(error?.stack || error) });
     }
     await context.close();
   }

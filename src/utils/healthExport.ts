@@ -36,7 +36,7 @@ export function workoutsToCsv(history: CompletedWorkout[]): string {
           s.durationSeconds ?? '',
           s.distanceMeters ?? '',
           s.rpe ?? '',
-          s.type || (s.isWarmup ? 'warmup' : 'working')
+          csvEscape(s.type || (s.isWarmup ? 'warmup' : 'working'))
         ].join(','));
       });
     });
@@ -45,11 +45,15 @@ export function workoutsToCsv(history: CompletedWorkout[]): string {
   return rows.join('\n');
 }
 
-function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+export function csvEscape(value: string): string {
+  let val = String(value ?? '');
+  if (/^[=+\-@\t\r]/.test(val)) {
+    val = `'${val}`;
   }
-  return value;
+  if (/[",\n\r]/.test(val)) {
+    return `"${val.replace(/"/g, '""')}"`;
+  }
+  return val;
 }
 
 export function downloadCsv(filename: string, content: string) {

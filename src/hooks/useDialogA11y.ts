@@ -38,7 +38,52 @@ export function findNextFocusableElement<T>(
   return elements[nextIndex] ?? null;
 }
 
+const dialogStack: string[] = [];
+
+export function pushDialog(id: string): void {
+  if (!id) return;
+  const idx = dialogStack.indexOf(id);
+  if (idx !== -1) {
+    dialogStack.splice(idx, 1);
+  }
+  dialogStack.push(id);
+}
+
+export function removeDialog(id: string): void {
+  const idx = dialogStack.indexOf(id);
+  if (idx !== -1) {
+    dialogStack.splice(idx, 1);
+  }
+}
+
+export function isTopDialog(id: string): boolean {
+  if (dialogStack.length === 0) return false;
+  return dialogStack[dialogStack.length - 1] === id;
+}
+
+export function getTopDialog(): string | null {
+  if (dialogStack.length === 0) return null;
+  return dialogStack[dialogStack.length - 1];
+}
+
+export function clearDialogStack(): void {
+  dialogStack.length = 0;
+}
+
+export function handleDialogEscape(dialogId: string, onClose?: () => void): boolean {
+  if (!isTopDialog(dialogId)) {
+    return false;
+  }
+  if (onClose) {
+    onClose();
+  }
+  return true;
+}
+
+let dialogCounter = 0;
+
 export interface UseDialogA11yOptions<T extends HTMLElement = HTMLDivElement> {
+  dialogId?: string;
   isOpen: boolean;
   onClose?: () => void;
   titleId?: string;
@@ -57,6 +102,7 @@ export interface UseDialogA11yReturn<T extends HTMLElement = HTMLDivElement> {
 }
 
 export function useDialogA11y<T extends HTMLElement = HTMLDivElement>({
+  dialogId,
   isOpen,
   onClose,
   titleId,
@@ -67,9 +113,19 @@ export function useDialogA11y<T extends HTMLElement = HTMLDivElement>({
   const openerRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const idRef = useRef<string>(dialogId || '');
+  if (!idRef.current) {
+    idRef.current = `dialog-${++dialogCounter}-${Math.random().toString(36).substring(2, 7)}`;
+  }
+  const effectiveId = dialogId || idRef.current;
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      removeDialog(effectiveId);
+      return;
+    }
+
+    pushDialog(effectiveId);
 
     if (typeof document !== 'undefined') {
       openerRef.current = document.activeElement as HTMLElement | null;
@@ -92,6 +148,7 @@ export function useDialogA11y<T extends HTMLElement = HTMLDivElement>({
 
       const handleKeyDown = (event: KeyboardEvent) => {
         if (!containerRef.current) return;
+        if (!isTopDialog(effectiveId)) return;
 
         if (event.key === 'Escape') {
           if (closeOnEscape && onCloseRef.current) {
@@ -125,12 +182,17 @@ export function useDialogA11y<T extends HTMLElement = HTMLDivElement>({
       return () => {
         clearTimeout(timer);
         document.removeEventListener('keydown', handleKeyDown, true);
+        removeDialog(effectiveId);
         if (openerRef.current && typeof openerRef.current.focus === 'function') {
           openerRef.current.focus();
         }
       };
     }
-  }, [isOpen, closeOnEscape, initialFocusRef]);
+
+    return () => {
+      removeDialog(effectiveId);
+    };
+  }, [isOpen, closeOnEscape, initialFocusRef, effectiveId]);
 
   return {
     containerRef,

@@ -63,7 +63,7 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
           <span className="flex items-center gap-2 font-mono text-base font-bold tabular-nums break-words">
             {isTimed ? durationLabel : `${hasWeight ? `${set.weight} кг × ` : ''}${set.reps} повт.`}<Pencil className="w-3 h-3 text-muted shrink-0" />
           </span>
-          {previousSet && <span className="block text-[11px] text-muted mt-0.5">Прошлый: {previousLabel}</span>}
+          {previousSet && <span className="block text-xs text-muted mt-0.5">Прошлый: {previousLabel}</span>}
         </button>
         <button type="button" onClick={handleComplete} className={cn('w-12 h-12 rounded-xl flex items-center justify-center', set.completed ? 'bg-lime/15 text-lime' : 'bg-white/5 text-lime')} aria-label={set.completed ? 'Снять отметку с подхода' : isWarmup ? 'Начать пробный подход' : `Начать подход ${set.setNumber}`}>
           {set.completed ? <Check className="w-5 h-5" /> : <Play className="w-5 h-5" />}
@@ -95,7 +95,7 @@ function InlineStepper({
         <Minus className="w-4 h-4" />
       </button>
       <span className="min-w-0 flex-1 text-center">
-        <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted truncate">{label}</span>
+        <span className="block text-xs font-semibold uppercase tracking-wider text-muted truncate">{label}</span>
         <span className="block font-mono font-bold text-sm tabular-nums text-white truncate">{value}</span>
       </span>
       <button type="button" onClick={onPlus} className="w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-lg bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition" aria-label={`Увеличить: ${label}`}>

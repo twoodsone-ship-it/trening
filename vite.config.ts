@@ -13,10 +13,10 @@ export default defineConfig({
         name: 'IronForge: Умная Прогрессия',
         short_name: 'IronForge',
         description: 'PWA-трекер тренировок с умной двойной прогрессией нагрузок',
-        theme_color: '#0a0a0c',
-        background_color: '#0a0a0c',
+        theme_color: '#090b0a',
+        background_color: '#090b0a',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         start_url: './',
         scope: './',
         icons: [
@@ -47,21 +47,12 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'ironforge-font-styles',
-              cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 180 }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\//,
+            urlPattern: ({ url }) => url.hostname === 'media1.tenor.com',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'ironforge-font-files',
+              cacheName: 'ironforge-exercise-media',
               cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 180 }
+              expiration: { maxEntries: 140, maxAgeSeconds: 60 * 60 * 24 * 180 }
             }
           }
         ]

@@ -37,7 +37,7 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 bg-black/75 backdrop-blur-sm animate-fade-in">
       <div className="w-full max-w-md surface-panel bg-ink-2 border border-white/10 rounded-[1.75rem] p-5 animate-slide-up text-white pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{setLabel}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted">{setLabel}</p>
         <h3 className="font-bold text-lg text-white mt-0.5 truncate">{exerciseName}</h3>
         <p className="text-sm text-muted mt-1">Оцените усилие (RPE) — влияет на Smart Progression</p>
 
@@ -57,7 +57,7 @@ export const RpePickerModal: React.FC<RpePickerModalProps> = ({
           aria-label="RPE"
         />
 
-        <div className="flex justify-between text-[10px] font-mono text-muted mt-1 px-0.5">
+        <div className="flex justify-between text-xs font-mono text-muted mt-1 px-0.5">
           <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
         </div>
 

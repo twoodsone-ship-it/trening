@@ -57,7 +57,7 @@ export const WeeklyPlanCard: React.FC<WeeklyPlanCardProps> = ({
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-orange-500/15 border border-orange-400/30 text-orange-300">
           <Flame className="w-3.5 h-3.5" />
           <span className="text-xs font-black font-mono">{streak}</span>
-          <span className="text-[10px] font-semibold">дней</span>
+          <span className="text-xs font-semibold">дней</span>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export const WeeklyPlanCard: React.FC<WeeklyPlanCardProps> = ({
             <div
               key={dow}
               className={cn(
-                'flex-1 text-center py-2 rounded-xl text-[10px] font-bold transition min-h-[36px] flex items-center justify-center',
+                'flex-1 text-center py-2 rounded-xl text-xs font-bold transition min-h-[36px] flex items-center justify-center',
                 isToday && 'ring-2 ring-lime/60',
                 done
                   ? 'bg-lime/20 text-lime'
@@ -84,11 +84,11 @@ export const WeeklyPlanCard: React.FC<WeeklyPlanCardProps> = ({
 
       <div className="flex items-center justify-between gap-2 pt-1">
         <div className="min-w-0">
-          <p className="text-[11px] text-muted">Сегодня рекомендовано</p>
+          <p className="text-xs text-muted">Сегодня рекомендовано</p>
           <p className="font-semibold text-sm text-white truncate">
             {suggested?.name || 'Отдых / свободный день'}
           </p>
-          <p className="text-[11px] text-muted">{weekCount} тренировок на этой неделе</p>
+          <p className="text-xs text-muted">{weekCount} тренировок на этой неделе</p>
         </div>
         {suggested && onStartSuggested && (
           <button

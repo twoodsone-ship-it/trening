@@ -4,6 +4,7 @@ import type {
   ReadinessLevel,
   SetHistoryEntry 
 } from '../types/index.ts';
+import { roundWeight } from '../utils/roundWeight';
 
 export const PLATEAU_SESSION_COUNT = 3;
 export const RETURNING_AFTER_DAYS = 21;
@@ -58,6 +59,7 @@ export function evaluateDoubleProgression(
   readiness: ReadinessLevel = 'optimal',
   now: Date = new Date()
 ): ProgressionRecommendation {
+  currentWeight = roundWeight(currentWeight);
   const isFatigued = readiness === 'tired' || readiness === 'sleep_deprived';
 
   if (!history || history.length === 0) {
@@ -74,13 +76,15 @@ export function evaluateDoubleProgression(
   }
 
   // Last completed session: filter out warmup sets
-  const lastSession = history[history.length - 1];
+  const workingHistory = history.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
+  const referenceHistory = workingHistory.length ? workingHistory : history;
+  const lastSession = referenceHistory[referenceHistory.length - 1];
   const eligibleSets = lastSession.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
   const topWorkingWeight = eligibleSets.reduce((top, set) => Math.max(top, set.weight), 0);
   const completedSets = eligibleSets.filter(s => s.weight >= topWorkingWeight - 0.01);
-  const lastWeight = completedSets[completedSets.length - 1]?.weight ?? lastSession.weight;
+  const lastWeight = roundWeight(completedSets[completedSets.length - 1]?.weight ?? lastSession.weight);
   const currentTarget = currentWeight;
-  const ageDays = Math.max(0, (now.getTime() - new Date(lastSession.date).getTime()) / 86400000);
+  const ageDays = Math.max(0, (now.getTime() - new Date(history[history.length - 1].date).getTime()) / 86400000);
 
   if (ageDays >= RETURNING_AFTER_DAYS) {
     const longBreakWeight = ageDays >= LONG_BREAK_DAYS
@@ -88,12 +92,12 @@ export function evaluateDoubleProgression(
       : lastWeight;
     return {
       decision: 'INCREASE_REPS',
-      nextWeight: longBreakWeight,
+      nextWeight: roundWeight(longBreakWeight),
       targetRepRange: `${minReps}-${maxReps}`,
       badgeText: ageDays >= LONG_BREAK_DAYS ? '↩️ Возврат после перерыва' : '↩️ Возвращение после перерыва',
       badgeColor: 'amber',
       analysis: ageDays >= LONG_BREAK_DAYS ? 'После длительного перерыва вернитесь с весом на 10% ниже последней тренировки.' : 'После перерыва не повышайте вес; сначала вернитесь к рабочему ритму.',
-      suggestedAction: `Начните с ${longBreakWeight} кг и восстановите привычный темп тренировок.`,
+      suggestedAction: `Начните с ${roundWeight(longBreakWeight)} кг и восстановите привычный темп тренировок.`,
       consecutivePlateauCount: 0
     };
   }
@@ -119,7 +123,7 @@ export function evaluateDoubleProgression(
   const maxRpe = knownRpes.length ? Math.max(...knownRpes) : 0;
 
   // Two consecutive sessions below the minimum indicate regression rather than a rep plateau.
-  const recentFailures = history.slice(-2);
+  const recentFailures = referenceHistory.slice(-2);
   if (recentFailures.length === 2 && recentFailures.every(session => {
     const working = session.sets.filter(set => set.completed !== false && set.type !== 'warmup' && !set.isWarmup && set.type !== 'dropset');
     const top = working.reduce((value, set) => Math.max(value, set.weight), 0);
@@ -130,18 +134,18 @@ export function evaluateDoubleProgression(
       ? Math.round((lastWeight * 0.9) / weightStep) * weightStep
       : Math.round(lastWeight * 0.9 * 10) / 10;
     return {
-      decision: 'DELOAD_RECOMMENDED', nextWeight, targetRepRange: `${minReps}-${maxReps}`,
+      decision: 'DELOAD_RECOMMENDED', nextWeight: roundWeight(nextWeight), targetRepRange: `${minReps}-${maxReps}`,
       badgeText: '↘️ Разгрузка', badgeColor: 'amber',
       analysis: 'Две тренировки подряд все рабочие подходы ниже нижней границы повторений.',
-      suggestedAction: `Снизьте вес до ${nextWeight} кг и восстановите рабочий диапазон.`,
+      suggestedAction: `Снизьте вес до ${roundWeight(nextWeight)} кг и восстановите рабочий диапазон.`,
       consecutivePlateauCount: 0
     };
   }
 
   // Check Plateau Detection: Look back up to 3 previous sessions
   let consecutivePlateau = 0;
-  if (!isFatigued && history.length >= PLATEAU_SESSION_COUNT) {
-    const recentSessions = history.slice(-PLATEAU_SESSION_COUNT);
+  if (!isFatigued && referenceHistory.length >= PLATEAU_SESSION_COUNT) {
+    const recentSessions = referenceHistory.slice(-PLATEAU_SESSION_COUNT);
     const weightsEqual = recentSessions.every(s => Math.abs(s.weight - recentSessions[0].weight) < 0.1);
     
     if (weightsEqual) {
@@ -161,7 +165,7 @@ export function evaluateDoubleProgression(
 
   // 1. Plateau condition triggered (only if NOT in fatigued/auto-regulation mode)
   if (consecutivePlateau >= 3 && !isFatigued) {
-    const microStep = Math.max(0.5, Math.round((weightStep / 2) * 10) / 10);
+    const microStep = roundWeight(Math.max(0.5, weightStep / 2));
     const deloadWeight = weightStep > 0 ? Math.max(weightStep, Math.round((currentWeight * 0.9) / weightStep) * weightStep) : currentWeight;
 
     return {
@@ -171,7 +175,7 @@ export function evaluateDoubleProgression(
       badgeText: '⚠️ Плато (3 сессии)',
       badgeColor: 'amber',
       analysis: `Вы зафиксировались на одном объеме 3 тренировки подряд (${lastWeight} кг). Накопленная усталость мешает прогрессу.`,
-      suggestedAction: `Рекомендация: 1) Сделайте разгрузку (Делоад: ${deloadWeight} кг на 1 неделю) ИЛИ 2) Используйте микро-прибавку (+${microStep} кг вместо +${weightStep} кг).`,
+      suggestedAction: `Рекомендация: 1) Сделайте разгрузку (Делоад: ${roundWeight(deloadWeight)} кг на 1 неделю) ИЛИ 2) Используйте микро-прибавку (+${microStep} кг вместо +${weightStep} кг, если есть микродиски).`,
       consecutivePlateauCount: consecutivePlateau
     };
   }
@@ -185,9 +189,8 @@ export function evaluateDoubleProgression(
       decision: 'INCREASE_REPS', nextWeight: lastWeight, targetRepRange: `${minReps}-${maxReps}`, badgeText: '↔️ Удержание фактического веса', badgeColor: 'blue', analysis: 'Рабочие подходы выполнены с меньшим весом. Сначала закрепите прогресс на фактически поднятом весе.', suggestedAction: `Оставайтесь на ${lastWeight} кг.`, consecutivePlateauCount: 0
     };
     if (lastSession.decision === 'CONSOLIDATE_WEIGHT') {
-      const microStep = Math.max(0.5, Math.round(weightStep / 2 * 10) / 10);
-      const nextWeight = Math.round((lastWeight + microStep) * 10) / 10;
-      return { decision: 'INCREASE_WEIGHT', nextWeight, targetRepRange: `${minReps}-${minReps + 2}`, badgeText: `⚡ +${microStep} кг Повышение!`, badgeColor: 'emerald', analysis: 'Вы повторно закрыли верхнюю границу после закрепления веса. Переходите на небольшой шаг независимо от RPE.', suggestedAction: `Увеличьте вес до ${nextWeight} кг.`, consecutivePlateauCount: 0 };
+      const nextWeight = roundWeight(lastWeight + weightStep);
+      return { decision: 'INCREASE_WEIGHT', nextWeight, targetRepRange: `${minReps}-${minReps + 2}`, badgeText: `⚡ +${roundWeight(nextWeight - lastWeight)} кг Повышение!`, badgeColor: 'emerald', analysis: 'Вы повторно закрыли верхнюю границу после закрепления веса. Переходите на обычный шаг независимо от RPE.', suggestedAction: `Увеличьте вес до ${nextWeight} кг.`, consecutivePlateauCount: 0 };
     }
     // If it was near limit / grind, recommend consolidation
     if (maxRpe >= rpeThreshold) {
@@ -199,21 +202,21 @@ export function evaluateDoubleProgression(
         badgeText: '🔄 Закрепление веса',
         badgeColor: 'purple',
         analysis: `Вы закрыли ${maxReps} повторений во всех подходах, но на высоком усилии (RPE ${maxRpe}). Форма требует фиксации перед увеличением веса.${fatigueNote}`,
-        suggestedAction: `Повторите ${currentWeight} кг еще 1 тренировку. Сфокусируйтесь на чистоте техники и контроле эксцентрики. При успехе повышаем вес!`,
+        suggestedAction: `Повторите ${roundWeight(lastWeight)} кг еще 1 тренировку. Сфокусируйтесь на чистоте техники и контроле эксцентрики. При успехе повышаем вес!`,
         consecutivePlateauCount: 0
       };
     }
 
     // Standard smart progression: Boost weight, drop to lower rep bracket
     const overperformed = completedSets.slice(0, targetSets).every(s => s.reps >= maxReps + 2);
-    const nextWeight = Math.round((lastWeight + weightStep * (overperformed ? 2 : 1)) * 10) / 10;
+    const nextWeight = roundWeight(lastWeight + weightStep * (overperformed ? 2 : 1));
     return {
       decision: 'INCREASE_WEIGHT',
       nextWeight,
       targetRepRange: `${minReps}-${minReps + 2}`,
-      badgeText: `⚡ +${weightStep} кг Повышение!`,
+      badgeText: `⚡ +${roundWeight(nextWeight - lastWeight)} кг Повышение!`,
       badgeColor: 'emerald',
-      analysis: `Отличная работа! Закрыты все ${targetSets} подходов по ${maxReps} повт. с хорошим запасом (RPE ${knownRpes.length ? `~${averageRpe.toFixed(1)}` : 'неизвестно'}). Активирован второй шаг двойной прогрессии.`,
+      analysis: `Отличная работа! Закрыты все ${targetSets} подходов по ${maxReps} повт. с хорошим запасом (RPE ${knownRpes.length ? `~${averageRpe.toFixed(1)}` : 'неизвестно'}). ${overperformed ? 'Прибавка удвоена, потому что каждый подход превысил диапазон на 2 повторения.' : 'Активирован второй шаг двойной прогрессии.'}`,
       suggestedAction: `Увеличьте вес до ${nextWeight} кг. Цель на сегодня: выполнить от ${minReps} повторений в каждом подходе.`,
       consecutivePlateauCount: 0
     };
@@ -236,7 +239,7 @@ export function evaluateDoubleProgression(
 
   if (repsNeeded <= 2) {
     analysisMsg += ` Вы буквально в одном шаге от взятия веса (осталось всего ${repsNeeded} повт. до максимума)!`;
-    actionMsg = `Максимальный фокус! Дожмите оставшиеся повторения, чтобы в следующий раз взять ${lastWeight + weightStep} кг.`;
+    actionMsg = `Максимальный фокус! Дожмите оставшиеся повторения, чтобы в следующий раз взять ${roundWeight(lastWeight + weightStep)} кг.`;
   }
 
   return {

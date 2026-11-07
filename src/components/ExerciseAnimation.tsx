@@ -133,7 +133,8 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
   exerciseName = '',
   technique
 }) => {
-  const resolvedGifUrl = gifUrl || (exerciseId && EXERCISE_GIF_MAP[exerciseId]) || undefined;
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const resolvedGifUrl = reducedMotion ? undefined : gifUrl || (exerciseId && EXERCISE_GIF_MAP[exerciseId]) || undefined;
   const [viewMode, setViewMode] = useState<'gif' | 'compare' | 'scrub'>('gif');
   const [phase, setPhase] = useState<'start' | 'finish'>('start');
   const [scrub, setScrub] = useState(40);
@@ -154,7 +155,7 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
   } : mappedCues || GENERIC_CUES;
 
   useEffect(() => {
-    if (viewMode !== 'gif') return;
+    if (viewMode !== 'gif' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => setPhase(p => (p === 'start' ? 'finish' : 'start')), 1800);
     return () => clearInterval(id);
   }, [viewMode]);
@@ -197,10 +198,10 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
       {viewMode === 'gif' && (
         <div className="relative rounded-3xl border border-white/10 bg-ink p-3 min-h-[240px] flex flex-col items-center">
           <div className="w-full flex justify-between mb-2">
-            <span className={cn('text-[11px] font-bold px-2.5 py-1 rounded-full border', phase === 'finish' ? 'text-lime border-lime/30 bg-lime/10' : 'text-sky-300 border-sky-400/30 bg-sky-500/10')}>
+            <span className={cn('text-xs font-bold px-2.5 py-1 rounded-full border', phase === 'finish' ? 'text-lime border-lime/30 bg-lime/10' : 'text-sky-300 border-sky-400/30 bg-sky-500/10')}>
               {phase === 'finish' ? '↑ Выдох · пик' : '↓ Вдох · растяжение'}
             </span>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-lime/10 text-lime border border-lime/30 flex items-center gap-1">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-lime/10 text-lime border border-lime/30 flex items-center gap-1">
               <Sparkles className="w-3 h-3" /> Техника
             </span>
           </div>
@@ -250,7 +251,7 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
             className="w-full accent-[#c8f542] h-2"
             aria-label="Амплитуда"
           />
-          <div className="flex justify-between text-[11px] font-mono text-muted">
+          <div className="flex justify-between text-xs font-mono text-muted">
             <span>0% старт</span>
             <span className="text-lime font-bold">{scrub}%</span>
             <span>100% пик</span>
@@ -260,11 +261,11 @@ export const ExerciseAnimation: React.FC<ExerciseAnimationProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
         <div className="surface-panel p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted font-bold">Основная мышца</p>
+          <p className="text-xs uppercase tracking-wider text-muted font-bold">Основная мышца</p>
           <p className="font-bold text-lime mt-1">{technique?.primaryMuscles || cues.primary || category}</p>
         </div>
         <div className="surface-panel p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted font-bold">Синергисты</p>
+          <p className="text-xs uppercase tracking-wider text-muted font-bold">Синергисты</p>
           <p className="font-semibold text-amber-300 mt-1">{cues.secondary}</p>
         </div>
       </div>
@@ -297,7 +298,7 @@ function PhaseCard({
         accent === 'lime' ? 'border-lime/35 bg-lime/10' : 'border-sky-400/35 bg-sky-500/10'
       )}
     >
-      <p className={cn('text-[11px] font-bold uppercase tracking-wider mb-2', accent === 'lime' ? 'text-lime' : 'text-sky-300')}>
+      <p className={cn('text-xs font-bold uppercase tracking-wider mb-2', accent === 'lime' ? 'text-lime' : 'text-sky-300')}>
         {title}
       </p>
       <p className="text-sm leading-relaxed text-white/90">{tip}</p>

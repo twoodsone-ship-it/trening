@@ -183,7 +183,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-app-atmosphere text-white flex items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="fixed inset-0 z-[60] h-[100dvh] overflow-y-auto bg-app-atmosphere text-white flex items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-[500px]:items-start">
       <div className="w-full max-w-sm text-center">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">{isDone ? 'Отдых завершён' : 'Отдых'}</p>
         <p className={cn('font-mono font-black text-[clamp(4.5rem,20vw,6.5rem)] leading-none tabular-nums mt-5', timeLeft <= 5 && !isDone ? 'text-rose-400' : 'text-lime')}>{formattedTime}</p>

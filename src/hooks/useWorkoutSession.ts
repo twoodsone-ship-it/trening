@@ -16,6 +16,7 @@ import { storageService } from '../services/storageService';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
 import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
 import { createTrialSet } from '../utils/trialSet';
+import { roundWeight } from '../utils/roundWeight';
 
 export type AppTab = 'home' | 'analytics';
 
@@ -44,13 +45,14 @@ export function buildActiveExercises(
       readiness
     );
 
-    const lastSession = ex.history.length > 0 ? ex.history[ex.history.length - 1] : undefined;
+    const regularHistory = ex.history.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
+    const lastSession = (regularHistory.length ? regularHistory : ex.history).at(-1);
 
     const targetSets = cyclePhase === 'deload' ? Math.max(1, Math.ceil(ex.targetSets * 0.6)) : ex.targetSets;
     const deloadWeight = ex.weightStep > 0
       ? Math.max(ex.weightStep, Math.round((ex.currentWeight * 0.9) / ex.weightStep) * ex.weightStep)
       : 0;
-    const nextWeight = cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight;
+    const nextWeight = roundWeight(cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight);
     const initialSets: WorkoutSet[] = Array.from({ length: targetSets }).map((_, i) => ({
       id: 's-' + Date.now() + '-' + i,
       setNumber: i + 1,
@@ -200,7 +202,7 @@ export function useWorkoutSession() {
       storageService.saveCompletedWorkout(completed);
     } catch {
       setFinishError(true);
-      return;
+      return false;
     }
     setFinishError(false);
     storageService.saveActiveWorkout(null);
@@ -209,7 +211,10 @@ export function useWorkoutSession() {
     setIsRestTimerOpen(false);
     setPendingSummary(completed);
     loadData();
+    return true;
   }, [loadData]);
+
+  const dismissFinishError = useCallback(() => setFinishError(false), []);
 
   const dismissSummary = useCallback(() => {
     setPendingSummary(null);
@@ -267,6 +272,7 @@ export function useWorkoutSession() {
     startWorkout,
     finishWorkout,
     finishError,
+    dismissFinishError,
     cancelWorkout,
     updateActiveExercises,
     triggerRestTimer,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   X, 
   Volume2, 
@@ -14,7 +14,7 @@ import {
   Settings
 } from 'lucide-react';
 import { AppSettings, CompletedWorkout } from '../types';
-import { storageService } from '../services/storageService';
+import { storageService, getLocalStorageUsage, LOCALSTORAGE_BUDGET_BYTES } from '../services/storageService';
 import { downloadCsv, workoutsToCsv } from '../utils/healthExport';
 import { cn } from '../utils/cn';
 
@@ -37,14 +37,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
-  const [storageUsage, setStorageUsage] = useState<{ used: number; quota: number } | null>(null);
-
-  useEffect(() => {
-    if (!isOpen || !navigator.storage?.estimate) return;
-    void navigator.storage.estimate().then(result => {
-      if (result.usage != null && result.quota != null) setStorageUsage({ used: result.usage, quota: result.quota });
-    }).catch(() => undefined);
-  }, [isOpen]);
+  const storageUsage = isOpen ? getLocalStorageUsage(localStorage) : 0;
 
   if (!isOpen) return null;
 
@@ -108,7 +101,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       <div className="w-full max-w-md surface-panel p-4 sm:p-6 border-lime/20 max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto">
 
         {history.length > 0 && (!settings.lastBackupAt || Date.now() - settings.lastBackupAt > 14 * 86400000) && <p className="mb-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">Пора сохранить резервную копию тренировок в JSON.</p>}
-        {storageUsage && <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-muted">Хранилище: {(storageUsage.used / 1048576).toFixed(1)} из {(storageUsage.quota / 1048576).toFixed(0)} МБ{storageUsage.used / storageUsage.quota > 0.7 && <p className="mt-1 text-amber-300">Свободного места становится мало. Скачайте резервную копию.</p>}</div>}
+        <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-muted">Данные приложения: {(storageUsage / 1048576).toFixed(1)} МБ из ~5 МБ{storageUsage / LOCALSTORAGE_BUDGET_BYTES > 0.6 && <p className="mt-1 text-amber-300">Места остаётся мало. Скачайте резервную копию.</p>}</div>
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10">

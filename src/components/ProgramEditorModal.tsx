@@ -108,10 +108,10 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[80] bg-ink/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 text-white">
-      <div className="w-full max-w-xl h-[100dvh] sm:h-[min(92dvh,850px)] bg-app-atmosphere border border-white/10 sm:rounded-3xl flex flex-col overflow-hidden">
+      <div className="w-full max-w-xl md:max-w-lg h-[100dvh] sm:h-[min(92dvh,850px)] bg-app-atmosphere border border-white/10 sm:rounded-3xl flex flex-col overflow-hidden">
         <header className="shrink-0 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-white/10 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-lime">Редактор</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-lime">Редактор</p>
             <h2 className="font-bold truncate">{program.title}</h2>
           </div>
           <button type="button" onClick={onClose} className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center" aria-label="Закрыть"><X /></button>
@@ -131,20 +131,20 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
 
           <section className="surface-panel p-3 space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <div><p className="font-bold">Пресс / кор</p><p className="text-[11px] text-muted">Сессий в неделю</p></div>
+              <div><p className="font-bold">Пресс / кор</p><p className="text-xs text-muted">Сессий в неделю</p></div>
               <div className="flex gap-1">
                 {[0, 1, 2, 3, 4].map(n => <button key={n} type="button" onClick={() => setProgramDraft(p => ({ ...p, coreSessionsPerWeek: n as 0 | 1 | 2 | 3 | 4 }))}
                   className={cn('min-w-9 min-h-9 rounded-lg text-xs font-bold border', (programDraft.coreSessionsPerWeek ?? 2) === n ? 'bg-lime text-ink border-lime' : 'border-white/10 text-muted')}>{n}</button>)}
               </div>
             </div>
               <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-3">
-                <div><p className="font-bold">Кардио</p><p className="text-[11px] text-muted">Сессий в неделю</p></div>
+                <div><p className="font-bold">Кардио</p><p className="text-xs text-muted">Сессий в неделю</p></div>
                 <div className="flex gap-1">
                   {Array.from({ length: Math.min(5, programDraft.daysPerWeek) + 1 }, (_, n) => n).map(n => <button key={n} type="button" onClick={() => setProgramDraft(p => ({ ...p, cardioSessionsPerWeek: n }))}
                     className={cn('min-w-9 min-h-9 rounded-lg text-xs font-bold border', (programDraft.cardioSessionsPerWeek || 0) === n ? 'bg-lime text-ink border-lime' : 'border-white/10 text-muted')}>{n}</button>)}
                 </div>
               </div>
-            <p className="text-[10px] text-muted">Если изменить частоту, выбранные аксессуары будут равномерно переставлены по неделе.</p>
+            <p className="text-xs text-muted">Если изменить частоту, выбранные аксессуары будут равномерно переставлены по неделе.</p>
           </section>
 
           <section className="space-y-2">
@@ -154,7 +154,7 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
                   <button type="button" onClick={() => index > 0 && updateSelected(t => { const a = [...t.exercises]; [a[index - 1], a[index]] = [a[index], a[index - 1]]; return { ...t, exercises: a }; })} className="p-1 text-muted" aria-label="Выше"><ArrowUp className="w-4 h-4" /></button>
                   <button type="button" onClick={() => index < selected.exercises.length - 1 && updateSelected(t => { const a = [...t.exercises]; [a[index + 1], a[index]] = [a[index], a[index + 1]]; return { ...t, exercises: a }; })} className="p-1 text-muted" aria-label="Ниже"><ArrowDown className="w-4 h-4" /></button>
                 </div>
-                <div className="min-w-0 flex-1"><p className="text-[10px] uppercase text-muted">{ex.category}</p><p className="font-semibold text-sm truncate">{ex.name}</p></div>
+                <div className="min-w-0 flex-1"><p className="text-xs uppercase text-muted">{ex.category}</p><p className="font-semibold text-sm truncate">{ex.name}</p></div>
                 <button type="button" onClick={() => { setPicker({ kind: 'replace', index }); setSearch(''); }} className="px-2.5 py-2 min-h-[40px] rounded-lg bg-white/5 text-xs font-semibold">Заменить</button>
                 <button type="button" onClick={() => updateSelected(t => ({ ...t, exercises: t.exercises.filter((_, i) => i !== index) }))} className="p-2 text-rose-300" aria-label="Убрать"><Trash2 className="w-4 h-4" /></button>
               </div>

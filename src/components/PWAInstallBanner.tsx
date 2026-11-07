@@ -51,22 +51,20 @@ export const PWAInstallBanner: React.FC = () => {
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Smartphone className="w-4 h-4 text-lime shrink-0" />
-            <span className="text-muted truncate sm:whitespace-normal">
-              Установите IronForge как приложение для тренировок офлайн в зале
-            </span>
+            <span className="text-muted"><span className="sm:hidden">Офлайн в зале</span><span className="hidden sm:inline">Установите IronForge как приложение для тренировок офлайн в зале</span></span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleInstallClick}
-              className="px-3 py-1.5 btn-lime rounded-xl text-xs min-h-[36px] transition"
+              className="px-3 py-1.5 btn-lime rounded-xl text-xs min-h-[44px] transition"
             >
               Установить
             </button>
             <button
               type="button"
               onClick={() => setDismissed(true)}
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-muted hover:text-white"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:text-white"
               aria-label="Закрыть"
             >
               <X className="w-4 h-4" />

@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { CheckCircle2, Clock, Focus, Link2, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { roundWeight } from '../utils/roundWeight';
 import type {
   ActiveExerciseSession,
   AppSettings,
@@ -41,7 +42,7 @@ interface ActiveWorkoutViewProps {
   exercises: ActiveExerciseSession[];
   settings: AppSettings;
   onUpdateExercises: (exercises: ActiveExerciseSession[]) => void;
-  onFinishWorkout: (completed: CompletedWorkout) => void;
+  onFinishWorkout: (completed: CompletedWorkout) => boolean;
   onCancelWorkout: () => void;
   onTriggerRestTimer: (seconds: number) => void;
   /** Bumps when rest timer hits 0 — reopen focus for next set */
@@ -148,7 +149,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     onUpdateExercises(
       patchSet(exercises, exIdx, setIdx, s => ({
         ...s,
-        weight: Math.max(0, Math.round((s.weight + delta) * 10) / 10)
+        weight: Math.max(0, roundWeight(s.weight + delta))
       }))
     );
   };
@@ -425,15 +426,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       };
     });
 
-    try {
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-      soundService.playPrFanfare();
-      soundService.haptic('pr', settings.vibrationEnabled);
-    } catch {
-      //
-    }
-
-    onFinishWorkout({
+    const saved = onFinishWorkout({
       id: 'w-' + Date.now(),
       templateId,
       templateName: workoutName,
@@ -448,6 +441,15 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       totalCardioSeconds,
       exercises: completedExercises
     });
+    if (saved) {
+      try {
+        if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        soundService.playPrFanfare();
+        soundService.haptic('pr', settings.vibrationEnabled);
+      } catch {
+        //
+      }
+    }
   };
 
   const progress = workoutProgress(exercises);
@@ -577,13 +579,13 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-app-atmosphere pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white">
+    <div className="min-h-[100dvh] bg-app-atmosphere pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white">
       <div className="sticky top-0 z-40 bg-ink/90 backdrop-blur-md border-b border-white/10 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1 flex items-center gap-3">
             <div className="relative shrink-0">
               <WorkoutProgressRing percent={progress.percent} />
-              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold font-mono text-lime">
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold font-mono text-lime">
                 {progress.percent}
               </span>
             </div>
@@ -591,7 +593,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-sm sm:text-base truncate" title={workoutName}>{workoutName}</h1>
               </div>
-              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-muted mt-0.5">
+              <div className="flex items-center gap-2 text-xs sm:text-xs text-muted mt-0.5">
                 <span className="flex items-center gap-1 font-mono">
                   <Clock className="w-3.5 h-3.5 text-lime" /> {elapsedMinutes} мин
                 </span>
@@ -637,7 +639,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleSupersetPair(exIdx)}
-                    className="w-full text-[11px] font-semibold text-sky-400 py-1.5 flex items-center justify-center gap-1"
+                    className="w-full text-xs font-semibold text-sky-400 py-1.5 flex items-center justify-center gap-1"
                   >
                     <Link2 className="w-3.5 h-3.5" /> Суперсет со следующим
                   </button>
@@ -649,10 +651,10 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           return (
             <div key={block.groupId + '-' + blockIdx} className="rounded-[1.75rem] border border-sky-400/40 bg-sky-500/5 p-2 space-y-2">
               <div className="px-2 pt-1 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1">
                   <Link2 className="w-3.5 h-3.5" /> Суперсет
                 </span>
-                <button type="button" onClick={() => toggleSupersetPair(block.indices[0])} className="text-[10px] text-muted">
+                <button type="button" onClick={() => toggleSupersetPair(block.indices[0])} className="text-xs text-muted">
                   Развязать
                 </button>
               </div>

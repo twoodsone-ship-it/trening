@@ -49,6 +49,7 @@ export interface ExerciseSession {
   weight: number;
   sets: SetHistoryEntry[];
   progressionNote?: string;
+  phase?: 'deload';
   decision?: ProgressionDecision;
   totalVolume: number;
   totalDurationSeconds?: number;
@@ -218,6 +219,8 @@ export interface AppSettings {
   /** @deprecated The interface currently supports kilograms only. */
   unit: 'kg' | 'lbs';
   lastBackupAt?: number;
+  reminderDismissedAt?: number;
+  /** @deprecated The interface currently supports the dark theme only. */
   theme: 'light' | 'dark';
   currentWeek: 'A' | 'B';
   activeProgram?: ActiveProgram | null;

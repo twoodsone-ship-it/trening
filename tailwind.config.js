@@ -30,10 +30,11 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-        display: ['Barlow Condensed', 'DM Sans', 'sans-serif'],
+        sans: ['Manrope Variable', 'system-ui', 'sans-serif'],
+        display: ['Roboto Condensed', 'Manrope Variable', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
-      }
+      },
+      fontSize: { micro: '0.6875rem' }
     },
   },
   plugins: [],

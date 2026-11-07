@@ -50,8 +50,8 @@ export const WorkoutTrendChart: React.FC<WorkoutTrendChartProps> = ({ history, w
           return (
             <g key={index}>
               <rect x={x} y={y} width={barWidth} height={barHeight} rx="5" fill={bucket.volume ? '#c8f542' : 'rgba(255,255,255,0.1)'} />
-              <text x={x + barWidth / 2} y="96" fill="#9aa3b2" fontSize="9" textAnchor="middle">{bucket.label}</text>
-              <text x={x + barWidth / 2} y="108" fill="#d4d4d8" fontSize="8" textAnchor="middle">{bucket.workouts} тр.</text>
+              <text x={x + barWidth / 2} y="96" fill="#9aa3b2" fontSize="11" textAnchor="middle">{bucket.label}</text>
+              <text x={x + barWidth / 2} y="109" fill="#d4d4d8" fontSize="12" textAnchor="middle">{bucket.workouts} тр.</text>
             </g>
           );
         })}

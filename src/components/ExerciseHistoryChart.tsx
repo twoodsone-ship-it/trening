@@ -27,7 +27,7 @@ export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
 
   if (points.length < 2) {
     return (
-      <p className="text-[11px] text-muted py-2">Мало данных для графика — нужно ≥2 сессии.</p>
+      <p className="text-xs text-muted py-2">Мало данных для графика — нужно ≥2 сессии.</p>
     );
   }
 
@@ -56,7 +56,7 @@ export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{trackingMode === 'duration' ? 'Кардио · время' : 'Вес'} · {weeks} нед.</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted">{trackingMode === 'duration' ? 'Кардио · время' : 'Вес'} · {weeks} нед.</p>
         <p className={`text-xs font-mono font-bold ${delta >= 0 ? 'text-lime' : 'text-amber-400'}`}>
           {delta >= 0 ? '+' : '−'}{valueLabel(Math.abs(delta))}
         </p>
@@ -68,7 +68,7 @@ export const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({
           <circle key={i} cx={c.x} cy={c.y} r={i === coords.length - 1 ? 4 : 2.5} fill="#c8f542" />
         ))}
       </svg>
-      <div className="flex justify-between text-[10px] text-muted font-mono">
+      <div className="flex justify-between text-xs text-muted font-mono">
         <span>{first.label}</span>
         <span>{valueLabel(last.value)}{trackingMode === 'duration' ? '' : ` · объём ${last.volume}`}</span>
         <span>{last.label}</span>

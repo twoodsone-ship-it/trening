@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { storageService } from '../src/services/storageService';
+import { storageService, getLocalStorageUsage, LOCALSTORAGE_BUDGET_BYTES } from '../src/services/storageService';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -14,6 +14,12 @@ class MemoryStorage implements Storage {
 beforeEach(() => { Object.defineProperty(globalThis, 'localStorage', { value: new MemoryStorage(), configurable: true }); });
 
 describe('storage backward compatibility', () => {
+  it('counts only IronForge localStorage UTF-16 bytes against the 5 MB budget', () => {
+    localStorage.setItem('ironforge_test', 'abc');
+    localStorage.setItem('unrelated', 'large');
+    expect(getLocalStorageUsage(localStorage)).toBe(('ironforge_test'.length + 3) * 2);
+    expect(LOCALSTORAGE_BUDGET_BYTES).toBe(5 * 1024 * 1024);
+  });
   it('loads templates and history in the existing localStorage shape', () => {
     localStorage.setItem('ironforge_templates_v1', JSON.stringify([{ id: 'old-template', name: 'Старая программа', exercises: [{ id: 'bench-press', name: 'Жим', currentWeight: 40, history: [] }] }]));
     const oldWorkout = { id: 'w-old', templateId: 'old-template', templateName: 'Старая программа', startTime: 1, endTime: 2, durationMinutes: 1, totalVolumeKg: 80, totalSets: 2, exercises: [] };
@@ -42,6 +48,7 @@ describe('storage backward compatibility', () => {
     storageService.saveCompletedWorkout(workout);
     expect(storageService.getTemplates()[0].exercises[0].currentWeight).toBe(50);
     expect(storageService.getTemplates()[0].exercises[0].history.at(-1)?.decision).toBeUndefined();
+    expect(storageService.getTemplates()[0].exercises[0].history.at(-1)?.phase).toBe('deload');
   });
 
   it('archives malformed history before replacing it', () => {

@@ -148,7 +148,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-lime/10 border border-lime/30 rounded-full text-xs font-semibold text-lime mb-2.5">
             <Zap className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Умная Прогрессия + Ротация</span>
           </div>
-          <p className="text-lime text-[11px] font-bold tracking-[0.28em] uppercase">IronForge</p>
+          <p className="text-lime text-xs font-bold tracking-[0.28em] uppercase">IronForge</p>
           <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-white mt-1">
             IronForge PWA
           </h1>
@@ -231,7 +231,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                     {template.name}
                   </h3>
                   {template.weekVariant && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-muted border border-white/10 font-mono">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-muted border border-white/10 font-mono">
                       Нед. {template.weekVariant}
                     </span>
                   )}
@@ -254,7 +254,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                       onUpdateTemplate(applyDeloadToTemplate(template, 0.1));
                     }
                   }}
-                  className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide rounded-xl border border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition"
+                  className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-xl border border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition"
                 >
                   Делоад −10%
                 </button>
@@ -294,7 +294,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                         <div className="font-semibold text-xs sm:text-sm text-white hover:text-lime transition truncate">
                           {exercise.name}
                         </div>
-                        <div className="text-[11px] text-muted font-mono truncate">
+                        <div className="text-xs text-muted font-mono truncate">
                           {exercise.targetSets}×{exercise.minReps}-{exercise.maxReps} повт. • {exercise.currentWeight} кг
                         </div>
                       </div>
@@ -320,7 +320,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                       </button>
 
                       <span className={cn(
-                        'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border whitespace-nowrap',
+                        'text-xs font-mono font-bold px-2 py-0.5 rounded-full border whitespace-nowrap',
                         recommendation.badgeColor === 'emerald'
                           ? 'bg-lime/10 text-lime border-lime/30'
                           : recommendation.badgeColor === 'amber'
@@ -352,7 +352,7 @@ export const WorkoutTemplateList: React.FC<WorkoutTemplateListProps> = ({
                         }
                       }}
                       className={cn(
-                        'w-full text-[10px] font-semibold py-1 rounded-lg transition',
+                        'w-full text-xs font-semibold py-1 rounded-lg transition',
                         linked
                           ? 'text-sky-400 bg-sky-500/10'
                           : 'text-muted hover:text-sky-400'

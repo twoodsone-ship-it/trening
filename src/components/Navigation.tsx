@@ -37,7 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   }, [hasActiveWorkout]);
 
   return (
-    <div ref={navRef} className="fixed bottom-0 inset-x-0 z-40 bg-ink/95 backdrop-blur-xl border-t border-white/10 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+    <div ref={navRef} className="fixed bottom-0 inset-x-0 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:w-[720px] z-40 bg-ink/95 backdrop-blur-xl border-t border-white/10 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
       {hasActiveWorkout && (
         <div className="max-w-md mx-auto mb-2 px-1">
           <button
@@ -64,7 +64,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         >
           <Home className="w-5 h-5" />
-          <span className="text-[10px] tracking-wide font-medium">Главная</span>
+          <span className="text-xs tracking-wide font-medium">Главная</span>
         </button>
 
         <button
@@ -76,7 +76,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         >
           <BarChart2 className="w-5 h-5" />
-          <span className="text-[10px] tracking-wide font-medium">Аналитика</span>
+          <span className="text-xs tracking-wide font-medium">Аналитика</span>
         </button>
 
         <button
@@ -85,7 +85,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           className="flex flex-col items-center justify-center gap-1 py-1.5 px-3 text-white/40 hover:text-white/70 rounded-xl min-w-[64px] min-h-[48px] active:scale-95 transition"
         >
           <Settings className="w-5 h-5" />
-          <span className="text-[10px] tracking-wide font-medium">Ещё</span>
+          <span className="text-xs tracking-wide font-medium">Ещё</span>
         </button>
       </div>
     </div>

@@ -48,6 +48,7 @@ describe('storage backward compatibility', () => {
     storageService.saveCompletedWorkout(workout);
     expect(storageService.getTemplates()[0].exercises[0].currentWeight).toBe(50);
     expect(storageService.getTemplates()[0].exercises[0].history.at(-1)?.decision).toBeUndefined();
+    expect(storageService.getTemplates()[0].exercises[0].history.at(-1)?.phase).toBe('deload');
   });
 
   it('archives malformed history before replacing it', () => {

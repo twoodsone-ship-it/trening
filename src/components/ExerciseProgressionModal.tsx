@@ -133,10 +133,10 @@ export const ExerciseProgressionModal: React.FC<ExerciseProgressionModalProps> =
                   Цель: {recommendation.nextWeight} кг × {recommendation.targetRepRange} повт.
                 </h4>
                 <p className="text-xs leading-relaxed text-muted">
-                  {recommendation.analysis}
+                  <span className="analysis-text">{recommendation.analysis}</span>
                 </p>
                 <div className="mt-3 pt-3 border-t border-white/10 text-xs font-medium text-white flex items-center gap-2">
-                  <span className="text-lime">⚡ План:</span> {recommendation.suggestedAction}
+                  <span className="text-lime">⚡ План:</span> <span className="recommendation-text">{recommendation.suggestedAction}</span>
                 </div>
               </div>
 

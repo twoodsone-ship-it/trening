@@ -34,7 +34,7 @@
   .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
   .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
-  input, textarea {
+  input, select, textarea, .recommendation-text, .analysis-text, .notes {
     user-select: text;
     -webkit-user-select: text;
   }

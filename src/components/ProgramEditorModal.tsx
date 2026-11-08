@@ -155,14 +155,14 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
               <div><p className="font-bold">Пресс / кор</p><p className="text-xs text-muted">Сессий в неделю</p></div>
               <div className="flex gap-1">
                 {[0, 1, 2, 3, 4].map(n => <button key={n} type="button" onClick={() => setProgramDraft(p => ({ ...p, coreSessionsPerWeek: n as 0 | 1 | 2 | 3 | 4 }))}
-                  className={cn('min-w-9 min-h-9 rounded-lg text-xs font-bold border', (programDraft.coreSessionsPerWeek ?? 2) === n ? 'bg-lime text-ink border-lime' : 'border-white/10 text-muted')}>{n}</button>)}
+                  className={cn('min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-xs font-bold border', (programDraft.coreSessionsPerWeek ?? 2) === n ? 'bg-lime text-ink border-lime' : 'border-white/10 text-muted')}>{n}</button>)}
               </div>
             </div>
               <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-3">
                 <div><p className="font-bold">Кардио</p><p className="text-xs text-muted">Сессий в неделю</p></div>
                 <div className="flex gap-1">
                   {Array.from({ length: Math.min(5, programDraft.daysPerWeek) + 1 }, (_, n) => n).map(n => <button key={n} type="button" onClick={() => setProgramDraft(p => ({ ...p, cardioSessionsPerWeek: n }))}
-                    className={cn('min-w-9 min-h-9 rounded-lg text-xs font-bold border', (programDraft.cardioSessionsPerWeek || 0) === n ? 'bg-lime text-ink border-lime' : 'border-white/10 text-muted')}>{n}</button>)}
+                    className={cn('min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-xs font-bold border', (programDraft.cardioSessionsPerWeek || 0) === n ? 'bg-lime text-ink border-lime' : 'border-white/10 text-muted')}>{n}</button>)}
                 </div>
               </div>
             <p className="text-xs text-muted">Если изменить частоту, выбранные аксессуары будут равномерно переставлены по неделе.</p>
@@ -172,19 +172,19 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
             {selected.exercises.map((ex, index) => (
               <div key={`${ex.id}-${index}`} className="surface-panel p-3 flex items-center gap-2">
                 <div className="flex flex-col">
-                  <button type="button" onClick={() => index > 0 && updateSelected(t => { const a = [...t.exercises]; [a[index - 1], a[index]] = [a[index], a[index - 1]]; return { ...t, exercises: a }; })} className="p-1 text-muted" aria-label="Выше"><ArrowUp className="w-4 h-4" /></button>
-                  <button type="button" onClick={() => index < selected.exercises.length - 1 && updateSelected(t => { const a = [...t.exercises]; [a[index + 1], a[index]] = [a[index], a[index + 1]]; return { ...t, exercises: a }; })} className="p-1 text-muted" aria-label="Ниже"><ArrowDown className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => index > 0 && updateSelected(t => { const a = [...t.exercises]; [a[index - 1], a[index]] = [a[index], a[index - 1]]; return { ...t, exercises: a }; })} className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1 text-muted" aria-label="Выше"><ArrowUp className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => index < selected.exercises.length - 1 && updateSelected(t => { const a = [...t.exercises]; [a[index + 1], a[index]] = [a[index], a[index + 1]]; return { ...t, exercises: a }; })} className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1 text-muted" aria-label="Ниже"><ArrowDown className="w-4 h-4" /></button>
                 </div>
                 <div className="min-w-0 flex-1"><p className="text-xs uppercase text-muted">{ex.category}</p><p className="font-semibold text-sm truncate">{ex.name}</p></div>
-                <button type="button" onClick={() => { setPicker({ kind: 'replace', index }); setSearch(''); }} className="px-2.5 py-2 min-h-[40px] rounded-lg bg-white/5 text-xs font-semibold">Заменить</button>
-                <button type="button" onClick={() => updateSelected(t => ({ ...t, exercises: t.exercises.filter((_, i) => i !== index) }))} className="p-2 text-rose-300" aria-label="Убрать"><Trash2 className="w-4 h-4" /></button>
+                <button type="button" onClick={() => { setPicker({ kind: 'replace', index }); setSearch(''); }} className="px-2.5 py-2 min-h-[44px] flex items-center justify-center rounded-lg bg-white/5 text-xs font-semibold">Заменить</button>
+                <button type="button" onClick={() => updateSelected(t => ({ ...t, exercises: t.exercises.filter((_, i) => i !== index) }))} className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-rose-300" aria-label="Убрать"><Trash2 className="w-4 h-4" /></button>
               </div>
             ))}
           </section>
 
           {picker ? (
             <section className="surface-panel p-3 space-y-2">
-              <div className="flex items-center justify-between"><p className="font-bold text-sm">Выбери упражнение</p><button onClick={() => setPicker(null)} className="p-2 text-muted" aria-label="Закрыть каталог"><X className="w-4 h-4" /></button></div>
+              <div className="flex items-center justify-between"><p className="font-bold text-sm">Выбери упражнение</p><button onClick={() => setPicker(null)} className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-muted" aria-label="Закрыть каталог"><X className="w-4 h-4" /></button></div>
               <div className="relative"><Search className="absolute left-3 top-3 w-4 h-4 text-muted" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск" className="w-full min-h-[44px] bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-3 text-sm" /></div>
               <div className="max-h-56 overflow-y-auto space-y-1">
                 {catalogItems.map(item => <button key={item.id} type="button" onClick={() => pickExercise(item)} className="w-full min-h-[44px] text-left px-3 py-2 rounded-xl hover:bg-lime/10 flex items-center justify-between gap-2"><span className="text-sm truncate">{item.name}</span><Plus className="w-4 h-4 text-lime shrink-0" /></button>)}

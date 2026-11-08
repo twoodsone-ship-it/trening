@@ -22,7 +22,19 @@ import {
   resolveAlternatives
 } from '../utils/catalogEnrichment';
 
-export { normalizeMuscleCategory, normalizeEquipment };
+import {
+  hasValidCompletedSet,
+  isValidCompletedSet,
+  isValidExerciseSession
+} from '../utils/sessionValidation';
+
+export {
+  normalizeMuscleCategory,
+  normalizeEquipment,
+  hasValidCompletedSet,
+  isValidCompletedSet,
+  isValidExerciseSession
+};
 
 export const LOCALSTORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
 export const TEMPLATE_HISTORY_KEEP = 30;
@@ -248,12 +260,12 @@ export function deriveExerciseHistoryFromCompletedWorkouts(
   for (const workout of sortedHistory) {
     historyWorkoutIds.add(workout.id);
     const completedEx = workout.exercises.find(e => e.exerciseId === exerciseId);
-    if (!completedEx) continue;
+    if (!completedEx || !hasValidCompletedSet(completedEx)) continue;
 
-    const workingSets = completedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
-    const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+    const workingSets = completedEx.sets.filter(s => isValidCompletedSet(s, completedEx.trackingMode));
+    const totalVol = workingSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
     const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
-    const maxSet1RM = Math.max(...workingSets.map(s => (s.reps <= 0 || s.weight <= 0 ? 0 : s.weight * (1 + s.reps / 30))), 0);
+    const maxSet1RM = Math.max(...workingSets.map(s => (!s.reps || s.reps <= 0 || !s.weight || s.weight <= 0 ? 0 : s.weight * (1 + s.reps / 30))), 0);
 
     result.push({
       id: 'derived-' + workout.id + '-' + completedEx.exerciseId,
@@ -263,18 +275,19 @@ export function deriveExerciseHistoryFromCompletedWorkouts(
       minReps: completedEx.minReps,
       maxReps: completedEx.maxReps,
       weight: roundWeight(completedEx.workingWeight),
-      sets: completedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true })),
+      sets: completedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: s.completed !== false })),
       totalVolume: Math.round(totalVol),
       totalDurationSeconds: totalDuration || undefined,
       estimated1RM: Math.round(maxSet1RM * 10) / 10,
-      progressionNote: completedEx.progression.badgeText,
+      progressionNote: completedEx.progression?.badgeText,
       phase: workout.cyclePhase === 'deload' ? 'deload' : undefined,
-      decision: workout.cyclePhase === 'deload' ? undefined : completedEx.progression.decision
+      decision: workout.cyclePhase === 'deload' ? undefined : completedEx.progression?.decision
     });
   }
 
   if (templateSessions && templateSessions.length > 0) {
     for (const session of templateSessions) {
+      if (!isValidExerciseSession(session)) continue;
       if (!session.workoutId || !historyWorkoutIds.has(session.workoutId)) {
         result.push(session);
       }
@@ -461,23 +474,63 @@ export const storageService = {
     templates.forEach(template => {
       template.exercises.forEach(exercise => {
         const matchingSession = exercise.history.find(s => s.workoutId === id);
-        if (matchingSession) {
-          const updatedEx = updatedWorkout.exercises.find(e => e.exerciseId === exercise.id);
-          if (updatedEx) {
-            const workingSets = updatedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
-            const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
-            const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
-            const maxSet1RM = Math.max(...workingSets.map(s => {
-              if (s.reps <= 0 || s.weight <= 0) return 0;
-              return s.weight * (1 + s.reps / 30);
-            }), 0);
+        const updatedEx = updatedWorkout.exercises.find(e => e.exerciseId === exercise.id);
 
-            matchingSession.weight = roundWeight(updatedEx.workingWeight);
-            matchingSession.sets = updatedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true }));
-            matchingSession.totalVolume = Math.round(totalVol);
-            matchingSession.totalDurationSeconds = totalDuration || undefined;
-            matchingSession.estimated1RM = Math.round(maxSet1RM * 10) / 10;
+        if (matchingSession) {
+          if (updatedEx) {
+            if (!hasValidCompletedSet(updatedEx)) {
+              exercise.history = exercise.history.filter(s => s.workoutId !== id);
+            } else {
+              const workingSets = updatedEx.sets.filter(s => isValidCompletedSet(s, updatedEx.trackingMode));
+              const totalVol = workingSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+              const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+              const maxSet1RM = Math.max(...workingSets.map(s => {
+                if (!s.reps || s.reps <= 0 || !s.weight || s.weight <= 0) return 0;
+                return s.weight * (1 + s.reps / 30);
+              }), 0);
+
+              matchingSession.weight = roundWeight(updatedEx.workingWeight);
+              matchingSession.sets = updatedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: s.completed !== false }));
+              matchingSession.totalVolume = Math.round(totalVol);
+              matchingSession.totalDurationSeconds = totalDuration || undefined;
+              matchingSession.estimated1RM = Math.round(maxSet1RM * 10) / 10;
+            }
+
+            const nonDeloadSessions = exercise.history.filter(s => s.phase !== 'deload');
+            const latestSession = nonDeloadSessions.at(-1);
+            if (latestSession) {
+              const recomputedWeight = extractWorkingWeightFromSets(latestSession.sets || []) ?? (latestSession.weight ? roundWeight(latestSession.weight) : undefined);
+              if (recomputedWeight != null) {
+                exercise.currentWeight = roundWeight(recomputedWeight);
+              }
+            }
           }
+        } else if (updatedEx && hasValidCompletedSet(updatedEx)) {
+          const workingSets = updatedEx.sets.filter(s => isValidCompletedSet(s, updatedEx.trackingMode));
+          const totalVol = workingSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+          const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+          const maxSet1RM = Math.max(...workingSets.map(s => {
+            if (!s.reps || s.reps <= 0 || !s.weight || s.weight <= 0) return 0;
+            return s.weight * (1 + s.reps / 30);
+          }), 0);
+
+          exercise.history.push({
+            id: 'h-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            workoutId: updatedWorkout.id,
+            date: new Date(updatedWorkout.endTime).toISOString(),
+            targetSets: updatedEx.targetSets,
+            minReps: updatedEx.minReps,
+            maxReps: updatedEx.maxReps,
+            weight: roundWeight(updatedEx.workingWeight),
+            sets: updatedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: s.completed !== false })),
+            totalVolume: Math.round(totalVol),
+            totalDurationSeconds: totalDuration || undefined,
+            estimated1RM: Math.round(maxSet1RM * 10) / 10,
+            progressionNote: updatedEx.progression?.badgeText,
+            phase: updatedWorkout.cyclePhase === 'deload' ? 'deload' : undefined,
+            decision: updatedWorkout.cyclePhase === 'deload' ? undefined : updatedEx.progression?.decision
+          });
+          exercise.history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
           const nonDeloadSessions = exercise.history.filter(s => s.phase !== 'deload');
           const latestSession = nonDeloadSessions.at(-1);
@@ -577,6 +630,8 @@ export const storageService = {
     const workoutTemplate = templates.find(t => t.id === workout.templateId);
     if (templates.length) {
       recordedWorkout.exercises.forEach(completedEx => {
+        if (!hasValidCompletedSet(completedEx)) return;
+
         let owner = templates.find(t => t.exercises.some(e => e.id === completedEx.exerciseId));
         let exercise = owner?.exercises.find(e => e.id === completedEx.exerciseId);
         if (!exercise && workoutTemplate) {
@@ -606,15 +661,15 @@ export const storageService = {
         }
         if (!exercise) return;
         const actualWeight = extractWorkingWeightFromSets(completedEx.sets);
-        const workingSets = completedEx.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+        const workingSets = completedEx.sets.filter(s => isValidCompletedSet(s, completedEx.trackingMode));
         if (workout.cyclePhase !== 'deload' && actualWeight != null) {
           exercise.currentWeight = roundWeight(actualWeight);
         }
 
-        const totalVol = workingSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+        const totalVol = workingSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
         const totalDuration = workingSets.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
         const maxSet1RM = Math.max(...workingSets.map(s => {
-          if (s.reps <= 0 || s.weight <= 0) return 0;
+          if (!s.reps || s.reps <= 0 || !s.weight || s.weight <= 0) return 0;
           return s.weight * (1 + s.reps / 30);
         }), 0);
 
@@ -626,7 +681,7 @@ export const storageService = {
           minReps: completedEx.minReps,
           maxReps: completedEx.maxReps,
           weight: roundWeight(completedEx.workingWeight),
-          sets: completedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: true })),
+          sets: completedEx.sets.map(s => ({ ...s, weight: roundWeight(s.weight), completed: s.completed !== false })),
           totalVolume: Math.round(totalVol),
           totalDurationSeconds: totalDuration || undefined,
           estimated1RM: Math.round(maxSet1RM * 10) / 10,

@@ -99,16 +99,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const toggleTrack = (on: boolean) =>
-    cn('w-12 h-6 rounded-full transition relative', on ? 'bg-lime' : 'bg-white/15');
+  const renderToggle = (
+    checked: boolean,
+    onChange: () => void,
+    label: string
+  ) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onChange}
+      className="min-h-[44px] min-w-[48px] inline-flex items-center justify-center p-0 bg-transparent border-0 shrink-0 cursor-pointer"
+    >
+      <span className={cn('w-12 h-6 rounded-full transition relative block', checked ? 'bg-lime' : 'bg-white/15')}>
+        <span
+          className={cn(
+            'w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all block',
+            checked ? 'right-0.5' : 'left-0.5'
+          )}
+        />
+      </span>
+    </button>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in text-white">
       <div ref={containerRef} {...dialogProps} className="w-full max-w-md surface-panel p-4 sm:p-6 border-lime/20 max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto">
 
-        {history.length > 0 && (!settings.lastBackupAt || Date.now() - settings.lastBackupAt > 14 * 86400000) && <p className="mb-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">Пора сохранить резервную копию тренировок в JSON.</p>}
-        <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-muted">Данные приложения: {(storageUsage / 1048576).toFixed(1)} МБ из ~5 МБ{storageUsage / LOCALSTORAGE_BUDGET_BYTES > 0.6 && <p className="mt-1 text-amber-300">Места остаётся мало. Скачайте резервную копию.</p>}</div>
-        
         {/* Header */}
         <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10">
           <div className="flex items-center gap-2">
@@ -117,12 +135,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
           <button 
             onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center text-muted hover:text-white rounded-xl hover:bg-white/5 active:scale-95 transition"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:text-white rounded-xl hover:bg-white/5 active:scale-95 transition"
             aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {history.length > 0 && (!settings.lastBackupAt || Date.now() - settings.lastBackupAt > 14 * 86400000) && <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">Пора сохранить резервную копию тренировок в JSON.</p>}
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-muted">Данные приложения: {(storageUsage / 1048576).toFixed(1)} МБ из ~5 МБ{storageUsage / LOCALSTORAGE_BUDGET_BYTES > 0.6 && <p className="mt-1 text-amber-300">Места остаётся мало. Скачайте резервную копию.</p>}</div>
 
         {/* Settings list */}
         <div className="my-5 space-y-4">
@@ -140,15 +161,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span className="text-xs text-muted">Сигнал окончания отдыха</span>
               </div>
             </div>
-            <button
-              onClick={() => onUpdateSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
-              className={toggleTrack(settings.soundEnabled)}
-            >
-              <div className={cn(
-                'w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform',
-                settings.soundEnabled ? 'right-0.5' : 'left-0.5'
-              )} />
-            </button>
+            {renderToggle(
+              settings.soundEnabled,
+              () => onUpdateSettings({ ...settings, soundEnabled: !settings.soundEnabled }),
+              'Звуки таймера'
+            )}
           </div>
 
           {/* Vibration Toggle */}
@@ -160,15 +177,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span className="text-xs text-muted">После подхода и отдыха</span>
               </div>
             </div>
-            <button
-              onClick={() => onUpdateSettings({ ...settings, vibrationEnabled: !settings.vibrationEnabled })}
-              className={toggleTrack(settings.vibrationEnabled)}
-            >
-              <div className={cn(
-                'w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform',
-                settings.vibrationEnabled ? 'right-0.5' : 'left-0.5'
-              )} />
-            </button>
+            {renderToggle(
+              settings.vibrationEnabled,
+              () => onUpdateSettings({ ...settings, vibrationEnabled: !settings.vibrationEnabled }),
+              'Вибрация (Haptic)'
+            )}
           </div>
 
           {/* Voice countdown */}
@@ -180,15 +193,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span className="text-xs text-muted">Последние секунды отдыха</span>
               </div>
             </div>
-            <button
-              onClick={() => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled })}
-              className={toggleTrack(settings.voiceEnabled)}
-            >
-              <div className={cn(
-                'w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform',
-                settings.voiceEnabled ? 'right-0.5' : 'left-0.5'
-              )} />
-            </button>
+            {renderToggle(
+              settings.voiceEnabled,
+              () => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled }),
+              'Голосовой отсчёт'
+            )}
           </div>
 
           {/* Focus mode default */}
@@ -200,15 +209,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span className="text-xs text-muted">Крупный текущий сет на весь экран</span>
               </div>
             </div>
-            <button
-              onClick={() => onUpdateSettings({ ...settings, focusModeDefault: !settings.focusModeDefault })}
-              className={toggleTrack(settings.focusModeDefault)}
-            >
-              <div className={cn(
-                'w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform',
-                settings.focusModeDefault ? 'right-0.5' : 'left-0.5'
-              )} />
-            </button>
+            {renderToggle(
+              settings.focusModeDefault,
+              () => onUpdateSettings({ ...settings, focusModeDefault: !settings.focusModeDefault }),
+              'Фокус-режим по умолчанию'
+            )}
           </div>
 
           {/* Barbell Weight default */}
@@ -222,8 +227,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   key={w}
                   onClick={() => onUpdateSettings({ ...settings, barbellWeightKg: w })}
+                  type="button"
                   className={cn(
-                    'flex-1 py-1.5 rounded-xl text-xs font-semibold transition',
+                    'flex-1 min-h-[44px] flex items-center justify-center py-1.5 rounded-xl text-xs font-semibold transition',
                     settings.barbellWeightKg === w
                       ? 'btn-lime'
                       : 'bg-white/[0.04] text-muted border border-white/10'
@@ -247,7 +253,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   workoutsToCsv(history)
                 );
               }}
-              className="w-full py-2 px-3 bg-white/[0.04] hover:bg-white/[0.07] text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-white/10 transition"
+              type="button" className="w-full min-h-[44px] py-2 px-3 bg-white/[0.04] hover:bg-white/[0.07] text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-white/10 transition"
             >
               <HeartPulse className="w-4 h-4 text-rose-400" /> Скачать CSV тренировок
             </button>
@@ -276,7 +282,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {storageService.hasEmergencySnapshot() && (
               <button
                 onClick={handleUndoImport}
-                className="w-full py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition active:scale-98"
+                type="button" className="w-full min-h-[44px] py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition active:scale-98"
               >
                 <Undo2 className="w-4 h-4" /> Откатить последний импорт (Undo)
               </button>
@@ -292,7 +298,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Factory Reset */}
           <button
             onClick={handleReset}
-            className="w-full py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-center gap-2 transition"
+            type="button" className="w-full min-h-[44px] py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-center gap-2 transition"
           >
             <RotateCcw className="w-4 h-4" /> Сбросить данные к заводским
           </button>

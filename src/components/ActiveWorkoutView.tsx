@@ -21,6 +21,10 @@ import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/s
 import { restTimerStorage } from '../utils/restTimerStorage';
 import { createTrialSet } from '../utils/trialSet';
 import { cn } from '../utils/cn';
+import {
+  EmptyWorkoutConfirmModal,
+  shouldPromptEmptyWorkoutFinish
+} from '../utils/emptyWorkoutDialog';
 
 const PlateCalculatorModal = lazy(() =>
   import('./PlateCalculatorModal').then(m => ({ default: m.PlateCalculatorModal }))
@@ -96,6 +100,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const [expandedExIdx, setExpandedExIdx] = useState(-1);
   const [introducedExercises, setIntroducedExercises] = useState<Set<string>>(() => new Set());
   const [rpeTarget, setRpeTarget] = useState<{ exIdx: number; setIdx: number } | null>(null);
+  const [showEmptyConfirm, setShowEmptyConfirm] = useState(false);
   const [elapsedMinutes, setElapsedMinutes] = useState(
     Math.max(1, Math.round((Date.now() - startTime) / 60000))
   );
@@ -385,7 +390,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     setIsAddingExercise(false);
   };
 
-  const handleFinish = () => {
+  const doFinish = () => {
     const endTime = Date.now();
     const duration = Math.max(1, Math.round((endTime - startTime) / 60000));
     let totalVolume = 0;
@@ -450,6 +455,14 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         //
       }
     }
+  };
+
+  const handleFinish = () => {
+    if (shouldPromptEmptyWorkoutFinish(exercises)) {
+      setShowEmptyConfirm(true);
+      return;
+    }
+    doFinish();
   };
 
   const progress = workoutProgress(exercises);
@@ -796,6 +809,19 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           />
         )}
       </Suspense>
+
+      <EmptyWorkoutConfirmModal
+        isOpen={showEmptyConfirm}
+        onDiscard={() => {
+          setShowEmptyConfirm(false);
+          onCancelWorkout();
+        }}
+        onSaveEmpty={() => {
+          setShowEmptyConfirm(false);
+          doFinish();
+        }}
+        onBack={() => setShowEmptyConfirm(false)}
+      />
     </div>
   );
 };

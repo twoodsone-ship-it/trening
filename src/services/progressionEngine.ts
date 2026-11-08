@@ -6,6 +6,7 @@ import type {
 } from '../types/index.ts';
 import { roundWeight } from '../utils/roundWeight';
 import { pluralize } from '../utils/pluralize';
+import { isValidExerciseSession } from '../utils/sessionValidation';
 
 export const PLATEAU_SESSION_COUNT = 3;
 export const RETURNING_AFTER_DAYS = 21;
@@ -76,16 +77,22 @@ export function evaluateDoubleProgression(
     };
   }
 
+  // Filter out invalid sessions (empty / no valid completed sets) as a safety net for legacy data
+  const validHistory = history.filter(session => isValidExerciseSession(session));
+  const baseHistory = validHistory.length > 0 ? validHistory : history;
+
   // Last completed session: filter out warmup sets
-  const workingHistory = history.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
-  const referenceHistory = workingHistory.length ? workingHistory : history;
+  const workingHistory = baseHistory.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
+  const referenceHistory = workingHistory.length ? workingHistory : baseHistory;
   const lastSession = referenceHistory[referenceHistory.length - 1];
-  const eligibleSets = lastSession.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset');
+  const eligibleSets = Array.isArray(lastSession?.sets)
+    ? lastSession.sets.filter(s => s.completed !== false && s.reps > 0 && s.type !== 'warmup' && !s.isWarmup && s.type !== 'dropset')
+    : [];
   const topWorkingWeight = eligibleSets.reduce((top, set) => Math.max(top, set.weight), 0);
   const completedSets = eligibleSets.filter(s => s.weight >= topWorkingWeight - 0.01);
-  const lastWeight = roundWeight(completedSets[completedSets.length - 1]?.weight ?? lastSession.weight);
+  const lastWeight = roundWeight(completedSets[completedSets.length - 1]?.weight ?? lastSession?.weight ?? currentWeight);
   const currentTarget = currentWeight;
-  const ageDays = Math.max(0, (now.getTime() - new Date(history[history.length - 1].date).getTime()) / 86400000);
+  const ageDays = Math.max(0, (now.getTime() - new Date(baseHistory[baseHistory.length - 1].date).getTime()) / 86400000);
 
   if (ageDays >= RETURNING_AFTER_DAYS) {
     const longBreakWeight = ageDays >= LONG_BREAK_DAYS
@@ -126,7 +133,9 @@ export function evaluateDoubleProgression(
   // Two consecutive sessions below the minimum indicate regression rather than a rep plateau.
   const recentFailures = referenceHistory.slice(-2);
   if (recentFailures.length === 2 && recentFailures.every(session => {
-    const working = session.sets.filter(set => set.completed !== false && set.type !== 'warmup' && !set.isWarmup && set.type !== 'dropset');
+    const working = Array.isArray(session.sets)
+      ? session.sets.filter(set => set.completed !== false && set.type !== 'warmup' && !set.isWarmup && set.type !== 'dropset')
+      : [];
     const top = working.reduce((value, set) => Math.max(value, set.weight), 0);
     const main = working.filter(set => set.weight >= top - 0.01);
     return main.length >= targetSets && main.slice(0, targetSets).every(set => set.reps > 0 && set.reps < minReps);
@@ -151,7 +160,9 @@ export function evaluateDoubleProgression(
     
     if (weightsEqual) {
       const totalRepsList = recentSessions.map(s => {
-        const working = s.sets.filter(st => st.completed !== false && st.reps > 0 && st.type !== 'warmup' && !st.isWarmup && st.type !== 'dropset');
+        const working = Array.isArray(s.sets)
+          ? s.sets.filter(st => st.completed !== false && st.reps > 0 && st.type !== 'warmup' && !st.isWarmup && st.type !== 'dropset')
+          : [];
         const top = working.reduce((value, set) => Math.max(value, set.weight), 0);
         return working.filter(set => set.weight >= top - 0.01).reduce((sum, set) => sum + set.reps, 0);
       });

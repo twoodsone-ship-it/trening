@@ -197,7 +197,7 @@ export const ExerciseSwapModal: React.FC<ExerciseSwapModalProps> = ({
             </div>
             <button 
               onClick={onClose}
-              className="w-9 h-9 flex items-center justify-center text-muted hover:text-white rounded-xl hover:bg-white/5 active:scale-95 transition shrink-0"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:text-white rounded-xl hover:bg-white/5 active:scale-95 transition shrink-0"
               aria-label="Закрыть"
             >
               <X className="w-5 h-5" />

@@ -127,9 +127,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in text-white">
       <div ref={containerRef} {...dialogProps} className="w-full max-w-md surface-panel p-4 sm:p-6 border-lime/20 max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto">
 
-        {history.length > 0 && (!settings.lastBackupAt || Date.now() - settings.lastBackupAt > 14 * 86400000) && <p className="mb-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">Пора сохранить резервную копию тренировок в JSON.</p>}
-        <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-muted">Данные приложения: {(storageUsage / 1048576).toFixed(1)} МБ из ~5 МБ{storageUsage / LOCALSTORAGE_BUDGET_BYTES > 0.6 && <p className="mt-1 text-amber-300">Места остаётся мало. Скачайте резервную копию.</p>}</div>
-        
         {/* Header */}
         <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10">
           <div className="flex items-center gap-2">
@@ -144,6 +141,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {history.length > 0 && (!settings.lastBackupAt || Date.now() - settings.lastBackupAt > 14 * 86400000) && <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">Пора сохранить резервную копию тренировок в JSON.</p>}
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-muted">Данные приложения: {(storageUsage / 1048576).toFixed(1)} МБ из ~5 МБ{storageUsage / LOCALSTORAGE_BUDGET_BYTES > 0.6 && <p className="mt-1 text-amber-300">Места остаётся мало. Скачайте резервную копию.</p>}</div>
 
         {/* Settings list */}
         <div className="my-5 space-y-4">

@@ -40,4 +40,24 @@ describe('K2: Settings toggles and small buttons audit', () => {
     // The close button must have explicit min-h-[44px] min-w-[44px]
     expect(html).not.toContain('className="w-9 h-9 flex items-center justify-center text-muted');
   });
+
+  it('K3: renders "Данные приложения" below the title/header in DOM order', () => {
+    const html = renderToString(
+      React.createElement(SettingsModal, {
+        isOpen: true,
+        onClose: () => {},
+        settings: defaultSettings,
+        history: [],
+        onUpdateSettings: () => {},
+        onDataReload: () => {}
+      })
+    );
+
+    const titleIndex = html.indexOf('Настройки IronForge');
+    const dataUsageIndex = html.indexOf('Данные приложения:');
+
+    expect(titleIndex).toBeGreaterThan(-1);
+    expect(dataUsageIndex).toBeGreaterThan(-1);
+    expect(dataUsageIndex).toBeGreaterThan(titleIndex);
+  });
 });

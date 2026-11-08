@@ -1,4 +1,6 @@
 export interface SetLike {
+  setNumber?: number;
+  weight?: number;
   completed?: boolean;
   type?: string;
   isWarmup?: boolean;

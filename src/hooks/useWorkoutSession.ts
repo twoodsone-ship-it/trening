@@ -19,6 +19,7 @@ import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
 import { createTrialSet } from '../utils/trialSet';
 import { roundWeight } from '../utils/roundWeight';
 import { cancelActiveWorkoutSession } from '../utils/activeWorkoutSession';
+import { isValidExerciseSession } from '../utils/sessionValidation';
 
 export type AppTab = 'home' | 'analytics';
 
@@ -47,8 +48,10 @@ export function buildActiveExercises(
       readiness
     );
 
-    const regularHistory = ex.history.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
-    const lastSession = (regularHistory.length ? regularHistory : ex.history).at(-1);
+    const validHistory = ex.history.filter(session => isValidExerciseSession(session));
+    const effectiveHistory = validHistory.length > 0 ? validHistory : ex.history;
+    const regularHistory = effectiveHistory.filter(session => session.phase !== 'deload' && session.progressionNote !== 'Разгрузочная неделя');
+    const lastSession = (regularHistory.length ? regularHistory : effectiveHistory).at(-1);
 
     const targetSets = cyclePhase === 'deload' ? Math.max(1, Math.ceil(ex.targetSets * 0.6)) : ex.targetSets;
     const deloadWeight = ex.weightStep > 0

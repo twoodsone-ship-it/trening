@@ -348,3 +348,114 @@ describe('K4a: Skipped exercise handling in saveCompletedWorkout and templates',
     expect(storageService.getTemplates()[0].exercises[0].currentWeight).toBe(60);
   });
 });
+
+describe('K4b: Engine safety net for already-polluted legacy history', () => {
+  it('legacy history containing an empty session still recommends from the last valid one', () => {
+    const legacyHistory: any[] = [
+      {
+        id: 'h1',
+        workoutId: 'w1',
+        date: new Date(Date.now() - 2 * 86400000).toISOString(),
+        targetSets: 3,
+        minReps: 8,
+        maxReps: 12,
+        weight: 60,
+        sets: [
+          { setNumber: 1, weight: 60, reps: 12, rpe: 8, completed: true, type: 'working' },
+          { setNumber: 2, weight: 60, reps: 12, rpe: 8, completed: true, type: 'working' },
+          { setNumber: 3, weight: 60, reps: 12, rpe: 8, completed: true, type: 'working' }
+        ],
+        totalVolume: 2160,
+        estimated1RM: 84
+      },
+      // Polluted legacy empty session recorded yesterday
+      {
+        id: 'h2-empty',
+        workoutId: 'w2',
+        date: new Date(Date.now() - 1 * 86400000).toISOString(),
+        targetSets: 3,
+        minReps: 8,
+        maxReps: 12,
+        weight: 60,
+        sets: [
+          { setNumber: 1, weight: 60, reps: 0, completed: false, type: 'working' },
+          { setNumber: 2, weight: 60, reps: 0, completed: false, type: 'working' },
+          { setNumber: 3, weight: 60, reps: 0, completed: false, type: 'working' }
+        ],
+        totalVolume: 0,
+        estimated1RM: 0
+      }
+    ];
+
+    const recommendation = evaluateDoubleProgression(
+      3, 8, 12, 2.5, 60, legacyHistory, 'optimal'
+    );
+
+    // Must ignore h2-empty and recommend INCREASE_WEIGHT 62.5 based on h1!
+    expect(recommendation.decision).toBe('INCREASE_WEIGHT');
+    expect(recommendation.nextWeight).toBe(62.5);
+  });
+
+  it('break check ignores invalid sessions and calculates elapsed days from the last valid session', () => {
+    const legacyHistory: any[] = [
+      // Valid session 30 days ago
+      {
+        id: 'h1',
+        workoutId: 'w1',
+        date: new Date(Date.now() - 30 * 86400000).toISOString(),
+        targetSets: 3,
+        minReps: 8,
+        maxReps: 12,
+        weight: 60,
+        sets: [
+          { setNumber: 1, weight: 60, reps: 10, rpe: 8, completed: true, type: 'working' }
+        ],
+        totalVolume: 600,
+        estimated1RM: 80
+      },
+      // Empty session 1 day ago
+      {
+        id: 'h2-empty',
+        workoutId: 'w2',
+        date: new Date(Date.now() - 1 * 86400000).toISOString(),
+        targetSets: 3,
+        minReps: 8,
+        maxReps: 12,
+        weight: 60,
+        sets: [],
+        totalVolume: 0
+      }
+    ];
+
+    const recommendation = evaluateDoubleProgression(
+      3, 8, 12, 2.5, 60, legacyHistory, 'optimal'
+    );
+
+    // Because 30 days elapsed since last valid session (> 21 days), should trigger returning after break
+    expect(recommendation.badgeText).toContain('Возвращение после перерыва');
+  });
+
+  it('falls back to all sessions if no valid session exists at all', () => {
+    const onlyEmptyHistory: any[] = [
+      {
+        id: 'h-empty-only',
+        workoutId: 'w-only',
+        date: new Date().toISOString(),
+        targetSets: 3,
+        minReps: 8,
+        maxReps: 12,
+        weight: 50,
+        sets: [],
+        totalVolume: 0
+      }
+    ];
+
+    const recommendation = evaluateDoubleProgression(
+      3, 8, 12, 2.5, 50, onlyEmptyHistory, 'optimal'
+    );
+
+    expect(recommendation).toBeDefined();
+    expect(recommendation.decision).toBe('INCREASE_REPS');
+    expect(recommendation.badgeText).toBe('🎯 Цель: рабочие сеты');
+  });
+});

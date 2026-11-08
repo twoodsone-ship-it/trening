@@ -59,5 +59,18 @@ export const restTimerStorage = {
     } catch {
       return false;
     }
+  },
+
+  clearPendingFocusResume() {
+    try {
+      sessionStorage.removeItem(PENDING_FOCUS_KEY);
+    } catch {
+      //
+    }
+  },
+
+  clearAll() {
+    this.clearEndsAt();
+    this.clearPendingFocusResume();
   }
 };

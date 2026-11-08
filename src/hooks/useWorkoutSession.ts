@@ -18,6 +18,7 @@ import { evaluateDoubleProgression } from '../services/progressionEngine';
 import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
 import { createTrialSet } from '../utils/trialSet';
 import { roundWeight } from '../utils/roundWeight';
+import { cancelActiveWorkoutSession } from '../utils/activeWorkoutSession';
 
 export type AppTab = 'home' | 'analytics';
 
@@ -149,7 +150,6 @@ export function useWorkoutSession() {
 
   useEffect(() => {
     if (activeWorkout) storageService.saveActiveWorkout(activeWorkout);
-    else if (!storageService.getActiveWorkout()) storageService.saveActiveWorkout(null);
   }, [activeWorkout]);
 
   const applyProgram = useCallback((
@@ -206,7 +206,7 @@ export function useWorkoutSession() {
       return false;
     }
     setFinishError(false);
-    storageService.saveActiveWorkout(null);
+    cancelActiveWorkoutSession();
     setActiveWorkout(null);
     setIsViewActiveWorkout(false);
     setIsRestTimerOpen(false);
@@ -224,6 +224,7 @@ export function useWorkoutSession() {
 
   const cancelWorkout = useCallback(() => {
     if (window.confirm('Отменить текущую тренировку? Несохраненные подходы будут сброшены.')) {
+      cancelActiveWorkoutSession();
       setActiveWorkout(null);
       setIsViewActiveWorkout(false);
       setIsRestTimerOpen(false);

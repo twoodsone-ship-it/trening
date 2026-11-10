@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { 
   X, 
+  Volume1,
   Volume2, 
   VolumeX, 
   Smartphone, 
@@ -197,6 +198,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               settings.voiceEnabled,
               () => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled }),
               'Голосовой отсчёт'
+            )}
+          </div>
+
+          {/* Audio Ducking Toggle */}
+          <div className="flex items-center justify-between bg-white/[0.03] p-3.5 rounded-2xl border border-white/10">
+            <div className="flex items-center gap-3">
+              <Volume1 className="w-5 h-5 text-lime" />
+              <div>
+                <span className="font-semibold text-sm text-white block">Приглушать музыку при сигналах</span>
+                <span className="text-xs text-muted">Audio Session API (Safari 16.4+)</span>
+              </div>
+            </div>
+            {renderToggle(
+              settings.audioDuckingEnabled ?? true,
+              () => onUpdateSettings({ ...settings, audioDuckingEnabled: !(settings.audioDuckingEnabled ?? true) }),
+              'Приглушать музыку при сигналах'
             )}
           </div>
 

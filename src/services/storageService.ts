@@ -81,6 +81,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
   voiceEnabled: true,
+  audioDuckingEnabled: true,
   focusModeDefault: true,
   defaultRestSeconds: 90,
   barbellWeightKg: 20,

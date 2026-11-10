@@ -6,6 +6,7 @@ import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { useWorkoutSession } from './hooks/useWorkoutSession';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { storageService } from './services/storageService';
+import { soundService } from './services/audioService';
 
 const AnalyticsView = lazy(() =>
   import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView }))
@@ -64,6 +65,10 @@ export const App: React.FC = () => {
     triggerRestTimer,
     updateSettings
   } = useWorkoutSession();
+
+  React.useEffect(() => {
+    soundService.setDuckingEnabled(settings.audioDuckingEnabled ?? true);
+  }, [settings.audioDuckingEnabled]);
 
   const handleRestFinished = useCallback(() => {
     setIsRestTimerOpen(false);

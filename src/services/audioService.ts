@@ -5,6 +5,42 @@
 import type { HapticEvent } from '../types';
 
 let audioCtx: AudioContext | null = null;
+let duckingTimer: any = null;
+let duckingConfigEnabled = true;
+
+export function setAudioDuckingEnabled(enabled: boolean) {
+  duckingConfigEnabled = enabled;
+}
+
+export function isAudioDuckingEnabled(): boolean {
+  return duckingConfigEnabled;
+}
+
+export function withDucking<T>(action: () => T, durationMs = 300, overrideEnabled?: boolean): T {
+  const enabled = overrideEnabled ?? duckingConfigEnabled;
+  if (enabled && typeof navigator !== 'undefined' && 'audioSession' in navigator) {
+    try {
+      const session = (navigator as any).audioSession;
+      if (session) {
+        session.type = 'transient';
+        if (duckingTimer) {
+          clearTimeout(duckingTimer);
+        }
+        duckingTimer = setTimeout(() => {
+          try {
+            session.type = 'auto';
+          } catch {
+            // ignore
+          }
+          duckingTimer = null;
+        }, durationMs + 300);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return action();
+}
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -32,57 +68,65 @@ export const HAPTIC_MAP: Record<HapticEvent, number | number[]> = {
 };
 
 export const soundService = {
-  playCountdownBeep() {
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(660, ctx.currentTime);
-
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.12);
-    } catch {
-      //
-    }
+  setDuckingEnabled(enabled: boolean) {
+    setAudioDuckingEnabled(enabled);
   },
 
-  playRestFinishedChime() {
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
+  playCountdownBeep(duckingEnabled?: boolean) {
+    withDucking(() => {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
 
-      const now = ctx.currentTime;
-      const notes = [587.33, 739.99, 880, 1174.66];
-
-      notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
 
-        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
 
         osc.connect(gain);
         gain.connect(ctx.destination);
 
-        osc.start(now + idx * 0.08);
-        osc.stop(now + idx * 0.08 + 0.35);
-      });
-    } catch {
-      //
-    }
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } catch {
+        //
+      }
+    }, 120, duckingEnabled);
+  },
+
+  playRestFinishedChime(duckingEnabled?: boolean) {
+    withDucking(() => {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const notes = [587.33, 739.99, 880, 1174.66];
+
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+          gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.35);
+        });
+      } catch {
+        //
+      }
+    }, 600, duckingEnabled);
   },
 
   playPrFanfare() {
@@ -145,12 +189,14 @@ export const soundService = {
     }
   },
 
-  speakCountdown(seconds: number, enabled = true) {
-    if (seconds <= 0) {
-      this.speak('Отдых окончен. Начинайте подход', enabled);
-      return;
-    }
-    this.speak(String(seconds), enabled);
+  speakCountdown(seconds: number, enabled = true, duckingEnabled?: boolean) {
+    withDucking(() => {
+      if (seconds <= 0) {
+        this.speak('Отдых окончен. Начинайте подход', enabled);
+        return;
+      }
+      this.speak(String(seconds), enabled);
+    }, seconds <= 0 ? 2000 : 800, duckingEnabled);
   }
 };
 

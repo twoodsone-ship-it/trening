@@ -213,6 +213,7 @@ export interface AppSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   voiceEnabled: boolean;
+  audioDuckingEnabled?: boolean;
   focusModeDefault: boolean;
   defaultRestSeconds: number;
   barbellWeightKg: number;

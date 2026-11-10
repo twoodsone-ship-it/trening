@@ -4,6 +4,7 @@ import type { ActiveProgram, Exercise, GymProfile, ProgramGoal, WorkoutTemplate 
 import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
 import { applyAccessorySchedule } from '../data/programBuilder';
 import { isEquipmentAllowed } from '../utils/equipmentMap';
+import { checkMuscleBalance } from '../utils/muscleBalance';
 import { cn } from '../utils/cn';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 
@@ -62,6 +63,7 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
   }, [isOpen, templates, program]);
 
   const selected = draft.find(t => t.id === selectedTemplateId) || draft[0];
+  const selectedWarnings = useMemo(() => selected ? checkMuscleBalance(selected.exercises) : [], [selected]);
   const catalogItems = useMemo(() => Object.values(EXERCISE_CATALOG)
     .filter(item => isEquipmentAllowed(item.equipment, programDraft.gymProfile || 'full'))
     .filter(item => item.name.toLowerCase().includes(search.toLowerCase()))
@@ -169,6 +171,17 @@ export const ProgramEditorModal: React.FC<ProgramEditorModalProps> = ({
           </section>
 
           <section className="space-y-2">
+            {selectedWarnings.length > 0 && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/20 text-xs text-amber-200 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <span>⚠️</span>
+                  <span>Баланс нагрузки:</span>
+                </p>
+                {selectedWarnings.map((w, idx) => (
+                  <p key={idx} className="opacity-90">{w.message}</p>
+                ))}
+              </div>
+            )}
             {selected.exercises.map((ex, index) => (
               <div key={`${ex.id}-${index}`} className="surface-panel p-3 flex items-center gap-2">
                 <div className="flex flex-col">

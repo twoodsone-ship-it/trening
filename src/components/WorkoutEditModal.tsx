@@ -5,6 +5,7 @@ import { RpePickerModal } from './RpePickerModal';
 import { sanitizeNumber } from '../utils/workoutMath';
 import { roundWeight } from '../utils/roundWeight';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { checkMuscleBalance } from '../utils/muscleBalance';
 
 interface WorkoutEditModalProps {
   isOpen: boolean;
@@ -31,6 +32,8 @@ export const WorkoutEditModal: React.FC<WorkoutEditModalProps> = ({
     onClose,
     titleId: 'workout-edit-title'
   });
+
+  const balanceWarnings = draft ? checkMuscleBalance(draft.exercises) : [];
 
   if (!isOpen || !draft) return null;
 
@@ -98,6 +101,17 @@ export const WorkoutEditModal: React.FC<WorkoutEditModalProps> = ({
 
         {/* Exercises list */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+          {balanceWarnings.length > 0 && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/20 text-xs text-amber-200 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <span>⚠️</span>
+                <span>Баланс нагрузки:</span>
+              </p>
+              {balanceWarnings.map((w, idx) => (
+                <p key={idx} className="opacity-90">{w.message}</p>
+              ))}
+            </div>
+          )}
           {draft.exercises.map((ex, exIdx) => (
             <div key={ex.exerciseId} className="bg-white/[0.03] border border-white/10 rounded-2xl p-3.5 space-y-2.5">
               <div className="flex justify-between items-center">

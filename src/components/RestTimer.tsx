@@ -15,6 +15,7 @@ interface RestTimerProps {
   vibrationEnabled?: boolean;
   voiceEnabled?: boolean;
   clearBottomNav?: boolean;
+  nextUp?: string;
 }
 
 function notifyRestDone() {
@@ -51,7 +52,8 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   onFinished,
   soundEnabled = true,
   vibrationEnabled = true,
-  voiceEnabled = true
+  voiceEnabled = true,
+  nextUp
 }) => {
   const [totalSeconds, setTotalSeconds] = useState(initialSeconds);
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
@@ -188,6 +190,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">{isDone ? 'Отдых завершён' : 'Отдых'}</p>
         <p className={cn('font-mono font-black text-[clamp(4.5rem,20vw,6.5rem)] leading-none tabular-nums mt-5', timeLeft <= 5 && !isDone ? 'text-rose-400' : 'text-lime')}>{formattedTime}</p>
         <div className="h-1 bg-white/10 rounded-full overflow-hidden mt-6 mb-8"><div className="h-full bg-lime transition-all duration-1000" style={{ width: `${isDone ? 100 : progressPercent}%` }} /></div>
+
+        {nextUp && (
+          <div className="mb-6 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white/90 font-medium">
+            {nextUp}
+          </div>
+        )}
 
         {isDone ? (
           <button

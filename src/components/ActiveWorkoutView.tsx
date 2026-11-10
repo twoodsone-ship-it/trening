@@ -20,6 +20,7 @@ import { isWarmupSet, nextSetType, renumberSets, workoutProgress, previousSetFor
 import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/superset';
 import { restTimerStorage } from '../utils/restTimerStorage';
 import { createTrialSet, shouldCreateTrialSet } from '../utils/trialSet';
+import { getNextUpText } from '../utils/timerNextUp';
 import { cn } from '../utils/cn';
 import {
   EmptyWorkoutConfirmModal,
@@ -48,7 +49,7 @@ interface ActiveWorkoutViewProps {
   onUpdateExercises: (exercises: ActiveExerciseSession[]) => void;
   onFinishWorkout: (completed: CompletedWorkout) => boolean;
   onCancelWorkout: () => void;
-  onTriggerRestTimer: (seconds: number) => void;
+  onTriggerRestTimer: (seconds: number, nextUp?: string) => void;
   /** Bumps when rest timer hits 0 — reopen focus for next set */
   restResumeNonce?: number;
   /** Register imperative resume so App can open focus after rest (incl. unlock) */
@@ -134,7 +135,8 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     onUpdateExercises(next);
     soundService.haptic('setComplete', settings.vibrationEnabled);
     soundService.playCountdownBeep();
-    onTriggerRestTimer(warmup ? 30 : exercises[exIdx].restSeconds || settings.defaultRestSeconds || 90);
+    const nextUp = getNextUpText(next, exIdx, setIdx);
+    onTriggerRestTimer(warmup ? 30 : exercises[exIdx].restSeconds || settings.defaultRestSeconds || 90, nextUp);
   };
 
   const toggleSetComplete = (exIdx: number, setIdx: number) => {

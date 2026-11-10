@@ -47,6 +47,7 @@ export const App: React.FC = () => {
     dismissSummary,
     previousVolumeForTemplate,
     restTimerSeconds,
+    restTimerNextUp,
     isRestTimerOpen,
     setIsRestTimerOpen,
     isSettingsOpen,
@@ -170,6 +171,7 @@ export const App: React.FC = () => {
           vibrationEnabled={settings.vibrationEnabled}
           voiceEnabled={settings.voiceEnabled}
           clearBottomNav={!isViewActiveWorkout && !programSetupOpen}
+          nextUp={restTimerNextUp}
         />
 
         <SettingsModal

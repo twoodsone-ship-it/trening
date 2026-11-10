@@ -131,6 +131,7 @@ export function useWorkoutSession() {
   const [isViewActiveWorkout, setIsViewActiveWorkout] = useState(false);
   const [pendingSummary, setPendingSummary] = useState<CompletedWorkout | null>(null);
   const [restTimerSeconds, setRestTimerSeconds] = useState(90);
+  const [restTimerNextUp, setRestTimerNextUp] = useState<string | undefined>(undefined);
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [finishError, setFinishError] = useState(false);
@@ -243,8 +244,9 @@ export function useWorkoutSession() {
     setActiveWorkout(prev => (prev ? { ...prev, exercises } : null));
   }, []);
 
-  const triggerRestTimer = useCallback((seconds: number) => {
+  const triggerRestTimer = useCallback((seconds: number, nextUp?: string) => {
     setRestTimerSeconds(seconds);
+    setRestTimerNextUp(nextUp);
     setIsRestTimerOpen(true);
   }, []);
 
@@ -272,6 +274,7 @@ export function useWorkoutSession() {
     dismissSummary,
     previousVolumeForTemplate,
     restTimerSeconds,
+    restTimerNextUp,
     isRestTimerOpen,
     setIsRestTimerOpen,
     isSettingsOpen,

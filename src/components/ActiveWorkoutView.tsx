@@ -21,7 +21,7 @@ import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/s
 import { restTimerStorage } from '../utils/restTimerStorage';
 import { createTrialSet, shouldCreateTrialSet } from '../utils/trialSet';
 import { getNextUpText } from '../utils/timerNextUp';
-import { calculateInSessionSetAdjustment, getSetCountRecommendation } from '../services/inSessionAdjust';
+import { calculateInSessionSetAdjustment, getSetCountRecommendation, adjustSubsequentCategoryExercises } from '../services/inSessionAdjust';
 import { cn } from '../utils/cn';
 import {
   EmptyWorkoutConfirmModal,
@@ -175,6 +175,11 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       const rec = getSetCountRecommendation(next[exIdx], setIdx, rpe, targetSet.reps);
       if (rec) {
         setSetCountAdvice({ exIdx, ...rec });
+      }
+
+      const categoryResult = adjustSubsequentCategoryExercises(next, exIdx);
+      if (categoryResult.adjustedCount > 0) {
+        next = categoryResult.updatedExercises;
       }
     }
 

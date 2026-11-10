@@ -166,3 +166,94 @@ export function getSetCountRecommendation(
 
   return null;
 }
+
+/**
+ * Adjust subsequent unstarted exercises of the same category after all working sets of an exercise are finished.
+ * If average RPE <= 6.5 -> +1 step.
+ * If average RPE >= 9.5 -> -1 step.
+ * Max ±1 step, once per exercise, skipping sets with manualWeight.
+ */
+export function adjustSubsequentCategoryExercises(
+  exercises: ActiveExerciseSession[],
+  completedExIdx: number
+): { updatedExercises: ActiveExerciseSession[]; adjustedCount: number } {
+  const completedEx = exercises[completedExIdx];
+  if (!completedEx) {
+    return { updatedExercises: exercises, adjustedCount: 0 };
+  }
+
+  const workingSets = completedEx.sets.filter(s => s.type !== 'warmup' && !s.isWarmup);
+  if (workingSets.length === 0 || !workingSets.every(s => s.completed)) {
+    return { updatedExercises: exercises, adjustedCount: 0 };
+  }
+
+  const rpes = workingSets
+    .map(s => s.rpe)
+    .filter((r): r is number => typeof r === 'number');
+
+  if (rpes.length === 0) {
+    return { updatedExercises: exercises, adjustedCount: 0 };
+  }
+
+  const avgRpe = rpes.reduce((a, b) => a + b, 0) / rpes.length;
+  let direction: 0 | 1 | -1 = 0;
+
+  if (avgRpe <= 6.5) {
+    direction = 1;
+  } else if (avgRpe >= 9.5) {
+    direction = -1;
+  }
+
+  if (direction === 0) {
+    return { updatedExercises: exercises, adjustedCount: 0 };
+  }
+
+  let adjustedCount = 0;
+  const updatedExercises = exercises.map((ex, idx) => {
+    // Only check exercises appearing after the completed one
+    if (idx <= completedExIdx) return ex;
+
+    // Same category, not yet started, and not already categoryAdjusted
+    if (ex.category === completedEx.category && !ex.categoryAdjusted) {
+      const hasStarted = ex.sets.some(s => s.completed);
+      if (!hasStarted) {
+        adjustedCount++;
+        const isFixedBarbell = ex.equipment === 'fixed-barbell';
+        const step = ex.weightStep > 0 ? ex.weightStep : 2.5;
+
+        let newTargetWeight = ex.targetWeight;
+        if (isFixedBarbell) {
+          newTargetWeight = getAdjacentFixedBarbellWeight(ex.targetWeight, direction);
+        } else {
+          newTargetWeight = Math.max(0, roundWeight(ex.targetWeight + direction * step));
+        }
+
+        const newSets = ex.sets.map(s => {
+          if (s.manualWeight) return s;
+          let newWeight = s.weight;
+          if (isFixedBarbell) {
+            newWeight = getAdjacentFixedBarbellWeight(s.weight, direction);
+          } else {
+            newWeight = Math.max(0, roundWeight(s.weight + direction * step));
+          }
+          return {
+            ...s,
+            weight: newWeight,
+            autoAdjusted: true
+          };
+        });
+
+        return {
+          ...ex,
+          targetWeight: newTargetWeight,
+          sets: newSets,
+          categoryAdjusted: true
+        };
+      }
+    }
+
+    return ex;
+  });
+
+  return { updatedExercises, adjustedCount };
+}

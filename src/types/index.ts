@@ -78,6 +78,7 @@ export interface Exercise {
   restSeconds: number;
   notes?: string;
   trackingMode?: 'reps' | 'duration' | 'distance';
+  categoryAdjusted?: boolean;
   defaultDurationSeconds?: number;
   cardioIntensity?: 'easy' | 'moderate' | 'intervals';
   history: ExerciseSession[];
@@ -139,6 +140,7 @@ export interface ActiveExerciseSession {
   /** Compact history for in-workout progress chart */
   historySessions?: { date: string; weight: number; totalVolume: number; totalDurationSeconds?: number }[];
   trackingMode?: 'reps' | 'duration' | 'distance';
+  categoryAdjusted?: boolean;
   defaultDurationSeconds?: number;
   cardioIntensity?: 'easy' | 'moderate' | 'intervals';
 }
@@ -175,6 +177,7 @@ export interface CompletedWorkout {
     maxReps: number;
     workingWeight: number;
     trackingMode?: 'reps' | 'duration' | 'distance';
+  categoryAdjusted?: boolean;
     sets: SetHistoryEntry[];
     progression: ProgressionRecommendation;
   }[];

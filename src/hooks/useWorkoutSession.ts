@@ -57,7 +57,10 @@ export function buildActiveExercises(
     const deloadWeight = ex.weightStep > 0
       ? Math.max(ex.weightStep, Math.round((ex.currentWeight * 0.9) / ex.weightStep) * ex.weightStep)
       : 0;
-    const nextWeight = roundWeight(cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight);
+    let nextWeight = roundWeight(cyclePhase === 'deload' ? deloadWeight : recommendation.nextWeight);
+    if ((ex.equipment === 'cable' || ex.weightStep === 4.5) && nextWeight > 0) {
+      nextWeight = Math.max(4.5, Math.round(nextWeight / 4.5) * 4.5);
+    }
     const initialSets: WorkoutSet[] = Array.from({ length: targetSets }).map((_, i) => ({
       id: 's-' + Date.now() + '-' + i,
       setNumber: i + 1,

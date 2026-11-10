@@ -62,6 +62,9 @@ export function evaluateDoubleProgression(
   now: Date = new Date()
 ): ProgressionRecommendation {
   currentWeight = roundWeight(currentWeight);
+  if (weightStep === 4.5 && currentWeight > 0) {
+    currentWeight = Math.max(4.5, Math.round(currentWeight / 4.5) * 4.5);
+  }
   const isFatigued = readiness === 'tired' || readiness === 'sleep_deprived';
 
   if (!history || history.length === 0) {
@@ -90,7 +93,10 @@ export function evaluateDoubleProgression(
     : [];
   const topWorkingWeight = eligibleSets.reduce((top, set) => Math.max(top, set.weight), 0);
   const completedSets = eligibleSets.filter(s => s.weight >= topWorkingWeight - 0.01);
-  const lastWeight = roundWeight(completedSets[completedSets.length - 1]?.weight ?? lastSession?.weight ?? currentWeight);
+  let lastWeight = roundWeight(completedSets[completedSets.length - 1]?.weight ?? lastSession?.weight ?? currentWeight);
+  if (weightStep === 4.5 && lastWeight > 0) {
+    lastWeight = Math.max(4.5, Math.round(lastWeight / 4.5) * 4.5);
+  }
   const currentTarget = currentWeight;
   const ageDays = Math.max(0, (now.getTime() - new Date(baseHistory[baseHistory.length - 1].date).getTime()) / 86400000);
 

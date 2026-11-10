@@ -24,6 +24,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   cable: 'Блочный тренажер',
   machine: 'Тренажер / Хаммер',
   smith: 'Тренажер Смита',
+  'fixed-barbell': 'Цельная штанга',
   bodyweight: 'Собственный вес'
 };
 

@@ -22,6 +22,7 @@ export function normalizeEquipment(raw: unknown, name?: string): EquipmentType {
     if (lower === 'cable' || lower === 'блок' || lower === 'кроссовер') return 'cable';
     if (lower === 'machine' || lower === 'тренажер' || lower === 'хаммер') return 'machine';
     if (lower === 'smith' || lower === 'смит') return 'smith';
+    if (lower === 'fixed-barbell' || lower === 'цельная штанга') return 'fixed-barbell';
     if (lower === 'bodyweight' || lower === 'свой вес' || lower === 'собственный вес') return 'bodyweight';
   }
   if (name) {

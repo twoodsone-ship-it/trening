@@ -20,6 +20,39 @@ export interface CatalogExerciseItem {
   technique: ExerciseTechniqueGuide;
 }
 
+export const FIXED_BARBELL_WEIGHTS_KG: number[] = [
+  10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40
+];
+
+export function getAdjacentFixedBarbellWeight(currentWeight: number, direction: 1 | -1): number {
+  const weights = [...FIXED_BARBELL_WEIGHTS_KG].sort((a, b) => a - b);
+  if (weights.length === 0) return currentWeight;
+  if (direction > 0) {
+    const higher = weights.find(w => w > currentWeight + 0.001);
+    return higher !== undefined ? higher : currentWeight;
+  } else {
+    const lower = [...weights].reverse().find(w => w < currentWeight - 0.001);
+    return lower !== undefined ? lower : currentWeight;
+  }
+}
+
+export function getClosestFixedBarbellWeight(weight: number): number {
+  const weights = FIXED_BARBELL_WEIGHTS_KG;
+  if (weights.length === 0) return weight;
+  return weights.reduce((prev, curr) =>
+    Math.abs(curr - weight) < Math.abs(prev - weight) ? curr : prev
+  );
+}
+
+export function getTrialFixedBarbellWeight(targetWeight: number): number {
+  const ideal = targetWeight * 0.5;
+  const candidates = FIXED_BARBELL_WEIGHTS_KG.filter(w => w < targetWeight - 0.001);
+  if (candidates.length === 0) return 0;
+  return candidates.reduce((prev, curr) =>
+    Math.abs(curr - ideal) < Math.abs(prev - ideal) ? curr : prev
+  );
+}
+
 export const EXERCISE_GIF_MAP: Record<string, string> = {
   'jump-rope': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/e1e76I2.gif',
   'burpees': 'https://raw.githubusercontent.com/bootstrapping-lab/exercisedb-api/main/media/dK9394r.gif',
@@ -1240,13 +1273,13 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     id: 'overhead-press',
     name: "Армейский жим стоя со штангой (OHP)",
     category: 'Shoulders',
-    equipment: 'barbell',
+    equipment: 'fixed-barbell',
     animationType: 'overhead-press',
     defaultSets: 3,
     minReps: 8,
     maxReps: 12,
     weightStep: 2.5,
-    defaultWeight: 42.5,
+    defaultWeight: 20,
     restSeconds: 90,
     alternatives: ["seated-db-press","hammer-shoulder-press","smith-shoulder-press","lateral-raises","arnold-press","cable-front-raise"],
     technique: {

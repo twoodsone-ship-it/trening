@@ -12,7 +12,7 @@ export const GYM_PROFILES: Array<{
 ];
 
 const ALLOWED: Record<GymProfile, EquipmentType[]> = {
-  full: ['barbell', 'dumbbell', 'cable', 'machine', 'smith', 'bodyweight'],
+  full: ['barbell', 'dumbbell', 'cable', 'machine', 'smith', 'bodyweight', 'fixed-barbell'],
   dumbbells: ['dumbbell', 'bodyweight'],
   home: ['dumbbell', 'bodyweight']
 };

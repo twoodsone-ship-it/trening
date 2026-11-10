@@ -1,6 +1,6 @@
 export type MuscleCategory = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core' | 'Cardio';
 
-export type EquipmentType = 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'smith' | 'bodyweight';
+export type EquipmentType = 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'smith' | 'bodyweight' | 'fixed-barbell';
 
 export interface ExerciseTechniqueGuide {
   setup: string;

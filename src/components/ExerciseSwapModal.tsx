@@ -47,6 +47,7 @@ const EQUIPMENT_BADGES: Record<string, { label: string; bg: string; text: string
   cable: { label: 'Блок / Кроссовер', bg: 'bg-violet-500/10', text: 'text-violet-300' },
   machine: { label: 'Тренажер / Хаммер', bg: 'bg-amber-500/10', text: 'text-amber-300' },
   smith: { label: 'Смит', bg: 'bg-indigo-500/10', text: 'text-indigo-300' },
+  'fixed-barbell': { label: 'Цельная штанга', bg: 'bg-emerald-500/10', text: 'text-emerald-300' },
   bodyweight: { label: 'Свой вес', bg: 'bg-lime/10', text: 'text-lime' }
 };
 

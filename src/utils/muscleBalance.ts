@@ -18,7 +18,14 @@ export interface ExerciseItemForBalance {
 }
 
 /**
+ * Muscle categories that naturally concentrate in dedicated workouts (Legs days, Core finishers)
+ * and should not trigger consecutive exercise warnings.
+ */
+export const EXCLUDED_BALANCE_CATEGORIES = new Set<string>(['Legs', 'Core']);
+
+/**
  * Detects 3 or more consecutive exercises targeting the same muscle category outside of supersets.
+ * Excludes categories like 'Legs' and 'Core' where clustering is natural.
  */
 export function checkMuscleBalance(
   exercises: ExerciseItemForBalance[]
@@ -41,11 +48,12 @@ export function checkMuscleBalance(
       j++;
     }
 
+    const isExcludedCategory = EXCLUDED_BALANCE_CATEGORIES.has(category);
     const isSharedSuperset =
       run.length > 1 &&
       run.every(e => Boolean(e.supersetGroupId) && e.supersetGroupId === run[0].supersetGroupId);
 
-    if (run.length >= 3 && !isSharedSuperset) {
+    if (run.length >= 3 && !isExcludedCategory && !isSharedSuperset) {
       const label = muscleCategoryLabel(category as MuscleCategory);
       const names = run.map(e => e.name);
       warnings.push({

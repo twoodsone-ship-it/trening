@@ -20,6 +20,41 @@ describe('muscle balance check for consecutive exercises', () => {
     expect(warnings[0].exerciseNames).toEqual(['Жим штанги', 'Жим гантелей', 'Кроссовер']);
   });
 
+  it('does not warn for consecutive Legs or Core exercises', () => {
+    const legList = [
+      { name: 'Приседания со штангой на спине', category: 'Legs' },
+      { name: 'Румынская тяга со штангой (RDL)', category: 'Legs' },
+      { name: 'Жим ногами в тренажере', category: 'Legs' },
+      { name: 'Разгибание голеней сидя', category: 'Legs' },
+      { name: 'Подъем на носки стоя', category: 'Legs' }
+    ];
+    expect(checkMuscleBalance(legList)).toHaveLength(0);
+
+    const coreList = [
+      { name: 'Планка на предплечьях', category: 'Core' },
+      { name: 'Скручивания на полу', category: 'Core' },
+      { name: 'Подъем ног в висе', category: 'Core' }
+    ];
+    expect(checkMuscleBalance(coreList)).toHaveLength(0);
+  });
+
+  it('warns for 3 or more consecutive Back exercises', () => {
+    const backList = [
+      { name: 'Становая тяга классическая со штангой', category: 'Back' },
+      { name: 'Тяга верхнего блока к груди широким хватом', category: 'Back' },
+      { name: 'Тяга штанги в наклоне к поясу', category: 'Back' }
+    ];
+    const warnings = checkMuscleBalance(backList);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].category).toBe('Back');
+    expect(warnings[0].count).toBe(3);
+    expect(warnings[0].exerciseNames).toEqual([
+      'Становая тяга классическая со штангой',
+      'Тяга верхнего блока к груди широким хватом',
+      'Тяга штанги в наклоне к поясу'
+    ]);
+  });
+
   it('ignores exercises that are alternating or interleaved', () => {
     const list = [
       { name: 'Жим штанги', category: 'Chest' },

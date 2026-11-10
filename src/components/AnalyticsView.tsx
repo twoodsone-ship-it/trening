@@ -4,7 +4,8 @@ import {
   Flame, 
   Calendar, 
   ChevronDown, 
-  ChevronUp
+  ChevronUp,
+  Sparkles
 } from 'lucide-react';
 import { CompletedWorkout, WorkoutTemplate } from '../types';
 import { calculate1RM } from '../services/progressionEngine';
@@ -13,6 +14,7 @@ import { storageService } from '../services/storageService';
 import { pluralize } from '../utils/pluralize';
 import { WorkoutTrendChart } from './WorkoutTrendChart';
 import { WorkoutEditModal } from './WorkoutEditModal';
+import { AiReviewModal } from './AiReviewModal';
 import { cn } from '../utils/cn';
 
 interface AnalyticsViewProps {
@@ -44,6 +46,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [undoState, setUndoState] = useState<DeleteUndoState | null>(null);
+  const [isAiReviewOpen, setIsAiReviewOpen] = useState(false);
 
   const cutoff = Date.now() - periodWeeks * 7 * 86400000;
   const periodHistory = history.filter(w => w.endTime >= cutoff);
@@ -208,13 +211,31 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <p className="text-xs text-muted mt-1">
           Статистика прогресса, тоннаж и расчетные 1RM максимумы
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-300 border border-orange-400/30">
-            <Flame className="w-3.5 h-3.5" /> Streak {streak} дн.
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-lime/10 text-lime border border-lime/30">
-            Эта неделя: {weekCount}
-          </span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-300 border border-orange-400/30">
+              <Flame className="w-3.5 h-3.5" /> Streak {streak} дн.
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-lime/10 text-lime border border-lime/30">
+              Эта неделя: {weekCount}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={history.length < 2}
+            title={history.length < 2 ? 'Нужно хотя бы 2 тренировки' : 'Собрать отчёт и готовый промт для ИИ'}
+            onClick={() => setIsAiReviewOpen(true)}
+            className={cn(
+              'min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 shrink-0',
+              history.length < 2
+                ? 'opacity-40 cursor-not-allowed bg-white/5 border-white/10 text-muted'
+                : 'bg-lime/15 hover:bg-lime/25 text-lime border-lime/30 hover:border-lime/50 shadow-sm active:scale-95'
+            )}
+          >
+            <Sparkles className="w-4 h-4 text-lime" />
+            <span>Разбор для ИИ</span>
+          </button>
         </div>
       </div>
 
@@ -462,6 +483,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           workout={editingWorkout}
           onClose={() => setEditingWorkout(null)}
           onSave={handleSaveWorkoutEdit}
+        />
+      )}
+
+      {/* AI Review Modal */}
+      {isAiReviewOpen && (
+        <AiReviewModal
+          isOpen={isAiReviewOpen}
+          history={history}
+          settings={storageService.getSettings()}
+          onClose={() => setIsAiReviewOpen(false)}
         />
       )}
     </div>

@@ -19,7 +19,7 @@ import { FocusSetOverlay } from './FocusSetOverlay';
 import { isWarmupSet, nextSetType, renumberSets, workoutProgress, previousSetFor } from '../utils/workoutHelpers';
 import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/superset';
 import { restTimerStorage } from '../utils/restTimerStorage';
-import { createTrialSet } from '../utils/trialSet';
+import { createTrialSet, shouldCreateTrialSet } from '../utils/trialSet';
 import { cn } from '../utils/cn';
 import {
   EmptyWorkoutConfirmModal,
@@ -315,8 +315,11 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       };
     });
     const existingTrial = oldEx.sets.find(isWarmupSet);
-    if (existingTrial?.completed) newSets.unshift(existingTrial);
-    else newSets.unshift(createTrialSet({ ...newCatalogEx, targetWeight: newCatalogEx.defaultWeight }, existingTrial?.id || `trial-${Date.now()}-${swappingExIndex}`));
+    if (existingTrial?.completed) {
+      newSets.unshift(existingTrial);
+    } else if (shouldCreateTrialSet(newCatalogEx)) {
+      newSets.unshift(createTrialSet({ ...newCatalogEx, targetWeight: newCatalogEx.defaultWeight }, existingTrial?.id || `trial-${Date.now()}-${swappingExIndex}`));
+    }
 
     onUpdateExercises(
       patchExercise(exercises, swappingExIndex, () => ({
@@ -373,16 +376,21 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
       trackingMode: newCatalogEx.trackingMode || 'reps',
       defaultDurationSeconds: newCatalogEx.defaultDurationSeconds,
       cardioIntensity: newCatalogEx.cardioIntensity,
-      sets: [createTrialSet({ ...newCatalogEx, targetWeight: newCatalogEx.defaultWeight }, `trial-${Date.now()}-${exercises.length}`), ...Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
-        id: 's-' + Date.now() + '-' + i,
-        setNumber: i + 1,
-        weight: newCatalogEx.defaultWeight,
-        reps: newCatalogEx.minReps,
-        durationSeconds: newCatalogEx.trackingMode === 'duration' ? newCatalogEx.defaultDurationSeconds : undefined,
-        rpe: undefined,
-        completed: false,
-        type: 'working' as const
-      }))],
+      sets: [
+        ...(shouldCreateTrialSet(newCatalogEx)
+          ? [createTrialSet({ ...newCatalogEx, targetWeight: newCatalogEx.defaultWeight }, `trial-${Date.now()}-${exercises.length}`)]
+          : []),
+        ...Array.from({ length: newCatalogEx.defaultSets }).map((_, i) => ({
+          id: 's-' + Date.now() + '-' + i,
+          setNumber: i + 1,
+          weight: newCatalogEx.defaultWeight,
+          reps: newCatalogEx.minReps,
+          durationSeconds: newCatalogEx.trackingMode === 'duration' ? newCatalogEx.defaultDurationSeconds : undefined,
+          rpe: undefined,
+          completed: false,
+          type: 'working' as const
+        }))
+      ],
       recommendation
     };
 

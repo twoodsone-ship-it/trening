@@ -11,7 +11,7 @@ import type {
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import { EXERCISE_CATALOG, type CatalogExerciseItem } from '../data/exerciseCatalog';
 import { workoutNameLabel } from '../utils/uiLabels';
-import { createTrialSet } from '../utils/trialSet';
+import { createTrialSet, shouldCreateTrialSet } from '../utils/trialSet';
 import { roundWeight } from '../utils/roundWeight';
 import { sanitizeNumber } from '../utils/workoutMath';
 import {
@@ -224,7 +224,9 @@ export function migrateActiveSession(workout: any): ActiveWorkout | null {
   // Add the default trial to exercises that have not yet started in saved sessions.
   migratedExercises.forEach((ex: any, index: number) => {
     if (ex.sets.some((set: any) => set.completed || set.type === 'warmup' || set.isWarmup)) return;
-    ex.sets.unshift(createTrialSet(ex, `trial-${workout.startTime || Date.now()}-${index}`));
+    if (shouldCreateTrialSet(ex)) {
+      ex.sets.unshift(createTrialSet(ex, `trial-${workout.startTime || Date.now()}-${index}`));
+    }
   });
 
   return {

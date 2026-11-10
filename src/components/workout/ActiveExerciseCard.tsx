@@ -117,14 +117,16 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
             >
               <RefreshCw className="w-3.5 h-3.5" /> Замена
             </button>
-            <button
-              type="button"
-              onClick={onOpenPlateCalc}
-              className="min-h-[44px] min-w-[44px] p-2 rounded-xl bg-white/5 text-white/70 border border-white/10 flex items-center justify-center"
-              aria-label="Калькулятор блинов"
-            >
-              <Calculator className="w-4 h-4" />
-            </button>
+            {ex.equipment === 'barbell' && (
+              <button
+                type="button"
+                onClick={onOpenPlateCalc}
+                className="min-h-[44px] min-w-[44px] p-2 rounded-xl bg-white/5 text-white/70 border border-white/10 flex items-center justify-center"
+                aria-label="Калькулятор блинов"
+              >
+                <Calculator className="w-4 h-4" />
+              </button>
+            )}
             {historySessions && historySessions.length > 0 && (
               <button
                 type="button"
@@ -202,13 +204,15 @@ export const ActiveExerciseCard: React.FC<ActiveExerciseCardProps> = ({
               >
                 <Plus className="w-3.5 h-3.5" /> Сет
               </button>
-              <button
-                type="button"
-                onClick={onAddWarmup}
-                className="min-h-[44px] text-xs font-semibold text-amber-400 px-3 py-2 rounded-xl hover:bg-amber-500/10 border border-amber-400/20 flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" /> Разминка
-              </button>
+              {!(ex.equipment === 'bodyweight' && ex.targetWeight === 0) && (
+                <button
+                  type="button"
+                  onClick={onAddWarmup}
+                  className="min-h-[44px] text-xs font-semibold text-amber-400 px-3 py-2 rounded-xl hover:bg-amber-500/10 border border-amber-400/20 flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Разминка
+                </button>
+              )}
             </div>
             {ex.sets.length > 1 && (
               <button

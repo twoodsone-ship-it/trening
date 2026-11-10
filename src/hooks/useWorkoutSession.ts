@@ -16,7 +16,7 @@ import { storageService } from '../services/storageService';
 import { pluralize } from '../utils/pluralize';
 import { evaluateDoubleProgression } from '../services/progressionEngine';
 import { buildProgramTemplates, getProgramCycle } from '../data/programBuilder';
-import { createTrialSet } from '../utils/trialSet';
+import { createTrialSet, shouldCreateTrialSet } from '../utils/trialSet';
 import { roundWeight } from '../utils/roundWeight';
 import { cancelActiveWorkoutSession } from '../utils/activeWorkoutSession';
 import { isValidExerciseSession } from '../utils/sessionValidation';
@@ -68,7 +68,9 @@ export function buildActiveExercises(
       completed: false,
       type: 'working' as const
     }));
-    initialSets.unshift(createTrialSet({ ...ex, targetWeight: nextWeight }, `trial-${Date.now()}-${exIndex}`));
+    if (shouldCreateTrialSet(ex)) {
+      initialSets.unshift(createTrialSet({ ...ex, targetWeight: nextWeight }, `trial-${Date.now()}-${exIndex}`));
+    }
 
     return {
       exerciseId: ex.id,

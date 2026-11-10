@@ -2,11 +2,23 @@ import type { WorkoutSet } from '../types';
 
 interface TrialExercise {
   equipment?: string;
+  category?: string;
   trackingMode?: 'reps' | 'duration' | 'distance';
   targetWeight: number;
   weightStep: number;
   minReps: number;
   defaultDurationSeconds?: number;
+}
+
+export function shouldCreateTrialSet(exercise: {
+  equipment?: string;
+  category?: string;
+  trackingMode?: string;
+}): boolean {
+  if (exercise.equipment === 'bodyweight') return false;
+  if (exercise.category === 'Cardio' || exercise.category?.toLowerCase() === 'cardio') return false;
+  if (exercise.trackingMode && exercise.trackingMode !== 'reps') return false;
+  return true;
 }
 
 export function createTrialSet(exercise: TrialExercise, id: string): WorkoutSet {

@@ -1,6 +1,7 @@
 import { CompletedWorkout, AppSettings, MuscleCategory } from '../types';
 import { calculate1RM } from '../services/progressionEngine';
 import { muscleCategoryLabel, pluralize } from './uiLabels';
+import { FIXED_BARBELL_WEIGHTS_KG } from '../data/exerciseCatalog';
 
 export interface AiReviewOptions {
   period: '2w' | '4w' | 'last8';
@@ -20,7 +21,7 @@ export const AI_REVIEW_PROMPT_TEMPLATE = `Ты тренер по силовым 
 
 export const EQUIPMENT_NOTES = `=== ОСОБЕННОСТИ СНАРЯЖЕНИЯ В ЗАЛЕ ===
 - Блочные тренажёры (cable): шаг веса 4.5 кг (плиты стека по 10 lbs). Допустимые веса кратны 4.5 кг (18, 22.5, 27, 31.5, 36 кг и т.д.).
-- Армейский жим (overhead-press): цельная штанга фиксированного веса (fixed-barbell) из дискретного ряда: 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40 кг (без наборных блинов).
+- Армейский жим (overhead-press): цельная штанга фиксированного веса (fixed-barbell) из дискретного ряда: ${FIXED_BARBELL_WEIGHTS_KG.join(', ')} кг (без наборных блинов).
 - Обычная штанга со свободными весами (barbell): олимпийский гриф 20 кг, шаг подбора веса 2.5 кг (по 1.25 кг с каждой стороны).`;
 
 const GOAL_LABELS: Record<string, string> = {

@@ -21,18 +21,21 @@ export interface CatalogExerciseItem {
 }
 
 export const FIXED_BARBELL_WEIGHTS_KG: number[] = [
-  10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40
+  15, 20, 25, 30, 35, 40, 45, 50
 ];
 
 export function getAdjacentFixedBarbellWeight(currentWeight: number, direction: 1 | -1): number {
   const weights = [...FIXED_BARBELL_WEIGHTS_KG].sort((a, b) => a - b);
   if (weights.length === 0) return currentWeight;
+  const minWeight = weights[0];
+  const maxWeight = weights[weights.length - 1];
+
   if (direction > 0) {
     const higher = weights.find(w => w > currentWeight + 0.001);
-    return higher !== undefined ? higher : currentWeight;
+    return higher !== undefined ? Math.min(maxWeight, higher) : maxWeight;
   } else {
     const lower = [...weights].reverse().find(w => w < currentWeight - 0.001);
-    return lower !== undefined ? lower : currentWeight;
+    return lower !== undefined ? Math.max(minWeight, lower) : minWeight;
   }
 }
 
@@ -1278,7 +1281,7 @@ export const EXERCISE_CATALOG: Record<string, CatalogExerciseItem> = {
     defaultSets: 3,
     minReps: 8,
     maxReps: 12,
-    weightStep: 2.5,
+    weightStep: 5,
     defaultWeight: 20,
     restSeconds: 90,
     alternatives: ["seated-db-press","hammer-shoulder-press","smith-shoulder-press","lateral-raises","arnold-press","cable-front-raise"],

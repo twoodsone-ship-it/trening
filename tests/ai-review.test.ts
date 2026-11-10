@@ -411,6 +411,7 @@ describe('AI review report generator (aiReview.ts)', () => {
     expect(report1).toContain('ОСОБЕННОСТИ СНАРЯЖЕНИЯ В ЗАЛЕ');
     expect(report1).toContain('Блочные тренажёры (cable): шаг веса 4.5 кг');
     expect(report1).toContain('Армейский жим (overhead-press): цельная штанга фиксированного веса');
+    expect(report1).toContain('15, 20, 25, 30, 35, 40, 45, 50 кг');
   });
 
   describe('UI Integration: AnalyticsView button and AiReviewModal', () => {

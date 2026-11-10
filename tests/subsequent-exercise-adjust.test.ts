@@ -110,7 +110,7 @@ describe('subsequent exercises category auto-adjustment', () => {
     const { updatedExercises, adjustedCount } = adjustSubsequentCategoryExercises([ex1, ex2], 0);
 
     expect(adjustedCount).toBe(1);
-    expect(updatedExercises[1].targetWeight).toBe(22.5); // discrete jump 20 -> 22.5
-    expect(updatedExercises[1].sets[0].weight).toBe(22.5);
+    expect(updatedExercises[1].targetWeight).toBe(25); // discrete jump 20 -> 25
+    expect(updatedExercises[1].sets[0].weight).toBe(25);
   });
 });

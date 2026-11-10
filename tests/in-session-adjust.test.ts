@@ -81,6 +81,7 @@ describe('in-session set weight adjustment', () => {
   it('respects fixed-barbell discrete weights', () => {
     const ex = createMockExercise({
       equipment: 'fixed-barbell',
+      weightStep: 5,
       targetWeight: 20,
       sets: [
         { id: '1', setNumber: 1, weight: 20, reps: 10, completed: false },
@@ -89,8 +90,8 @@ describe('in-session set weight adjustment', () => {
     });
 
     const res = calculateInSessionSetAdjustment(ex, 0, 6, 10);
-    expect(res.deltaWeight).toBe(2.5);
-    expect(res.updatedSets[1].weight).toBe(22.5);
+    expect(res.deltaWeight).toBe(5);
+    expect(res.updatedSets[1].weight).toBe(25);
   });
 
   it('does not touch sets marked with manualWeight: true', () => {

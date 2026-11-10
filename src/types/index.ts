@@ -25,6 +25,8 @@ export interface WorkoutSet {
   completed: boolean;
   isWarmup?: boolean;
   type?: WorkoutSetType;
+  manualWeight?: boolean;
+  autoAdjusted?: boolean;
 }
 
 export interface SetHistoryEntry {

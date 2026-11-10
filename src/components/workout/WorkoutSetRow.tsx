@@ -61,7 +61,11 @@ export const WorkoutSetRow: React.FC<WorkoutSetRowProps> = ({
         </button>
         <button type="button" onClick={() => setEditing(v => !v)} aria-expanded={editing} aria-label="Изменить вес и повторения" className="min-w-0 min-h-[56px] text-left py-2">
           <span className="flex items-center gap-2 font-mono text-base font-bold tabular-nums break-words">
-            {isTimed ? durationLabel : `${hasWeight ? `${set.weight} кг × ` : ''}${set.reps} повт.`}<Pencil className="w-3 h-3 text-muted shrink-0" />
+            {isTimed ? durationLabel : `${hasWeight ? `${set.weight} кг × ` : ''}${set.reps} повт.`}
+            {set.autoAdjusted && !set.completed && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-lime/10 text-lime font-mono font-bold tracking-tight">авто</span>
+            )}
+            <Pencil className="w-3 h-3 text-muted shrink-0" />
           </span>
           {previousSet && <span className="block text-xs text-muted mt-0.5">Прошлый: {previousLabel}</span>}
         </button>

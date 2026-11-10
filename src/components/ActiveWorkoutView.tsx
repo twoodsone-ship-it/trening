@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Clock, Focus, Link2, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { roundWeight } from '../utils/roundWeight';
@@ -21,6 +21,7 @@ import { findFocusTarget, groupBySuperset, newSupersetGroupId } from '../utils/s
 import { restTimerStorage } from '../utils/restTimerStorage';
 import { createTrialSet, shouldCreateTrialSet } from '../utils/trialSet';
 import { getNextUpText } from '../utils/timerNextUp';
+import { calculateInSessionSetAdjustment, getSetCountRecommendation } from '../services/inSessionAdjust';
 import { cn } from '../utils/cn';
 import {
   EmptyWorkoutConfirmModal,
@@ -125,18 +126,63 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     };
   }, []);
 
+  const [autoToast, setAutoToast] = useState<string | null>(null);
+  const autoToastTimerRef = useRef<any>(null);
+  const showAutoToast = (msg: string) => {
+    if (autoToastTimerRef.current) clearTimeout(autoToastTimerRef.current);
+    setAutoToast(msg);
+    autoToastTimerRef.current = setTimeout(() => setAutoToast(null), 4000);
+  };
+
+  const [setCountAdvice, setSetCountAdvice] = useState<{
+    exIdx: number;
+    type: 'remove' | 'add';
+    message: string;
+    buttonLabel: string;
+  } | null>(null);
+
   const completeSetWithRpe = (exIdx: number, setIdx: number, rpe?: number) => {
-    const warmup = isWarmupSet(exercises[exIdx].sets[setIdx]);
+    const targetSet = exercises[exIdx].sets[setIdx];
+    const warmup = isWarmupSet(targetSet);
     let next = patchSet(exercises, exIdx, setIdx, s => ({
       ...s,
       completed: true,
       rpe: warmup ? undefined : rpe ?? s.rpe
     }));
+
+    let restTime = warmup ? 30 : exercises[exIdx].restSeconds || settings.defaultRestSeconds || 90;
+
+    if (!warmup && rpe !== undefined) {
+      const adjustResult = calculateInSessionSetAdjustment(
+        next[exIdx],
+        setIdx,
+        rpe,
+        targetSet.reps
+      );
+      if (adjustResult.deltaWeight !== 0) {
+        next = patchExercise(next, exIdx, ex => ({
+          ...ex,
+          sets: adjustResult.updatedSets
+        }));
+        if (adjustResult.toastMessage) {
+          showAutoToast(adjustResult.toastMessage);
+        }
+      }
+      if (adjustResult.restDeltaSeconds > 0) {
+        restTime += adjustResult.restDeltaSeconds;
+      }
+
+      const rec = getSetCountRecommendation(next[exIdx], setIdx, rpe, targetSet.reps);
+      if (rec) {
+        setSetCountAdvice({ exIdx, ...rec });
+      }
+    }
+
     onUpdateExercises(next);
     soundService.haptic('setComplete', settings.vibrationEnabled);
     soundService.playCountdownBeep();
     const nextUp = getNextUpText(next, exIdx, setIdx);
-    onTriggerRestTimer(warmup ? 30 : exercises[exIdx].restSeconds || settings.defaultRestSeconds || 90, nextUp);
+    onTriggerRestTimer(restTime, nextUp);
   };
 
   const toggleSetComplete = (exIdx: number, setIdx: number) => {
@@ -156,7 +202,9 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
     onUpdateExercises(
       patchSet(exercises, exIdx, setIdx, s => ({
         ...s,
-        weight: Math.max(0, roundWeight(s.weight + delta))
+        weight: Math.max(0, roundWeight(s.weight + delta)),
+        manualWeight: true,
+        autoAdjusted: false
       }))
     );
   };
@@ -650,6 +698,48 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           </div>
         </div>
       </div>
+
+      {autoToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-ink/95 border border-lime/40 text-lime text-xs font-mono font-bold shadow-lg shadow-black/50 backdrop-blur-md flex items-center gap-2">
+          <span>⚡</span>
+          <span>{autoToast}</span>
+        </div>
+      )}
+
+      {setCountAdvice && (
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-xs">
+            <span className="font-semibold text-amber-200">{setCountAdvice.message}</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (setCountAdvice.type === 'remove') {
+                    const ex = exercises[setCountAdvice.exIdx];
+                    if (ex && ex.sets.length > 1) {
+                      removeSet(setCountAdvice.exIdx, ex.sets.length - 1);
+                    }
+                  } else {
+                    addSet(setCountAdvice.exIdx);
+                  }
+                  setSetCountAdvice(null);
+                }}
+                className="min-h-[44px] px-3 py-2 rounded-xl bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 font-bold flex items-center"
+              >
+                {setCountAdvice.buttonLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSetCountAdvice(null)}
+                className="min-h-[44px] min-w-[44px] p-2 text-muted hover:text-white flex items-center justify-center"
+                aria-label="Закрыть подсказку"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-3">
         {indexedBlocks.map((block, blockIdx) => {

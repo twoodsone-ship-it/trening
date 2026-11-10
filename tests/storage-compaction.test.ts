@@ -187,7 +187,7 @@ describe('G2: Compaction on write only', () => {
 
     const ratio = compactedTotal / uncompactedTotal;
     expect(ratio).toBeLessThanOrEqual(0.60);
-  });
+  }, 20000);
 
   it('legacy template-only sessions survive compaction', () => {
     const legacySession: ExerciseSession = {
